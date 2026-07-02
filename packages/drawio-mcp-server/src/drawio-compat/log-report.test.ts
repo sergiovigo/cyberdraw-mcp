@@ -5,7 +5,9 @@ function makeLogger() {
   const calls: Array<[string, string]> = [];
   return {
     calls,
-    logger: { log: (lvl: string, msg: string) => calls.push([lvl, msg]) } as any,
+    logger: {
+      log: (lvl: string, msg: string) => calls.push([lvl, msg]),
+    } as any,
   };
 }
 
@@ -45,7 +47,12 @@ describe("handleCompatReport", () => {
   it("emits warning for no-version state", () => {
     const { calls, logger } = makeLogger();
     handleCompatReport(
-      { drawioVersion: null, state: "no-version", floor: "29.0.0", detail: "missing" },
+      {
+        drawioVersion: null,
+        state: "no-version",
+        floor: "29.0.0",
+        detail: "missing",
+      },
       logger,
     );
     expect(calls.some(([lvl]) => lvl === "warning")).toBe(true);

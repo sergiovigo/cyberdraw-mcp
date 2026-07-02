@@ -500,7 +500,9 @@ export function createDrawioMcpApp(options?: {
   }
 
   function listKnownDocuments(): ConnectedDocumentInfo[] {
-    return [...conns.values()].flatMap((entry) => [...entry.documents.values()]);
+    return [...conns.values()].flatMap((entry) => [
+      ...entry.documents.values(),
+    ]);
   }
 
   function findConnectionByDocumentId(

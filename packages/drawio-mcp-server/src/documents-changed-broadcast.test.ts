@@ -77,7 +77,12 @@ describe("documents-changed broadcast", () => {
           hash: null,
           file_url: null,
           page_count: 1,
-          current_page: { index: 0, id: "p1", name: "Page-1", is_current: true },
+          current_page: {
+            index: 0,
+            id: "p1",
+            name: "Page-1",
+            is_current: true,
+          },
         },
       }),
     );

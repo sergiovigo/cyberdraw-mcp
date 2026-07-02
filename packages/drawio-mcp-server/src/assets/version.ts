@@ -23,8 +23,7 @@ export async function readCachedDrawioVersion(
     };
     stream.on("data", (chunk) => {
       const text =
-        tail +
-        (typeof chunk === "string" ? chunk : chunk.toString("utf8"));
+        tail + (typeof chunk === "string" ? chunk : chunk.toString("utf8"));
       const match = VERSION_RE.exec(text);
       if (match) {
         finish(match[1] ?? null);
