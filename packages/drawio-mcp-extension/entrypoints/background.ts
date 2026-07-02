@@ -1,5 +1,6 @@
 import { initializeContentScripts, updateContentScriptRegistration } from '@/contentScript';
 import { getWebSocketUrl, CONFIG_STORAGE_KEY, type ExtensionConfig } from '../config';
+import type { ConnectedDocumentInfo } from '../types';
 
 const CONTENT_PORT_NAME = "drawio-mcp-frame";
 
@@ -24,6 +25,8 @@ export default defineBackground(() => {
 
   // Track current compat state
   let currentCompatState: CompatState = { kind: "unknown" };
+
+  let currentDocumentsSnapshot: ConnectedDocumentInfo[] = [];
 
   type ContentPort = ReturnType<typeof browser.runtime.connect>;
 
@@ -177,6 +180,10 @@ export default defineBackground(() => {
       socket.addEventListener("close", (event) => {
         console.debug("[background] WebSocket connection closed", event);
         setExtensionIcon("disconnected");
+        currentDocumentsSnapshot = [];
+        browser.runtime
+          .sendMessage({ type: "DOCUMENTS_UPDATE", documents: [] })
+          .catch(() => {});
         broadcastToContentScripts({ type: "WS_STATUS", connected: false });
         attemptReconnect();
       });
@@ -244,6 +251,21 @@ export default defineBackground(() => {
   // can't race to reply first. Control messages (no target_document) still
   // broadcast — every frame needs to see e.g. sync-document-state.
   function dispatchServerMessage(payload: any) {
+    if (
+      payload?.__control === "documents-changed" &&
+      Array.isArray(payload?.documents)
+    ) {
+      currentDocumentsSnapshot = payload.documents as ConnectedDocumentInfo[];
+      browser.runtime
+        .sendMessage({
+          type: "DOCUMENTS_UPDATE",
+          documents: currentDocumentsSnapshot,
+        })
+        .catch(() => {
+          // no popup listening — swallow
+        });
+      return;
+    }
     const targetDocumentId =
       typeof payload?.target_document?.id === "string"
         ? payload.target_document.id
@@ -321,6 +343,10 @@ export default defineBackground(() => {
     // Handle compat state request from popup
     if (message.type === "GET_COMPAT_STATE") {
       sendResponse({ state: currentCompatState });
+    }
+
+    if (message.type === "GET_DOCUMENTS") {
+      sendResponse({ documents: currentDocumentsSnapshot });
     }
 
     // Handle ping request from popup
