@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import "./App.css";
 import { getWebSocketUrl } from "../../config";
+import type { ConnectedDocumentInfo } from "../../types";
 import { CompatBanner } from "./CompatBanner.js";
 
 type ConnectionState = "connected" | "connecting" | "disconnected";
@@ -15,16 +16,14 @@ type CompatState =
 function App() {
   const [connectionState, setConnectionState] = useState<ConnectionState>("disconnected");
   const [compatState, setCompatState] = useState<CompatState>({ kind: "unknown" });
-  const [featuresExpanded, setFeaturesExpanded] = useState(false);
+  const [documents, setDocuments] = useState<ConnectedDocumentInfo[]>([]);
   const [currentUrl, setCurrentUrl] = useState<string>("");
 
   useEffect(() => {
-    // Load current effective WebSocket URL (override or derived default)
     getWebSocketUrl()
       .then(setCurrentUrl)
       .catch(error => console.error("Error loading config:", error));
 
-    // Request connection state from background script when popup opens
     browser.runtime.sendMessage({ type: "GET_CONNECTION_STATE" })
       .then((response) => {
         if (response && response.state) {
@@ -33,7 +32,6 @@ function App() {
       })
       .catch(error => console.error("Error getting connection state:", error));
 
-    // Listen for connection state updates
     const listener = (message: any) => {
       if (message.type === "CONNECTION_STATE_UPDATE") {
         setConnectionState(message.state);
@@ -42,10 +40,7 @@ function App() {
     };
 
     browser.runtime.onMessage.addListener(listener);
-
-    return () => {
-      browser.runtime.onMessage.removeListener(listener);
-    };
+    return () => browser.runtime.onMessage.removeListener(listener);
   }, []);
 
   useEffect(() => {
@@ -61,8 +56,30 @@ function App() {
     return () => browser.runtime.onMessage.removeListener(listener);
   }, []);
 
-  // Get the appropriate logo based on connection state
+  useEffect(() => {
+    browser.runtime.sendMessage({ type: "GET_DOCUMENTS" })
+      .then((response) => {
+        if (response?.documents) setDocuments(response.documents);
+      })
+      .catch((error) => console.error("documents fetch failed:", error));
+
+    const listener = (message: any) => {
+      if (message.type === "DOCUMENTS_UPDATE" && Array.isArray(message.documents)) {
+        setDocuments(message.documents);
+      }
+      return true;
+    };
+    browser.runtime.onMessage.addListener(listener);
+    return () => browser.runtime.onMessage.removeListener(listener);
+  }, []);
+
   const logoSrc = `/icon/logo_${connectionState}_128.png`;
+
+  const copyId = (id: string) => {
+    navigator.clipboard.writeText(id).catch((err) =>
+      console.error("clipboard write failed:", err),
+    );
+  };
 
   return (
     <>
@@ -118,7 +135,7 @@ function App() {
           >
             Ping Server
           </button>
-          
+
           {connectionState === "disconnected" && (
             <button
               onClick={() => {
@@ -132,26 +149,46 @@ function App() {
           )}
         </div>
       </div>
-      
+
       <div className="card">
         <p>Please open <a href="https://app.diagrams.net/" target="_blank">Draw.io</a> website to use MCP features</p>
       </div>
 
-      <div className="card align-left features-section">
-        <h3 
-          className="features-heading" 
-          onClick={() => setFeaturesExpanded(!featuresExpanded)}
-        >
-          Supported Features: <span className={`expand-icon ${featuresExpanded ? 'expanded' : ''}`}>▶</span>
+      <div className="card align-left documents-section">
+        <h3 className="documents-heading">
+          Connected Documents ({documents.length})
         </h3>
-        {featuresExpanded && (
-          <ul className="features-list">
-            <li>Get selected cell</li>
-            <li>Add rectangle shape</li>
-            <li>Add connection line (edge)</li>
-            <li>Delete cell</li>
-            <li>Get shape categories</li>
-            <li>Add specific shape</li>
+        {documents.length === 0 ? (
+          <p className="empty">No documents connected</p>
+        ) : (
+          <ul className="documents-list">
+            {documents.map((doc) => (
+              <li key={doc.id} className="document-row">
+                <div className="document-title-line">
+                  <strong>{doc.title ?? "(untitled)"}</strong>
+                  <span className="document-id" title={doc.id}>
+                    {doc.id.slice(0, 8)}…
+                  </span>
+                  <button
+                    type="button"
+                    className="copy-id-button"
+                    title="Copy full id"
+                    onClick={() => copyId(doc.id)}
+                  >
+                    📋
+                  </button>
+                </div>
+                <div className="document-meta">
+                  mode: {doc.mode ?? "—"} · {doc.page_count} pages · current:{" "}
+                  {doc.current_page?.name ?? "—"}
+                </div>
+                {doc.file_url && (
+                  <div className="document-url" title={doc.file_url}>
+                    <code>{doc.file_url}</code>
+                  </div>
+                )}
+              </li>
+            ))}
           </ul>
         )}
       </div>
