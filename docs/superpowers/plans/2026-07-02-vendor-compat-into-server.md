@@ -248,11 +248,14 @@ Expected: all tests pass. Failures here mean either the vendored symbols do not 
 
 Run:
 ```bash
-pnpm --filter drawio-mcp-server pack --pack-destination /tmp/claude-1000/-home-eldzi-development-practical-architect-2-drawio-mcp-server/69d5ee90-c6a7-4144-852f-ecd1f27cca9d/scratchpad
-TARBALL=$(ls -1t /tmp/claude-1000/-home-eldzi-development-practical-architect-2-drawio-mcp-server/69d5ee90-c6a7-4144-852f-ecd1f27cca9d/scratchpad/drawio-mcp-server-*.tgz | head -1)
+DEST=/tmp/claude-1000/-home-eldzi-development-practical-architect-2-drawio-mcp-server/69d5ee90-c6a7-4144-852f-ecd1f27cca9d/scratchpad
+(cd packages/drawio-mcp-server && pnpm pack --pack-destination "$DEST")
+TARBALL=$(ls -1t "$DEST"/drawio-mcp-server-*.tgz | head -1)
 tar -xzOf "$TARBALL" package/package.json | grep -E '"(drawio-mcp-compat|dependencies)"'
 rm "$TARBALL"
 ```
+
+(`pnpm --filter … pack --pack-destination` is rejected by pnpm; use `cd` + plain `pnpm pack`.)
 
 Expected: the extracted `package.json` snippet shows the `dependencies` block but no `drawio-mcp-compat` line. If `drawio-mcp-compat` still appears, Task 2's dep removal was reverted — fix before commit.
 
