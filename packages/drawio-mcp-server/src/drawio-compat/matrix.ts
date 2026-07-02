@@ -1,4 +1,8 @@
-import { isInRange, parseVersion, type VersionRange } from "drawio-mcp-compat";
+import {
+  isInRange,
+  parseVersion,
+  type VersionRange,
+} from "../vendored/compat/index.js";
 
 export type ServerCompatMatrix = {
   readonly supportedFloor: string;
