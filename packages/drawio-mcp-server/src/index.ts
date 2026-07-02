@@ -533,6 +533,24 @@ export function createDrawioMcpApp(options?: {
     return true;
   }
 
+  function broadcastDocumentsChanged() {
+    const documents = listKnownDocuments();
+    const frame = JSON.stringify({
+      __control: "documents-changed",
+      documents,
+    });
+    for (const entry of conns.values()) {
+      if (entry.ws.readyState !== WebSocket.OPEN) {
+        continue;
+      }
+      try {
+        entry.ws.send(frame);
+      } catch (error) {
+        getLog().debug(`[ws] documents-changed send failed`, error);
+      }
+    }
+  }
+
   function requestDocumentSync(entry: ConnectionEntry): Promise<void> {
     return new Promise((resolve) => {
       let settled = false;
@@ -890,6 +908,7 @@ export function createDrawioMcpApp(options?: {
             }
             entry.updated_at = Date.now();
             flushSyncWaiters(entry);
+            broadcastDocumentsChanged();
             return;
           }
 
@@ -898,6 +917,7 @@ export function createDrawioMcpApp(options?: {
             if (removedId) {
               entry.documents.delete(removedId);
               entry.updated_at = Date.now();
+              broadcastDocumentsChanged();
             }
             return;
           }
@@ -916,6 +936,7 @@ export function createDrawioMcpApp(options?: {
       ws.on("close", (code) => {
         flushSyncWaiters(entry);
         conns.delete(connection_id);
+        broadcastDocumentsChanged();
         getLog().debug(
           `[ws_handler] WebSocket client ${connection_id} closed with code ${code}`,
         );
@@ -925,6 +946,7 @@ export function createDrawioMcpApp(options?: {
         getLog().debug(`[ws_handler] WebSocket client error`, error);
         flushSyncWaiters(entry);
         conns.delete(connection_id);
+        broadcastDocumentsChanged();
       });
     });
 
