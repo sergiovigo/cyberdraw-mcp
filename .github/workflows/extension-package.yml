@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [23.x]
+        node-version: [24.x]
 
     steps:
       - uses: actions/checkout@v5
@@ -23,6 +23,7 @@ jobs:
 
       - name: Set env
         run: echo "VERSION=$(pnpm pkg get version | sed 's/^"//;s/"$//')" >> $GITHUB_ENV
+        working-directory: packages/drawio-mcp-extension
 
       - name: Install dependencies
         run: pnpm install
@@ -30,19 +31,19 @@ jobs:
       - name: Build compat
         run: pnpm --filter drawio-mcp-compat run build
 
-      - name: Build Plugin
+      - name: Build plugin
         run: pnpm run build
         working-directory: packages/drawio-mcp-plugin
 
-      - name: Package Chrome
+      - name: Package extension (chrome)
         run: pnpm run zip
         working-directory: packages/drawio-mcp-extension
 
-      - name: Package Firefox
+      - name: Package extension (firefox)
         run: pnpm run zip:firefox
         working-directory: packages/drawio-mcp-extension
 
-      - name: check
+      - name: List built artifacts
         run: ls -la .output
         working-directory: packages/drawio-mcp-extension
 

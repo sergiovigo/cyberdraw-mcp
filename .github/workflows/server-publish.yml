@@ -39,7 +39,7 @@ jobs:
       - name: Build dev proxy
         run: pnpm --filter drawio-mcp-dev-proxy run build
 
-      - name: Build
+      - name: Build server
         run: pnpm --filter drawio-mcp-server run build
 
       - name: Publish
