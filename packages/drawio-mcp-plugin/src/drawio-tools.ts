@@ -2583,6 +2583,14 @@ export function import_diagram(
           codec.decode(graphModelElement, model);
         }
 
+        // editor.setGraphXml swaps graph.model.root wholesale but leaves
+        // ui.currentPage.{root,viewState,graphModelNode} pointing at the
+        // pre-import state. Drawio's Page abstraction then re-hydrates from the
+        // stale references on the next internal sync (pan/zoom/save), blanking
+        // the canvas and risking a stale serialization on file save. See
+        // github.com/lgazo/drawio-mcp-server/issues/56.
+        sync_live_current_page_state(ui);
+
         return {
           success: true,
           message: `Diagram replaced successfully${filename ? ` from ${filename}` : ""}`,
@@ -2798,6 +2806,10 @@ export function import_diagram(
         } finally {
           model.endUpdate();
         }
+
+        // Sync page state to the freshly-loaded model root (see replace mode
+        // note above and issue #56).
+        sync_live_current_page_state(ui);
 
         return {
           success: true,
