@@ -17,8 +17,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10.8.1 --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY packages/drawio-mcp-plugin ./packages/drawio-mcp-plugin
-COPY packages/drawio-mcp-server ./packages/drawio-mcp-server
+COPY packages ./packages
 
 RUN pnpm install --frozen-lockfile
 
@@ -32,12 +31,18 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10.8.1 --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
-COPY packages/drawio-mcp-plugin ./packages/drawio-mcp-plugin
-COPY packages/drawio-mcp-server ./packages/drawio-mcp-server
+COPY packages ./packages
 
 RUN pnpm install --frozen-lockfile
 
-RUN pnpm --filter drawio-mcp-server run build
+# Build order matters: the server's `vendor:compat` step copies
+# ../drawio-mcp-compat/src, its build copies the bundled plugin from
+# node_modules/drawio-mcp-plugin/dist, and tsc type-checks
+# src/real-environment/, which imports drawio-mcp-dev-proxy.
+RUN pnpm --filter drawio-mcp-compat run build \
+ && pnpm --filter drawio-mcp-dev-proxy run build \
+ && pnpm --filter drawio-mcp-plugin run build \
+ && pnpm --filter drawio-mcp-server run build
 
 # ---------------------------------------------------------------------------
 # Stage 3: Runtime — install production deps and run
@@ -49,6 +54,11 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10.8.1 --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Runtime needs only these packages: compat is vendored into the server
+# build and the plugin bundle is baked into build/plugin/. dev-proxy and
+# extension have postinstall hooks (caddy download, `wxt prepare`) that
+# fail or add bloat under --prod.
+COPY packages/drawio-mcp-compat ./packages/drawio-mcp-compat
 COPY packages/drawio-mcp-plugin ./packages/drawio-mcp-plugin
 COPY packages/drawio-mcp-server ./packages/drawio-mcp-server
 
