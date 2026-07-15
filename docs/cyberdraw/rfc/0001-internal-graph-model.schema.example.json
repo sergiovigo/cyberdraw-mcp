@@ -1,0 +1,250 @@
+{
+  "schemaVersion": "0.1-example",
+  "kind": "cyberdraw.internalGraphModel",
+  "notice": "Illustrative JSON only. This is not an accepted schema or compatibility contract.",
+  "snapshot": {
+    "id": "snapshot-example-001",
+    "createdAt": "2026-07-15T00:00:00.000Z",
+    "revision": "sha256:example-normalized-snapshot-hash",
+    "source": {
+      "kind": "drawio-runtime",
+      "documentId": "doc-live-123",
+      "documentHash": "drawio-file-hash-if-available"
+    }
+  },
+  "diagram": {
+    "id": "diagram-doc-live-123",
+    "drawioDocumentId": "doc-live-123",
+    "pages": {
+      "page-main": {
+        "id": "page-main",
+        "drawioId": "drawio-page-main",
+        "index": 0,
+        "name": "Architecture",
+        "layers": ["layer-default"],
+        "elementIds": ["node-web", "node-api", "edge-web-api", "group-zone"],
+        "source": {
+          "kind": "drawio-runtime",
+          "pageId": "drawio-page-main"
+        }
+      }
+    },
+    "layers": {
+      "layer-default": {
+        "id": "layer-default",
+        "drawioId": "1",
+        "pageId": "page-main",
+        "name": "Default Layer",
+        "visible": true,
+        "locked": false
+      }
+    },
+    "elements": {
+      "group-zone": {
+        "id": "group-zone",
+        "drawioId": "zone-1",
+        "kind": "group",
+        "pageId": "page-main",
+        "layerId": "layer-default",
+        "childIds": ["node-web", "node-api"],
+        "label": {
+          "format": "plain",
+          "text": "Public zone"
+        },
+        "geometry": {
+          "x": 40,
+          "y": 40,
+          "width": 520,
+          "height": 260
+        },
+        "style": {
+          "raw": "group;rounded=1;html=1;",
+          "properties": {
+            "rounded": "1",
+            "html": "1"
+          },
+          "uninterpreted": ["group"]
+        },
+        "metadata": {
+          "attributes": {},
+          "extensions": [
+            {
+              "namespace": "cyberdraw.security",
+              "type": "security-zone",
+              "version": "1.0",
+              "data": {
+                "trustLevel": "untrusted"
+              }
+            }
+          ]
+        },
+        "source": {
+          "kind": "drawio-runtime",
+          "drawioId": "zone-1",
+          "pageId": "drawio-page-main"
+        }
+      },
+      "node-web": {
+        "id": "node-web",
+        "drawioId": "web-1",
+        "kind": "node",
+        "pageId": "page-main",
+        "layerId": "layer-default",
+        "parentId": "group-zone",
+        "label": {
+          "format": "html",
+          "text": "Web",
+          "html": "<div>Web</div>"
+        },
+        "geometry": {
+          "x": 100,
+          "y": 120,
+          "width": 140,
+          "height": 70
+        },
+        "style": {
+          "raw": "rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;",
+          "properties": {
+            "rounded": "1",
+            "whiteSpace": "wrap",
+            "html": "1",
+            "fillColor": "#dae8fc"
+          }
+        },
+        "shape": {
+          "name": "rounded-rectangle",
+          "styleShape": null,
+          "recognized": true
+        },
+        "metadata": {
+          "attributes": {
+            "owner": "platform"
+          },
+          "extensions": [
+            {
+              "namespace": "cyberdraw.architecture",
+              "type": "bounded-context",
+              "version": "1.0",
+              "data": {
+                "domain": "customer-entry"
+              }
+            }
+          ]
+        },
+        "source": {
+          "kind": "drawio-runtime",
+          "drawioId": "web-1",
+          "pageId": "drawio-page-main"
+        }
+      },
+      "node-api": {
+        "id": "node-api",
+        "drawioId": "api-1",
+        "kind": "node",
+        "pageId": "page-main",
+        "layerId": "layer-default",
+        "parentId": "group-zone",
+        "label": {
+          "format": "plain",
+          "text": "API"
+        },
+        "geometry": {
+          "x": 340,
+          "y": 120,
+          "width": 140,
+          "height": 70
+        },
+        "style": {
+          "raw": "rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;",
+          "properties": {
+            "rounded": "1",
+            "whiteSpace": "wrap",
+            "html": "1",
+            "fillColor": "#d5e8d4"
+          }
+        },
+        "shape": {
+          "name": "rounded-rectangle",
+          "styleShape": null,
+          "recognized": true
+        },
+        "metadata": {
+          "attributes": {}
+        },
+        "source": {
+          "kind": "drawio-runtime",
+          "drawioId": "api-1",
+          "pageId": "drawio-page-main"
+        }
+      },
+      "edge-web-api": {
+        "id": "edge-web-api",
+        "drawioId": "edge-1",
+        "kind": "edge",
+        "pageId": "page-main",
+        "layerId": "layer-default",
+        "sourceId": "node-web",
+        "targetId": "node-api",
+        "label": {
+          "format": "plain",
+          "text": "HTTPS"
+        },
+        "geometry": {
+          "relative": true,
+          "points": [
+            {
+              "x": 260,
+              "y": 155
+            }
+          ]
+        },
+        "style": {
+          "raw": "endArrow=classic;html=1;rounded=0;",
+          "properties": {
+            "endArrow": "classic",
+            "html": "1",
+            "rounded": "0"
+          }
+        },
+        "metadata": {
+          "attributes": {}
+        },
+        "source": {
+          "kind": "drawio-runtime",
+          "drawioId": "edge-1",
+          "pageId": "drawio-page-main",
+          "sourceDrawioId": "web-1",
+          "targetDrawioId": "api-1"
+        }
+      }
+    }
+  },
+  "analysis": [
+    {
+      "id": "analysis-basic-integrity",
+      "namespace": "cyberdraw.core",
+      "analyzerVersion": "0.1.0-example",
+      "snapshotRevision": "sha256:example-normalized-snapshot-hash",
+      "derivedAt": "2026-07-15T00:00:00.000Z",
+      "findings": [
+        {
+          "id": "finding-cross-zone-review",
+          "severity": "info",
+          "status": "open",
+          "ruleId": "example.cross-zone-edge",
+          "message": "Review whether the edge crosses expected trust boundaries.",
+          "elementIds": ["edge-web-api"],
+          "confidence": 0.6,
+          "evidence": [
+            {
+              "kind": "element",
+              "elementId": "edge-web-api",
+              "field": "sourceId"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "pendingChanges": []
+}
