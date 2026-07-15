@@ -50,6 +50,8 @@ navigation and command-output discipline.
 - Keep MCP stdio stdout pure: diagnostics must not write raw stdout in server
   production code.
 - Treat HTTP MCP and WebSocket surfaces as unauthenticated by default.
+- Their default bind address is `127.0.0.1`; wildcard hosts are explicit
+  exposure choices and should be paired with an auth proxy or trusted boundary.
 - Treat `output_path` as trusted-client filesystem write behavior.
 - Update `THIRD_PARTY_NOTICES.md` when adding dependencies, vendored assets,
   downloaded binaries, generated bundles or externally sourced content.
@@ -89,7 +91,15 @@ pnpm run build
 pnpm --filter drawio-mcp-server run lint
 pnpm --filter drawio-mcp-server exec playwright install chromium
 pnpm run test
+pnpm run audit:dependencies
 ```
+
+`pnpm install` does not download Playwright browsers. Run the Chromium install
+command explicitly before the full test suite on a fresh machine.
+
+`pnpm run audit:dependencies` uses pnpm 11.13.0 only for auditing because the
+normal pnpm 10.8.1 baseline uses a retired npm audit endpoint. A clean audit
+result is not proof that no vulnerabilities exist.
 
 If `rtk` or `roam` are unavailable, record that fact and continue with `rg`,
 direct shell commands and package scripts.

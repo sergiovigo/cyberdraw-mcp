@@ -17,8 +17,9 @@ enabled with `--transport http` or implicitly by `--editor`.
 
 Risk: exposing it beyond loopback allows unauthenticated tool invocation.
 
-Recommendation P0: bind to `127.0.0.1` by default in local docs and require an
-authenticating reverse proxy for any non-local deployment.
+M1 policy: the default bind address is `127.0.0.1`. Non-local deployments must
+set `--host` explicitly and require an authenticating reverse proxy or trusted
+network boundary.
 
 ### Built-in Editor HTTP
 
@@ -40,8 +41,9 @@ masquerade as a plugin session.
 Risk: fake plugin peers can register documents, receive tool calls and return
 arbitrary responses. On exposed interfaces this becomes a control/data channel.
 
-Recommendation P0: keep WebSocket bound to loopback unless an explicit secure
-deployment model is documented.
+M1 policy: the WebSocket listener shares the same default host as HTTP
+(`127.0.0.1`). Wildcard hosts are allowed only as explicit configuration and
+emit a warning through the configured logger.
 
 ## Authentication and Authorization
 
@@ -76,7 +78,8 @@ boundaries before accepting external diagram input sources.
 ## `output_path`
 
 `export-diagram` can write exported content to an absolute path. The server
-checks that the path is absolute and that the destination directory exists.
+checks that the path is absolute, that the parent exists and is a directory, and
+that an existing destination is not a directory or symbolic link.
 
 Risks:
 
@@ -85,9 +88,10 @@ Risks:
 - no workspace boundary is enforced;
 - output path policy is not configurable.
 
-Recommendation P0: for CyberDraw deployments, run the server as a low-privilege
-user and document that `output_path` is trusted-client functionality. Consider a
-future allowlist/sandbox setting in a later milestone.
+M1 policy: `output_path` remains trusted-client functionality. Regular files
+may be overwritten with server process permissions. No sandbox or allowlist is
+implemented in M1. Consider a future allowlist/sandbox setting in a later
+milestone.
 
 ## Path Traversal
 
@@ -127,18 +131,20 @@ record the observed draw.io version when release artifacts are produced.
 
 `pnpm install --frozen-lockfile` succeeded. `pnpm audit --audit-level=moderate`
 failed because the npm audit endpoint returned HTTP 410; no advisory result was
-obtained.
+obtained from pnpm 10.8.1.
 
-Recommendation P0: choose a working dependency audit command or pnpm version for
-CyberDraw CI without changing dependencies ad hoc.
+M1 policy: use `pnpm run audit:dependencies`, which invokes
+`corepack pnpm@11.13.0 --pm-on-fail=ignore audit --audit-level=moderate`.
+pnpm 11.13.0 is used only for audit; normal install/build/lint/test remains on
+pnpm 10.8.1. A clean audit result does not guarantee absence of vulnerabilities.
 
 ## Prioritized Recommendations
 
 | Priority | Recommendation |
 | --- | --- |
-| P0 | Define official Node/pnpm baseline and working audit command for CI |
-| P0 | Keep HTTP and WebSocket on loopback unless protected by an auth proxy |
-| P0 | Document `output_path` as trusted-client filesystem write capability |
+| P0 | Define official Node/pnpm baseline and working audit command for CI — resolved in M1 / ADR 0002 |
+| P0 | Keep HTTP and WebSocket on loopback unless protected by an auth proxy — resolved in M1 |
+| P0 | Document `output_path` as trusted-client filesystem write capability — resolved in M1 |
 | P1 | Create third-party notices and asset provenance review |
 | P1 | Add explicit deployment security profiles |
 | P1 | Add path traversal regression tests before changing file/path code |

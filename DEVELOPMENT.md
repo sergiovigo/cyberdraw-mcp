@@ -49,8 +49,13 @@ pnpm run build
 Verify the code quality with:
 
 ```sh
+pnpm --filter drawio-mcp-server exec playwright install chromium
 pnpm run test
 ```
+
+The real-environment server tests require Playwright Chromium. `pnpm install`
+does not download browsers automatically; install Chromium explicitly before
+running the full test suite on a fresh machine.
 
 Check also the code coverage with:
 

@@ -1,6 +1,6 @@
 import { mkdtempSync } from "node:fs";
 import * as https from "node:https";
-import { Socket } from "node:net";
+import { type AddressInfo, Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { connect as tlsConnect } from "node:tls";
@@ -8,7 +8,12 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
-import { createDrawioMcpApp, type DrawioMcpApp } from "./index.js";
+import {
+  createDrawioMcpApp,
+  formatHostForUrl,
+  logWildcardHostWarning,
+  type DrawioMcpApp,
+} from "./index.js";
 import type { HttpFeatureConfig, ServerConfig } from "./config.js";
 import { MemoryLogger } from "./real-environment/logger.js";
 import { defaultConfig } from "./config.js";
@@ -223,6 +228,96 @@ describe("HTTP transport (stateless per-request)", () => {
     // close() should not hang or throw — the per-request McpServer
     // was already disposed and removed from the tracking set.
     await expect(app.close()).resolves.not.toThrow();
+  });
+});
+
+describe("HTTP and WebSocket host binding", () => {
+  let app: DrawioMcpApp;
+  let logger: MemoryLogger;
+
+  const features: HttpFeatureConfig = {
+    enableMcp: true,
+    enableEditor: false,
+    enableHealth: true,
+    enableConfig: true,
+  };
+
+  afterEach(async () => {
+    if (app) {
+      await app.close();
+    }
+  });
+
+  async function startBoundServers(host?: string) {
+    logger = new MemoryLogger();
+    const config: ServerConfig = {
+      ...defaultConfig(),
+      extensionPort: 0,
+      httpPort: 0,
+      transports: ["http"],
+      host,
+    };
+    app = createDrawioMcpApp({ config, log: logger });
+
+    const wsServer = await app.startWebSocketServer(0, config.host);
+    const http = await app.startHttpServer(0, config, features);
+
+    return {
+      wsAddress: wsServer.address() as AddressInfo,
+      httpAddress: http.server.address() as AddressInfo,
+    };
+  }
+
+  it("defaults HTTP and WebSocket to IPv4 loopback", async () => {
+    const config = defaultConfig();
+    const { wsAddress, httpAddress } = await startBoundServers(config.host);
+
+    expect(config.host).toBe("127.0.0.1");
+    expect(wsAddress.address).toBe("127.0.0.1");
+    expect(httpAddress.address).toBe("127.0.0.1");
+  });
+
+  it("uses an explicit loopback host consistently", async () => {
+    const { wsAddress, httpAddress } = await startBoundServers("127.0.0.1");
+
+    expect(wsAddress.address).toBe("127.0.0.1");
+    expect(httpAddress.address).toBe("127.0.0.1");
+  });
+
+  it("permits wildcard hosts consistently", async () => {
+    const { wsAddress, httpAddress } = await startBoundServers("0.0.0.0");
+
+    expect(wsAddress.address).toBe("0.0.0.0");
+    expect(httpAddress.address).toBe("0.0.0.0");
+  });
+
+  it("logs a warning for wildcard host exposure", () => {
+    const memoryLogger = new MemoryLogger();
+
+    logWildcardHostWarning(memoryLogger, "0.0.0.0");
+
+    expect(memoryLogger.entries).toEqual([
+      expect.objectContaining({
+        level: "warning",
+        message: expect.stringContaining(
+          "exposes HTTP and WebSocket endpoints",
+        ),
+      }),
+    ]);
+  });
+
+  it("does not log a wildcard warning for loopback", () => {
+    const memoryLogger = new MemoryLogger();
+
+    logWildcardHostWarning(memoryLogger, "127.0.0.1");
+
+    expect(memoryLogger.entries).toEqual([]);
+  });
+
+  it("formats IPv6 hosts for URL display", () => {
+    expect(formatHostForUrl("::")).toBe("[::]");
+    expect(formatHostForUrl("::1")).toBe("[::1]");
+    expect(formatHostForUrl("127.0.0.1")).toBe("127.0.0.1");
   });
 });
 

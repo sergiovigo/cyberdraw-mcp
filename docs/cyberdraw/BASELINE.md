@@ -5,6 +5,11 @@ Milestone: M0 Project Bootstrap & Reproducible Baseline
 Date: 2026-07-15
 Branch: `chore/project-bootstrap`
 
+M1 update: `chore/m1-baseline-hardening` aligns the runtime policy, dependency
+audit command, loopback network default, Playwright test prerequisite and
+`output_path` filesystem policy. ADR 0002 records the durable runtime and audit
+decision.
+
 ## Environment
 
 | Item | Value |
@@ -22,9 +27,9 @@ Branch: `chore/project-bootstrap`
 available in this shell. The baseline therefore used direct shell commands and
 `rg`/`nl` for read-only inspection.
 
-## Node Version Discrepancy
+## Node Version Policy
 
-Observed sources disagree:
+M0 observed these sources disagreeing:
 
 - `README.md` documents Node.js v22 or higher, tested against v22 LTS and v24 LTS.
 - `packages/drawio-mcp-server/package.json` declares `engines.node >=20.0.0`.
@@ -32,10 +37,10 @@ Observed sources disagree:
 - CI runs Node `22.x` and `24.x`.
 - Docker uses `node:22-slim`.
 
-Recommended M0 decision: treat Node 22 LTS as the official minimum for the fork,
-with Node 24 as the forward-compatibility lane. Do not change `engines` during
-M0. A later milestone should align package engines, README, Docker and CI in one
-explicit compatibility change.
+M1 decision: Node.js 22 LTS is the official minimum. Packages that already
+declared Node engines now use `>=22.0.0`. CI keeps Node `22.x` and `24.x`,
+publish workflows keep Node `24.x`, and Docker remains based on `node:22-slim`.
+Node.js 20 is outside the supported CyberDraw MCP baseline.
 
 ## Reproducible Setup
 
@@ -81,6 +86,7 @@ The lockfile was not regenerated.
 | Plugin tests | none | n/a | NOT AVAILABLE | `drawio-mcp-plugin` has no `test` script |
 | Compat tests | included in `pnpm run test` | ~2s | PASS WITH WARNINGS | VM Modules warning |
 | Audit | `pnpm audit --audit-level=moderate` | ~1s | FAIL | npm audit endpoint returned HTTP 410 |
+| M1 audit | `pnpm run audit:dependencies` | ~2s | PASS | Uses pnpm 11.13.0 only for audit; no advisories reported at moderate+ in this run |
 | MCP smoke | inline Node SDK stdio client | ~1s | PASS WITH WARNINGS | Logs on stderr; stdout JSON-RPC consumed by SDK |
 | Editor smoke | start server with `--transport http --editor` and curl | ~1s | PASS | `/health` ok, `/` 200, `/mcp` GET 406, stdout 0 bytes |
 
@@ -119,6 +125,21 @@ Editor smoke:
   while the plugin-side registry does not forward it because file writing is
   handled server-side after export.
 
+M1 updates:
+
+- Node compatibility is aligned through ADR 0002.
+- CI uses `pnpm run audit:dependencies`, which invokes
+  `corepack pnpm@11.13.0 --pm-on-fail=ignore audit --audit-level=moderate`.
+  This restores a reproducible audit command without changing the normal
+  `pnpm@10.8.1` development baseline.
+- The default `--host` is `127.0.0.1`, so HTTP MCP, editor HTTP and WebSocket
+  bind to loopback unless the user explicitly supplies another host.
+- Docker explicitly passes `--transport http --host 0.0.0.0` to preserve
+  container port publishing behavior without relying on stdio.
+- `output_path` now rejects relative paths, missing or non-directory parents,
+  existing destination directories and existing destination symbolic links. It
+  still overwrites regular files with the server process permissions.
+
 ## Reproducible Procedure
 
 Use Node 22 LTS or Node 24. The baseline above was taken on Node 24.18.0.
@@ -131,6 +152,7 @@ pnpm run build
 pnpm --filter drawio-mcp-server run lint
 pnpm --filter drawio-mcp-server exec playwright install chromium
 pnpm run test
+pnpm run audit:dependencies
 ```
 
 The equivalent Playwright command executed during M0 was run from
@@ -140,5 +162,10 @@ The equivalent Playwright command executed during M0 was run from
 pnpm exec playwright install chromium
 ```
 
-The audit command is currently not reproducible with pnpm 10.8.1 because the
-registry endpoint returns 410.
+The M1 Playwright prerequisite remains explicit. `pnpm install` does not
+download Chromium automatically.
+
+The original pnpm 10.8.1 audit command is not reproducible because the registry
+endpoint returns 410. Use `pnpm run audit:dependencies` for the CyberDraw M1
+audit baseline. A successful run is an advisory-tool result, not a guarantee
+that no vulnerabilities exist.

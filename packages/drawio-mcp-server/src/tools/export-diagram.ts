@@ -1,4 +1,5 @@
-import { writeFileSync, existsSync } from "node:fs";
+import { existsSync, lstatSync, statSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute } from "node:path";
 
 import { z } from "zod";
 
@@ -7,6 +8,56 @@ import { target_page_field } from "./shared.js";
 import { ToolRegistrar } from "./types.js";
 
 export const TOOL_export_diagram = "export-diagram";
+
+export function validateOutputPath(outputPath: string): void {
+  if (!isAbsolute(outputPath)) {
+    throw new Error("output_path must be an absolute path");
+  }
+
+  const parentDir = dirname(outputPath);
+  if (!existsSync(parentDir)) {
+    throw new Error(
+      `output_path parent directory does not exist: ${parentDir}`,
+    );
+  }
+
+  if (!statSync(parentDir).isDirectory()) {
+    throw new Error(`output_path parent is not a directory: ${parentDir}`);
+  }
+
+  try {
+    const destinationStats = lstatSync(outputPath);
+    if (destinationStats.isSymbolicLink()) {
+      throw new Error(`output_path must not be a symbolic link: ${outputPath}`);
+    }
+    if (destinationStats.isDirectory()) {
+      throw new Error(`output_path must not be a directory: ${outputPath}`);
+    }
+    if (!destinationStats.isFile()) {
+      throw new Error(
+        `output_path must be a regular file when it already exists: ${outputPath}`,
+      );
+    }
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "ENOENT") {
+      return;
+    }
+    throw error;
+  }
+}
+
+export function writeExportOutputFile(
+  outputPath: string,
+  content: string | Buffer,
+): void {
+  validateOutputPath(outputPath);
+  if (Buffer.isBuffer(content)) {
+    writeFileSync(outputPath, content);
+  } else {
+    writeFileSync(outputPath, content, "utf-8");
+  }
+}
 
 export const registerExportDiagramTool: ToolRegistrar = (server, context) => {
   server.tool(
@@ -89,22 +140,13 @@ export const registerExportDiagramTool: ToolRegistrar = (server, context) => {
       const result = await exportHandler(args, _extra);
 
       if (args.output_path) {
-        const path = await import("node:path");
-        if (!path.isAbsolute(args.output_path)) {
-          throw new Error("output_path must be an absolute path");
-        }
-        const dir = path.dirname(args.output_path);
-        if (!existsSync(dir)) {
-          throw new Error(`Directory does not exist: ${dir}`);
-        }
-
         const exportContent = result.content;
         if (args.format === "png") {
           const imageContent = exportContent.find(
             (c: any) => c.type === "image",
           ) as any;
           if (imageContent) {
-            writeFileSync(
+            writeExportOutputFile(
               args.output_path,
               Buffer.from(imageContent.data, "base64"),
             );
@@ -114,7 +156,7 @@ export const registerExportDiagramTool: ToolRegistrar = (server, context) => {
             (c: any) => c.type === "text",
           ) as any;
           if (textContent) {
-            writeFileSync(args.output_path, textContent.text, "utf-8");
+            writeExportOutputFile(args.output_path, textContent.text);
           }
         }
 

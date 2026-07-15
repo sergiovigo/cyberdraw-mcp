@@ -36,7 +36,7 @@ jobs:
         run: pnpm install
 
       - name: Audit dependencies
-        run: pnpm audit --audit-level=moderate
+        run: pnpm run audit:dependencies
 
       - name: Cache Playwright browsers
         uses: actions/cache@v5

@@ -20,7 +20,7 @@
     "start": "./bin/caddy run --config ./Caddyfile --adapter caddyfile"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "files": [
     "build",

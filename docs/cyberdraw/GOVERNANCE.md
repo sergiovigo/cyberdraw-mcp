@@ -87,11 +87,14 @@ pnpm run build
 pnpm --filter drawio-mcp-server run lint
 pnpm --filter drawio-mcp-server exec playwright install chromium
 pnpm run test
+pnpm run audit:dependencies
 ```
 
-M0 records a Node version discrepancy between docs, package engines, Docker and
-CI. Do not change those surfaces casually; align them in one explicit
-compatibility task.
+M1 aligns the Node policy in ADR 0002. Node.js 22 LTS is the minimum supported
+runtime; Node.js 24 remains a CI/publish forward-compatibility lane. Normal
+development uses `pnpm@10.8.1`; dependency audit uses the exact pnpm 11.13.0
+command encapsulated by `pnpm run audit:dependencies` because pnpm 10.8.1 uses a
+retired audit endpoint.
 
 ## Documentation Policy
 
@@ -119,8 +122,9 @@ Security policy for the fork:
   JSON-RPC frames produced by the MCP SDK.
 - Treat MCP HTTP and WebSocket endpoints as unauthenticated unless an explicit
   deployment layer provides authentication.
-- Prefer loopback binding for local development and require a documented
-  authenticating reverse proxy for non-local deployments.
+- Default MCP HTTP, editor HTTP and WebSocket endpoints to `127.0.0.1`. Require
+  explicit `--host` configuration and a documented authenticating reverse proxy
+  or trusted network boundary for non-local deployments.
 - Document filesystem-writing behavior such as `output_path`.
 - Treat imported diagram XML, SVG, PNG embedded XML and Mermaid source as
   untrusted input interpreted by draw.io/browser code.

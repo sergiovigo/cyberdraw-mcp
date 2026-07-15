@@ -60,12 +60,12 @@ Users should evaluate the following surfaces before deploying:
 ### 1. MCP transport
 
 - **`stdio`** — trusted by construction; the MCP client (Claude Desktop, Claude Code, Codex, etc.) owns the process. Anyone able to launch the process can send arbitrary tool calls.
-- **`http`** — the HTTP MCP endpoint is unauthenticated by default and binds to the OS-chosen interface. **Do not expose the HTTP transport to untrusted networks without a reverse proxy that enforces authentication.** Bind to `127.0.0.1` (via `--host`) unless you have deliberately added an auth layer in front.
+- **`http`** — the HTTP MCP endpoint is unauthenticated by default. The default bind address is `127.0.0.1`. **Do not expose the HTTP transport to untrusted networks without a reverse proxy that enforces authentication.** Use `--host 0.0.0.0` or `--host ::` only when you have deliberately added an auth layer or trusted network boundary in front.
 
 ### 2. Browser extension WebSocket
 
 - The extension connects to the server over `ws://` or `wss://` on `--extension-port` (default `3333`).
-- The server accepts the first WebSocket peer that connects; there is no per-connection authentication. In shared-host scenarios any local process can connect and drive Draw.io. Use `--host 127.0.0.1` to limit exposure to the local machine, and prefer TLS with a bring-your-own certificate on multi-user systems.
+- The server accepts the first WebSocket peer that connects; there is no per-connection authentication. By default the WebSocket listener is bound to `127.0.0.1`. In shared-host scenarios any local process can connect and drive Draw.io. Use wildcard hosts only deliberately, and prefer TLS with a bring-your-own certificate on multi-user systems.
 - Firefox forces `wss://` from the extension. Running TLS is therefore required for Firefox users; see the TLS notes below.
 
 ### 3. Built-in editor
@@ -83,19 +83,19 @@ Users should evaluate the following surfaces before deploying:
 
 ### 5. Filesystem and network side effects
 
-Some MCP tools read or write files (diagram import/export, PNG export). The server executes these with the privileges of the running process. Deploy the server as a low-privilege user; do not run it as `root` inside a container or on the host.
+Some MCP tools read or write files (diagram import/export, PNG export). The `export-diagram` `output_path` option is trusted-client functionality: it must be an absolute path, the parent must exist and be a directory, existing destination directories and symbolic links are rejected, and regular files may be overwritten with the privileges of the running process. Deploy the server as a low-privilege user; do not run it as `root` inside a container or on the host.
 
 ### 6. Supply chain
 
 - The npm packages and Docker image are published from the GitHub repository. Verify the version against <https://github.com/lgazo/drawio-mcp-server/releases>.
 - The browser extension is distributed via the Chrome Web Store, the Firefox add-on store, and the packaged repo artifacts. Verify the publisher before installing.
-- Dependencies are checked in CI with `pnpm audit`. Automated dependency-update bots are not currently in use; version bumps happen manually as part of maintenance passes.
+- Dependencies are checked in CI with `pnpm run audit:dependencies`, which invokes pnpm 11.13.0 only for audit because the normal pnpm 10.8.1 baseline uses a retired npm audit endpoint. Automated dependency-update bots are configured separately through GitHub Dependabot.
 
 ## Hardening Recommendations
 
 For any deployment beyond a single-user localhost setup:
 
-- Bind explicitly with `--host 127.0.0.1` (or a specific interface) instead of relying on the OS default.
+- Keep the default `--host 127.0.0.1` for local use, or bind to a specific interface only when the deployment requires it.
 - Enable TLS with a real certificate (`--tls --tls-cert / --tls-key`), not `--tls-auto`.
 - Terminate the MCP HTTP transport behind a reverse proxy that enforces authentication (mTLS, OIDC, a shared token — whatever fits your environment).
 - Do not expose the WebSocket extension port to non-loopback interfaces on shared machines.
