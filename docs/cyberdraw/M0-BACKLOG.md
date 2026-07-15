@@ -7,7 +7,7 @@ baseline. It is not an implementation plan for M0 itself.
 
 ### M0-P0-001: Align Node version policy
 
-- Type: Decision pending.
+- Type: Resolved in M1.
 - Description: README requires Node 22+, package engines allow Node >=20, CI runs
   22/24 and Docker uses Node 22.
 - Evidence: `README.md`, `packages/drawio-mcp-server/package.json`,
@@ -17,77 +17,102 @@ baseline. It is not an implementation plan for M0 itself.
   contributors lack a single baseline.
 - Proposal: Adopt Node 22 LTS as official minimum and Node 24 as CI
   forward-compatibility lane; align docs/engines in one explicit change.
+- M1 resolution: ADR 0002 adopts Node.js 22 LTS as the minimum supported
+  runtime, keeps Node.js 22/24 CI lanes, keeps publish workflows on Node.js 24,
+  and updates existing `engines.node` declarations to `>=22.0.0`.
 - Effort: S.
-- Suggested milestone: M1.
+- Suggested milestone: M1 (closed).
 
 ### M0-P0-002: Replace or repair dependency audit baseline
 
-- Type: Confirmed defect.
+- Type: Resolved in M1.
 - Description: `pnpm audit --audit-level=moderate` fails with HTTP 410 from npm
   audit endpoint.
 - Evidence: M0 audit command output.
 - Impact: CI/local security baseline may become non-actionable.
 - Proposal: Evaluate pnpm audit support, npm bulk advisory endpoint, GitHub
   Dependabot, OSV Scanner or another pinned audit tool.
+- M1 resolution: root `audit:dependencies` runs
+  `corepack pnpm@11.13.0 --pm-on-fail=ignore audit --audit-level=moderate`.
+  pnpm 10.8.1 remains the normal install/build/lint/test package manager.
+  CI uses the same script. OSV Scanner was not added.
 - Effort: M.
-- Suggested milestone: M1.
+- Suggested milestone: M1 (closed).
 
 ### M0-P0-003: Document and constrain network exposure defaults
 
-- Type: Risk.
+- Type: Resolved in M1.
 - Description: HTTP MCP and WebSocket endpoints are unauthenticated by design.
 - Evidence: `SECURITY.md` and server config docs.
 - Impact: Unsafe deployment can expose full diagram control.
 - Proposal: Add CyberDraw deployment profiles and require loopback/auth proxy in
   production guidance.
+- M1 resolution: default host is `127.0.0.1` for HTTP MCP, editor HTTP and
+  WebSocket. Wildcard hosts remain explicit, emit a logger warning, and Docker
+  passes `--transport http --host 0.0.0.0` to preserve container port
+  publishing.
 - Effort: S.
-- Suggested milestone: M1.
+- Suggested milestone: M1 (closed).
 
 ### M0-P0-004: Define `output_path` policy
 
-- Type: Risk.
+- Type: Resolved in M1 for minimum hardening; future sandbox remains open.
 - Description: `export-diagram` writes to absolute filesystem paths with process
   privileges.
 - Evidence: `packages/drawio-mcp-server/src/tools/export-diagram.ts`.
 - Impact: Trusted MCP clients can overwrite writable files.
 - Proposal: Document trusted-client semantics now; later consider allowlist or
   workspace-bound export configuration.
+- M1 resolution: `output_path` remains trusted-client functionality but now
+  rejects relative paths, missing or non-directory parents, destination
+  directories and destination symbolic links. Regular file overwrite remains
+  supported. Sandbox/allowlist remains deferred.
 - Effort: S for docs, M for implementation.
-- Suggested milestone: M1/M2.
+- Suggested milestone: M1 (minimum hardening closed); M2 for optional sandbox.
 
 ## P1
 
 ### M0-P1-001: Complete third-party license inventory
 
-- Type: Technical debt.
+- Type: Partially addressed in M1; full inventory remains open.
 - Description: `THIRD_PARTY_NOTICES.md` is intentionally incomplete.
 - Evidence: M0 third-party notices pending review list.
 - Impact: Distribution risk for fork artifacts.
 - Proposal: Generate and review a dependency/license inventory, then add verified
   notices only.
+- M1 update: `THIRD_PARTY_NOTICES.md` now records the reproducible
+  `pnpm licenses list --recursive --json` command, Caddy 2.8.4 SHA512
+  verification behavior, and draw.io asset download behavior. Full per-dependency
+  notice review remains pending.
 - Effort: M.
-- Suggested milestone: M1.
+- Suggested milestone: M2.
 
 ### M0-P1-002: Make Playwright prerequisite explicit
 
-- Type: Confirmed defect.
+- Type: Resolved in M1.
 - Description: `pnpm install` does not install Chromium, but real-environment
   tests require it.
 - Evidence: Initial `pnpm run test` failure and CI `playwright install` step.
 - Impact: New contributors get failing tests without clear local setup.
 - Proposal: Add local baseline docs and optionally a non-mutating preflight check.
+- M1 resolution: baseline, development and AI onboarding docs explicitly require
+  `pnpm --filter drawio-mcp-server exec playwright install chromium`. No
+  Playwright postinstall hook was added.
 - Effort: S.
-- Suggested milestone: M1.
+- Suggested milestone: M1 (closed).
 
 ### M0-P1-003: Track draw.io asset provenance per release
 
-- Type: Risk.
+- Type: Partially addressed in M1; release pinning remains open.
 - Description: Built-in editor uses cached/downloaded draw.io assets.
 - Evidence: asset downloader and compatibility docs.
 - Impact: Runtime behavior can shift with upstream draw.io releases.
 - Proposal: Record draw.io asset version in release notes or generated baseline.
+- M1 update: third-party notices now document the latest-release `draw.war`
+  download behavior and state that CyberDraw releases do not yet pin a specific
+  draw.io asset version.
 - Effort: M.
-- Suggested milestone: M1.
+- Suggested milestone: M2.
 
 ### M0-P1-004: Add explicit path traversal tests before path handling changes
 

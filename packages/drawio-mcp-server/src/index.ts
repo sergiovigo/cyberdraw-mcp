@@ -18,7 +18,7 @@ import {
   readdirSync,
   realpathSync,
 } from "node:fs";
-import { AddressInfo } from "node:net";
+import { AddressInfo, isIP } from "node:net";
 
 import { WebSocket, WebSocketServer } from "ws";
 const VERSION = process.env.npm_package_version ?? "2.2.0";
@@ -87,6 +87,29 @@ export type DrawioMcpApp = {
   ) => Promise<{ server: ReturnType<typeof serve>; port: number }>;
 };
 
+export function isWildcardHost(host: string | undefined): boolean {
+  return host === "0.0.0.0" || host === "::";
+}
+
+export function logWildcardHostWarning(
+  log: AppLogger,
+  host: string | undefined,
+) {
+  if (!isWildcardHost(host)) {
+    return;
+  }
+
+  log.log(
+    "warning",
+    `Host ${host} exposes HTTP and WebSocket endpoints on all interfaces. Use only behind an authenticated reverse proxy or trusted network boundary.`,
+  );
+}
+
+export function formatHostForUrl(host: string | undefined): string {
+  const displayHost = host ?? "localhost";
+  return isIP(displayHost) === 6 ? `[${displayHost}]` : displayHost;
+}
+
 /**
  * Display help message and exit
  */
@@ -104,7 +127,7 @@ Options:
   --http-port                    HTTP server port for Streamable HTTP transport (default: 3000)
   --transport                    Transport type: stdio, http (default: stdio)
   --asset-path <path>            Custom path for downloaded assets
-  --host <ip>                    Bind address for all servers (default: OS-assigned, e.g. 127.0.0.1 or ::1)
+  --host <ip>                    Bind address for all servers (default: 127.0.0.1)
   --logger <mode>                Logger mode: console (stderr) or mcp-server (MCP notifications/message) (default: console)
   --tls                          Enable TLS (HTTPS + WSS) on HTTP and WebSocket endpoints
   --tls-cert <path>              Manual TLS cert PEM (requires --tls and --tls-key)
@@ -281,7 +304,10 @@ function registerEditorRoutes(app: Hono, config: ServerConfig, log: AppLogger) {
     return c.redirect("/index.html?offline=1&local=1");
   });
 
-  log.debug(`Draw.io editor enabled at: http://localhost:${config.httpPort}/`);
+  const editorHost = formatHostForUrl(config.host);
+  log.debug(
+    `Draw.io editor enabled at: http://${editorHost}:${config.httpPort}/`,
+  );
 }
 
 function registerMcpRoute(
@@ -356,20 +382,36 @@ async function startHttpServer(
       : {}),
   });
 
+  if (!httpServer.listening) {
+    await new Promise<void>((resolve, reject) => {
+      const onListening = () => {
+        httpServer.off("error", onError);
+        resolve();
+      };
+      const onError = (error: Error) => {
+        httpServer.off("listening", onListening);
+        reject(error);
+      };
+      httpServer.once("listening", onListening);
+      httpServer.once("error", onError);
+    });
+  }
+
   const listeningPort =
     httpPort === 0
       ? ((httpServer.address() as AddressInfo | null)?.port ?? httpPort)
       : httpPort;
 
   const scheme = tlsMaterial ? "https" : "http";
+  const displayHost = formatHostForUrl(config.host);
   log.debug(
     `Draw.io MCP Server HTTP active on port ${listeningPort} (${scheme})`,
   );
   if (features.enableMcp) {
-    log.debug(`MCP endpoint: ${scheme}://localhost:${listeningPort}/mcp`);
+    log.debug(`MCP endpoint: ${scheme}://${displayHost}:${listeningPort}/mcp`);
   }
   if (features.enableEditor) {
-    log.debug(`Editor: ${scheme}://localhost:${listeningPort}/`);
+    log.debug(`Editor: ${scheme}://${displayHost}:${listeningPort}/`);
   }
 
   return {
@@ -1145,6 +1187,8 @@ async function main() {
   const features = getHttpFeatureConfig(config);
 
   const app = createDrawioMcpApp({ config });
+
+  logWildcardHostWarning(app.log, config.host);
 
   // Initialize assets if needed
   if (features.enableEditor) {

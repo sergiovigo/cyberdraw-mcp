@@ -22,6 +22,7 @@ before CyberDraw-specific features are introduced.
 | [M0-BACKLOG.md](M0-BACKLOG.md) | Follow-up work discovered during M0 | Open backlog |
 | [AI-ONBOARDING.md](AI-ONBOARDING.md) | Practical guide for future AI agents | Operational guide |
 | [adr/0001-fork-strategy.md](adr/0001-fork-strategy.md) | Decision to begin as a conservative fork | Accepted ADR |
+| [adr/0002-runtime-and-baseline-policy.md](adr/0002-runtime-and-baseline-policy.md) | Node, pnpm and audit baseline policy | Accepted ADR |
 
 Related root documents:
 

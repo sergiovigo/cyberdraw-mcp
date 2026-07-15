@@ -140,6 +140,11 @@ For other MCP clients and detailed configuration (including pnpm options), see [
 
 After restarting your MCP host, open: **http://localhost:3000/**
 
+By default the built-in editor, MCP HTTP endpoint, and WebSocket bridge bind to
+`127.0.0.1`. Use `--host` only when you intentionally need another bind address.
+Wildcard values such as `0.0.0.0` expose unauthenticated endpoints and should be
+used only behind an authenticating reverse proxy or trusted network boundary.
+
 ### 3. Start diagramming
 
 Example prompts you can try:

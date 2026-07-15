@@ -314,7 +314,7 @@ Notes:
 - `dpi`: DPI for PNG export (affects quality, default: 96)
 - `embed_xml`: Embed the diagram XML data in SVG/PNG so it can be reopened in draw.io (default: false)
 - `size`: What to export: 'selection' for selected cells only, 'page' for the target page, 'diagram' for the entire model (default: diagram)
-- `output_path`: Absolute file path to save the exported file (must be an absolute path)
+- `output_path`: Trusted-client absolute file path to save the exported file. The parent must exist and be a directory. Existing destination directories and symbolic links are rejected; existing regular files may be overwritten with the server process permissions.
 
 *Returns*: Export result with format, mimeType, data (base64 for PNG, text for SVG/XML), dimensions, and optional warning
 

@@ -34,7 +34,7 @@ jobs:
         run: pnpm install
 
       - name: Audit dependencies
-        run: pnpm audit --audit-level=moderate
+        run: pnpm run audit:dependencies
 
       - name: Build compat
         run: pnpm --filter drawio-mcp-compat run build

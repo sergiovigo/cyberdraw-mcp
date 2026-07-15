@@ -11,7 +11,7 @@ Every CLI flag has a matching environment variable. CLI flags take precedence ov
 | `--http-port` | `DRAWIO_MCP_HTTP_PORT` | HTTP transport port | 3000 |
 | `--transport` | `DRAWIO_MCP_TRANSPORT` | Transport type: `stdio`, `http`, or `stdio,http` | `stdio` |
 | `--asset-path` | `DRAWIO_MCP_ASSET_PATH` | Custom path for downloaded assets | - |
-| `--host` | `DRAWIO_MCP_HOST` | Explicit IPv4 or IPv6 bind address for all server endpoints (HTTP, WebSocket) | unset (OS chooses) |
+| `--host` | `DRAWIO_MCP_HOST` | Explicit IPv4 or IPv6 bind address for all server endpoints (HTTP, WebSocket) | `127.0.0.1` |
 | `--websocket-url` | `DRAWIO_MCP_WEBSOCKET_URL` | Override WebSocket URL advertised to the editor (must be `ws://` or `wss://`) | derived from page |
 | `--logger` | `DRAWIO_MCP_LOGGER` | Logger mode: `console` (writes to stderr) or `mcp-server` (sends MCP `notifications/message`). The legacy underscore form `mcp_server` is also accepted as a value alias. | `console` |
 | `--tls` | `DRAWIO_MCP_TLS` | Enable TLS on HTTP and WebSocket endpoints (off by default) | disabled |
@@ -40,7 +40,9 @@ The browser extension has the same override under **Custom WebSocket URL** on it
 
 ## Host Binding
 
-By default, the server binds to an OS-assigned address (typically `127.0.0.1` on Linux and Windows, or `::1` on macOS). On macOS and systems with `IPV6_V6ONLY=1`, the OS may bind to IPv6-only, causing connections from browsers attempting `ws://localhost:XXXX` (IPv4) to fail.
+By default, the server binds all HTTP and WebSocket endpoints to `127.0.0.1`.
+This keeps the MCP HTTP endpoint, built-in editor, and browser-extension
+WebSocket on IPv4 loopback unless you explicitly choose another address.
 
 Use `--host` to explicitly set the bind address:
 
@@ -58,6 +60,11 @@ Example values:
 - `127.0.0.1` — IPv4 loopback (localhost IPv4 only)
 - `0.0.0.0` — All IPv4 interfaces
 - `::1` — IPv6 loopback (localhost IPv6 only)
+- `::` — All IPv6 interfaces
+
+Using `0.0.0.0` or `::` exposes unauthenticated HTTP and WebSocket endpoints on
+all matching interfaces. Use wildcard binding only behind an authenticating
+reverse proxy or on a trusted network boundary.
 
 ## Built-in Editor
 
@@ -118,6 +125,10 @@ Available endpoints:
 - MCP: `http://localhost:3000/mcp`
 - Health: `http://localhost:3000/health`
 - Editor: `http://localhost:3000/` (if `--editor` enabled)
+
+The HTTP transport is unauthenticated. The default bind address is
+`127.0.0.1`; for non-local access, set `--host` deliberately and put an
+authenticating reverse proxy in front of `/mcp`.
 
 ## Browser Extension
 

@@ -74,4 +74,4 @@ EXPOSE 3333 3000
 ENV XDG_DATA_HOME=/data
 VOLUME ["/data/drawio-mcp-server/tls"]
 
-CMD ["node", "packages/drawio-mcp-server/build/index.js", "--editor"]
+CMD ["node", "packages/drawio-mcp-server/build/index.js", "--editor", "--transport", "http", "--host", "0.0.0.0"]

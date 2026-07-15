@@ -31,6 +31,7 @@ const DEFAULT_CONFIG: ServerConfig = {
   httpPort: 3000,
   transports: ["stdio"],
   editorEnabled: false,
+  host: "127.0.0.1",
   logger: "console",
   tlsEnabled: false,
   tlsAuto: false,
@@ -370,7 +371,7 @@ export const parseConfig = (args: readonly string[]): ServerConfig | Error => {
     webSocketUrl = parsed;
   }
 
-  let host: string | undefined;
+  let host: string | undefined = DEFAULT_CONFIG.host;
   if (hostValue !== undefined) {
     const parsed = parseHostValue(hostValue);
     if (parsed instanceof Error) {

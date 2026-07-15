@@ -6,6 +6,7 @@
   "type": "module",
   "packageManager": "pnpm@10.8.1",
   "scripts": {
+    "audit:dependencies": "corepack pnpm@11.13.0 --pm-on-fail=ignore audit --audit-level=moderate",
     "build": "pnpm -r build",
     "dev": "pnpm -r dev",
     "clean": "pnpm -r clean",
