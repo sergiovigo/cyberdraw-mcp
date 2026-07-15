@@ -1,0 +1,74 @@
+# CyberDraw MCP Documentation
+
+This directory is the official documentation home for the CyberDraw MCP fork.
+It is the starting point for developers and AI agents working on fork-specific
+baseline, governance, security, architecture and future milestone planning.
+
+CyberDraw MCP starts as a conservative fork of Draw.io MCP Server. The M0
+documentation records inherited behavior and establishes a reproducible baseline
+before CyberDraw-specific features are introduced.
+
+## Document Map
+
+| Document | Purpose | Status |
+| --- | --- | --- |
+| [README.md](README.md) | Entry point, reading order and question map | Official M0 index |
+| [GOVERNANCE.md](GOVERNANCE.md) | Fork purpose, principles and policies | Official fork policy |
+| [BASELINE.md](BASELINE.md) | M0 environment, commands, smoke tests and discrepancies | M0 baseline evidence |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Inherited monorepo, runtime architecture and data flows | M0 architecture baseline |
+| [TOOLS-INVENTORY.md](TOOLS-INVENTORY.md) | Inherited MCP tools, schemas, risks and coverage | M0 inventory |
+| [SECURITY-BASELINE.md](SECURITY-BASELINE.md) | Security surfaces, risks and prioritized recommendations | M0 security baseline |
+| [UPSTREAM.md](UPSTREAM.md) | Upstream remote, sync rules and known divergence | M0 upstream policy |
+| [M0-BACKLOG.md](M0-BACKLOG.md) | Follow-up work discovered during M0 | Open backlog |
+| [AI-ONBOARDING.md](AI-ONBOARDING.md) | Practical guide for future AI agents | Operational guide |
+| [adr/0001-fork-strategy.md](adr/0001-fork-strategy.md) | Decision to begin as a conservative fork | Accepted ADR |
+
+Related root documents:
+
+| Document | Purpose | Status |
+| --- | --- | --- |
+| [FORK.md](../../FORK.md) | Short public summary of the fork | M0 summary |
+| [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) | Third-party notice tracking | M0 partial inventory |
+| [AGENTS.md](../../AGENTS.md) | Repository-wide agent instructions | Inherited plus CyberDraw pointer |
+
+## Recommended Reading Order
+
+1. `README.md` for orientation.
+2. `GOVERNANCE.md` for fork rules and policy boundaries.
+3. `BASELINE.md` for reproducible setup and validation evidence.
+4. `ARCHITECTURE.md` for system structure and runtime flows.
+5. `TOOLS-INVENTORY.md` for the inherited MCP tool surface.
+6. `SECURITY-BASELINE.md` for security assumptions and risks.
+7. `UPSTREAM.md` before syncing from the original repository.
+8. `M0-BACKLOG.md` before planning M1 or later work.
+9. `AI-ONBOARDING.md` when an AI agent needs a concise operating guide.
+10. `adr/` when a lasting decision needs historical context.
+
+## Question Map
+
+| Question | Read |
+| --- | --- |
+| What is CyberDraw MCP and why does it exist? | `GOVERNANCE.md`, `adr/0001-fork-strategy.md`, `../../FORK.md` |
+| How do I reproduce the M0 baseline? | `BASELINE.md` |
+| Which Node and pnpm versions are recommended? | `BASELINE.md`, `GOVERNANCE.md` |
+| How is the monorepo organized? | `ARCHITECTURE.md`, `AI-ONBOARDING.md` |
+| How does an MCP tool call reach draw.io? | `ARCHITECTURE.md` |
+| Which MCP tools exist today? | `TOOLS-INVENTORY.md` |
+| Which surfaces are security-sensitive? | `SECURITY-BASELINE.md` |
+| How should upstream syncs be handled? | `UPSTREAM.md`, `GOVERNANCE.md` |
+| What work remains after M0? | `M0-BACKLOG.md` |
+| What should another AI agent do first? | `AI-ONBOARDING.md`, `GOVERNANCE.md` |
+| Where are lasting decisions recorded? | `adr/` |
+| What third-party assets need review? | `../../THIRD_PARTY_NOTICES.md` |
+
+## Status Model
+
+- Official: accepted fork policy or entry point.
+- Baseline: factual M0 evidence about inherited behavior.
+- Open backlog: unresolved follow-up work that must be planned separately.
+- Operational guide: practical instructions that summarize official documents.
+- ADR accepted: durable decision record.
+
+M0 documentation is authoritative for the baseline state. Future milestones must
+update these files when changing behavior, architecture, security assumptions,
+dependencies, release process or upstream strategy.

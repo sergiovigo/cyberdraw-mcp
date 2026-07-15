@@ -1,0 +1,54 @@
+# MCP Tools Inventory
+
+This inventory reflects the inherited M0 tool set. Tools are registered in
+`packages/drawio-mcp-server/src/tools/index.ts` and executed by the draw.io
+plugin registry in `packages/drawio-mcp-plugin/src/tool-registry.ts`.
+
+Legend:
+
+- Read/write: `read`, `write`, or `read/write`.
+- Plugin dependency: `yes` means the tool needs a connected draw.io plugin tab.
+- Schema: high-level required/important arguments, not a full Zod dump.
+- Coverage: based on server unit tests and real-environment tests observed in M0.
+
+| Tool | Purpose | Read/write | Plugin dependency | Schema summary | Result summary | Risks | Coverage |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `list-documents` | List connected draw.io document instances | read | no live handler, but reflects WS state | none | JSON list of document metadata | Can expose titles/file URLs from connected tabs | Unit/integration coverage |
+| `get-selected-cell` | Return selected cell on target page | read | yes | `target_page`, optional `target_document` | Cell JSON | UI-bound; depends on visible selection | Real-environment layer/selection coverage |
+| `get-shape-categories` | List shape categories | read | yes | optional `target_document` | Category list | Runtime extraction can be version-sensitive | Real-environment shapes coverage |
+| `get-shapes-in-category` | List shapes for category | read | yes | `category_id`, optional `target_document` | Shape list | Large outputs; runtime extraction dependency | Real-environment shapes coverage |
+| `get-shape-by-name` | Find shape by name | read | yes | `shape_name`, optional `target_document` | Shape definition | Shape names vary with draw.io runtime | Real-environment shapes coverage |
+| `list-paged-model` | Return paginated cells on a page | read | yes | `target_page`, `page`, `page_size`, `filter` | Sanitized cell page | May expose full diagram model data | Real-environment layer/model coverage |
+| `add-rectangle` | Create rectangle | write | yes | `target_page`, `x`, `y`, `width`, `height`, `text`, `style`, `parent_id` | Created cell info | Mutates diagram; style injection into draw.io model | Real-environment coverage |
+| `add-edge` | Create edge between cells | write | yes | `target_page`, `source_id`, `target_id`, `text`, `style`, `points`, `parent_id` | Created edge info | Mutates diagram; invalid IDs fail at runtime | Real-environment coverage |
+| `delete-cell-by-id` | Delete cell | write | yes | `target_page`, `cell_id` | Confirmation | Destructive diagram mutation | Real-environment coverage |
+| `add-cell-of-shape` | Create shape-library cell | write | yes | `target_page`, `shape_name`, geometry, `text`, `style`, `parent_id` | Created cell info | Runtime shape dependency; mutates diagram | Real-environment coverage |
+| `set-cell-shape` | Apply shape style to existing cell | write | yes | `target_page`, `cell_id`, `shape_name` | Updated cell info | Can overwrite visual style | Real-environment shapes coverage |
+| `set-cell-data` | Store/update custom cell attribute | write | yes | `target_page`, `cell_id`, `key`, `value` | Updated data | Arbitrary metadata written to diagram XML | Unit/real-environment adjacent coverage |
+| `edit-cell` | Update vertex properties | write | yes | `target_page`, `cell_id`, optional text/geometry/style | Updated cell info | Mutates content, geometry and style | Real-environment coverage |
+| `edit-edge` | Update edge properties | write | yes | `target_page`, `cell_id`, text/source/target/style/points | Updated edge info | Can reroute or reconnect diagram semantics | Real-environment coverage |
+| `set-cell-parent` | Reparent a cell under another | write | yes | `target_page`, `cell_id`, `parent_id` | Confirmation | Can alter grouping/hierarchy significantly | Real-environment coverage |
+| `list-pages` | List pages in document | read | yes | optional `target_document` | Page metadata list | Exposes page names | Real-environment page coverage |
+| `get-current-page` | Return visible/current page metadata | read | yes | optional `target_document` | Page metadata | UI-state dependent | Real-environment page coverage |
+| `create-page` | Add blank page | write | yes | `name`, optional `target_document` | Created page metadata | Mutates document page structure | Real-environment page coverage |
+| `copy-page` | Copy a page | write | yes | `page`, optional `name`, optional `target_document` | Copied page metadata | Duplicates potentially sensitive diagram content | Real-environment page coverage |
+| `rename-page` | Rename a page | write | yes | `page`, `name`, optional `target_document` | Renamed page metadata | Mutates page metadata | Real-environment page coverage |
+| `list-layers` | List layers on page | read | yes | `target_page`, optional `target_document` | Layer list | Exposes layer names/state | Real-environment layer coverage |
+| `set-active-layer` | Set active layer | write | yes | `target_page`, `layer_id` | Active layer info | UI-bound state change; affects later creations | Real-environment layer coverage |
+| `move-cell-to-layer` | Move cell to another layer | write | yes | `target_page`, `cell_id`, `target_layer_id` | Confirmation | Can hide/misplace content via layer state | Real-environment layer coverage |
+| `get-active-layer` | Return active layer | read | yes | `target_page`, optional `target_document` | Active layer info | UI-state dependent | Real-environment layer coverage |
+| `create-layer` | Create layer | write | yes | `target_page`, `name` | Created layer info | Mutates layer structure | Real-environment layer coverage |
+| `export-diagram` | Export XML/SVG/PNG and optionally save file | read/write | yes | `target_page`, `format`, export options, `output_path` | Text/image content and optional save notice | `output_path` writes with process privileges; exported XML/SVG may contain sensitive data | Real-environment import/export coverage |
+| `import-diagram` | Import XML/SVG/PNG with embedded XML | write | yes | `data`, `format`, `mode`, `filename`, `target_page` depending on mode | Import result | XML/embedded content is untrusted input interpreted by draw.io | Real-environment import/export coverage |
+| `import-mermaid` | Convert/import Mermaid | write | yes | `mermaid_source`, `mode`, `insert_mode`, `target_page` depending on mode | Import result and converted XML | Version-sensitive draw.io Mermaid APIs; untrusted source | Real-environment Mermaid coverage |
+
+## Notes
+
+- All tools except `list-documents` are document-routed by the server and receive
+  optional `target_document` at registration time.
+- Page-scoped tools require `target_page` in server schemas except documented
+  new-page import paths.
+- Mutating tools generally use the request queue to serialize live operations.
+- The plugin has no dedicated `test` script; tool behavior is primarily covered
+  through server real-environment tests after plugin build output is copied into
+  the server build.
