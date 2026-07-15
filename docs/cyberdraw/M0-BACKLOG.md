@@ -72,6 +72,20 @@ baseline. It is not an implementation plan for M0 itself.
 
 ## P1
 
+### M0-P1-005: Review Architecture Intelligence Foundation RFC
+
+- Type: Draft RFC.
+- Description: `docs/cyberdraw/rfc/0001-internal-graph-model.md` proposes an
+  internal graph model for semantic diagram queries, validation and analysis.
+- Evidence: RFC 0001, supporting example JSON and Mermaid diagrams.
+- Impact: Provides a decision point for future implementation without changing
+  inherited MCP tools, plugin behavior or draw.io as the operational format.
+- Proposal: Review open decisions, validate the preferred package/server-first
+  direction with a small read-only prototype plan, and decide whether an
+  implementation ADR is warranted.
+- Effort: M.
+- Suggested milestone: Architecture Intelligence Foundation review.
+
 ### M0-P1-001: Complete third-party license inventory
 
 - Type: Partially addressed in M1; full inventory remains open.

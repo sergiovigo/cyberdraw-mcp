@@ -23,6 +23,8 @@ diagramming work.
 5. `docs/cyberdraw/SECURITY-BASELINE.md` before changing network, import/export
    or filesystem behavior.
 6. `docs/cyberdraw/M0-BACKLOG.md` before planning the next milestone.
+7. `docs/cyberdraw/rfc/0001-internal-graph-model.md` when working on the draft
+   Architecture Intelligence Foundation proposal.
 
 Read `AGENTS.md` before modifying anything. It contains repository-wide logging,
 navigation and command-output discipline.
@@ -38,6 +40,8 @@ navigation and command-output discipline.
 | `packages/drawio-mcp-dev-proxy/` | Local HTTPS/WSS development proxy |
 | `docs/cyberdraw/` | Official CyberDraw fork documentation |
 | `docs/cyberdraw/adr/` | Architecture decision records |
+| `docs/cyberdraw/rfc/` | Draft requests for comments; proposals only until accepted by ADR or milestone plan |
+| `docs/cyberdraw/diagrams/` | Supporting Mermaid diagrams for CyberDraw architecture proposals |
 | `docs/superpowers/` | Historical planning/spec documents inherited from earlier work |
 | `THIRD_PARTY_NOTICES.md` | Third-party notice tracking |
 
@@ -66,6 +70,8 @@ navigation and command-output discipline.
 - Do not expose HTTP/WebSocket services beyond loopback without documented auth.
 - Do not treat historical plans under `docs/superpowers/` as current backlog.
 - Do not commit or push unless the user explicitly asks.
+- Do not treat draft RFCs as accepted architecture; record implementation
+  decisions separately when they are approved.
 
 ## Starting a New Milestone
 
