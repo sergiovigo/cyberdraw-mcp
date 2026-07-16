@@ -1,0 +1,32 @@
+{
+  "name": "cyberdraw-runtime-contract",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Internal CyberDraw runtime snapshot protocol contract",
+  "type": "module",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./build/index.d.ts",
+      "import": "./build/index.js"
+    }
+  },
+  "files": [
+    "build"
+  ],
+  "scripts": {
+    "build": "rimraf build && tsc",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --testMatch '**/build/**/*.test.js'",
+    "lint": "tsc --noEmit",
+    "clean": "rimraf build coverage"
+  },
+  "devDependencies": {
+    "@jest/globals": "30.2.0",
+    "@types/jest": "30.0.0",
+    "@types/node": "25.0.3",
+    "jest": "30.2.0",
+    "rimraf": "6.1.3",
+    "typescript": "catalog:"
+  }
+}

@@ -22,6 +22,7 @@
   "author": "Ladislav Gazo",
   "license": "MIT",
   "dependencies": {
+    "cyberdraw-runtime-contract": "workspace:*",
     "drawio-mcp-compat": "workspace:*"
   },
   "devDependencies": {

@@ -149,6 +149,14 @@ and truncation diagnostics. It does not change this ADR's non-goals: no public
 MCP tool, public schema, stable identity, semantic revision, persistence or
 accepted product runtime integration is introduced.
 
+M4 hardening update:
+`docs/cyberdraw/milestones/M4-runtime-snapshot-product-hardening.md` keeps the
+runtime snapshot path private while adding capability negotiation, a private
+shared runtime contract package, soft/hard payload limits, versioned content
+revision and stale-read comparison helpers. These changes harden the internal
+integration evidence but still do not accept public WebSocket/API stability,
+new MCP tools, public schemas, persisted findings or definitive stable identity.
+
 This ADR explicitly does not accept:
 
 - the current provisional identity strategy as definitive;

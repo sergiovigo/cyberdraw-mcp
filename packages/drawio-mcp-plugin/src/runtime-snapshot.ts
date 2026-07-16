@@ -4,158 +4,25 @@ import {
   serialize_document_info,
   serialize_page_info,
 } from "./drawio-tools.js";
-
-export const CYBERDRAW_RUNTIME_SNAPSHOT_EVENT =
-  "cyberdraw.runtimeSnapshot.v1";
-
-export type RuntimeSnapshotLimits = {
-  readonly maxPages: number;
-  readonly maxLayersPerPage: number;
-  readonly maxElementsPerPage: number;
-  readonly maxLabelLength: number;
-  readonly maxStyleLength: number;
-  readonly maxMetadataKeys: number;
-  readonly maxMetadataStringLength: number;
-  readonly maxRawDepth: number;
-  readonly maxRawKeys: number;
-  readonly maxArrayItems: number;
-  readonly maxSnapshotBytes: number;
-};
-
-export type RuntimeSnapshotOptions = {
-  readonly target_document?: { readonly id?: string };
-  readonly limits?: Partial<RuntimeSnapshotLimits>;
-  readonly includeRaw?: boolean;
-};
-
-export type RuntimeSnapshotDiagnostic = {
-  readonly code:
-    | "page_limit_reached"
-    | "layer_limit_reached"
-    | "element_limit_reached"
-    | "string_truncated"
-    | "metadata_limit_reached"
-    | "raw_limit_reached"
-    | "snapshot_size_limit_reached"
-    | "page_extraction_failed"
-    | "semantic_revision_deferred";
-  readonly message: string;
-  readonly pageId?: string;
-  readonly elementId?: string;
-  readonly limit?: number;
-  readonly observed?: number;
-};
-
-export type RuntimeSnapshot = {
-  readonly schemaVersion: "cyberdraw.runtime-snapshot.v1";
-  readonly document: {
-    readonly id?: string;
-    readonly title?: string;
-    readonly mode?: string;
-    readonly fileUrl?: string;
-    readonly fileHash?: string;
-    readonly pageCount: number;
-    readonly currentPageId?: string;
-    readonly runtimeVersion?: string;
-    readonly extractedAt: string;
-    readonly revisionSignals: {
-      readonly documentId?: string;
-      readonly fileHash?: string;
-      readonly pageIds: readonly string[];
-      readonly contentRevision: string;
-      readonly semanticRevision?: string;
-    };
-  };
-  readonly pages: readonly RuntimeSnapshotPage[];
-  readonly diagnostics: readonly RuntimeSnapshotDiagnostic[];
-  readonly truncated: boolean;
-  readonly limits: RuntimeSnapshotLimits;
-  readonly performance: {
-    readonly extractionMs: number;
-    readonly serializationMs: number;
-    readonly approximateJsonBytes: number;
-  };
-};
-
-export type RuntimeSnapshotPage = {
-  readonly id: string;
-  readonly index: number;
-  readonly name: string;
-  readonly visible: boolean;
-  readonly background: boolean;
-  readonly metadata?: JsonRecord;
-  readonly layers: readonly RuntimeSnapshotLayer[];
-  readonly elements: readonly RuntimeSnapshotElement[];
-};
-
-export type RuntimeSnapshotLayer = {
-  readonly id: string;
-  readonly name: string;
-  readonly visible?: boolean;
-  readonly locked?: boolean;
-  readonly pageId: string;
-  readonly index: number;
-  readonly metadata?: JsonRecord;
-};
-
-export type RuntimeSnapshotElement = {
-  readonly id: string;
-  readonly pageId: string;
-  readonly layerId?: string;
-  readonly parentId?: string;
-  readonly sourceId?: string;
-  readonly targetId?: string;
-  readonly type: "edge" | "vertex" | "group" | "unknown";
-  readonly label?: {
-    readonly format: "plain" | "html" | "unknown";
-    readonly text?: string;
-    readonly html?: string;
-  };
-  readonly style?: {
-    readonly raw?: string;
-    readonly properties: JsonRecord;
-    readonly uninterpreted?: readonly string[];
-  };
-  readonly geometry?: JsonRecord;
-  readonly waypoints?: readonly JsonRecord[];
-  readonly relativeGeometry?: boolean;
-  readonly tags?: readonly string[];
-  readonly customAttributes?: JsonRecord;
-  readonly raw?: JsonRecord;
-};
-
-type JsonPrimitive = string | number | boolean | null;
-type JsonValue = JsonPrimitive | JsonValue[] | JsonRecord;
-type JsonRecord = { readonly [key: string]: JsonValue };
-
-const DEFAULT_LIMITS: RuntimeSnapshotLimits = {
-  maxPages: 100,
-  maxLayersPerPage: 100,
-  maxElementsPerPage: 25_000,
-  maxLabelLength: 8_192,
-  maxStyleLength: 8_192,
-  maxMetadataKeys: 64,
-  maxMetadataStringLength: 8_192,
-  maxRawDepth: 4,
-  maxRawKeys: 64,
-  maxArrayItems: 1_000,
-  maxSnapshotBytes: 16 * 1024 * 1024,
-};
+import {
+  CYBERDRAW_RUNTIME_CONTRACT_VERSION,
+  CYBERDRAW_RUNTIME_SNAPSHOT_EVENT,
+  CYBERDRAW_RUNTIME_SNAPSHOT_SCHEMA_VERSION,
+  computeContentRevision,
+  normalizeRuntimeSnapshotLimits,
+  stableStringify,
+  type JsonRecord,
+  type JsonValue,
+  type RuntimeSnapshot,
+  type RuntimeSnapshotDiagnostic,
+  type RuntimeSnapshotElement,
+  type RuntimeSnapshotLimits,
+  type RuntimeSnapshotOptions,
+  type RuntimeSnapshotPage,
+  type RuntimeSnapshotLayer,
+} from "cyberdraw-runtime-contract";
 
 const DANGEROUS_KEYS = new Set(["__proto__", "prototype", "constructor"]);
-const MIN_LIMITS: RuntimeSnapshotLimits = {
-  maxPages: 1,
-  maxLayersPerPage: 1,
-  maxElementsPerPage: 1,
-  maxLabelLength: 1,
-  maxStyleLength: 1,
-  maxMetadataKeys: 1,
-  maxMetadataStringLength: 1,
-  maxRawDepth: 1,
-  maxRawKeys: 1,
-  maxArrayItems: 1,
-  maxSnapshotBytes: 1,
-};
 
 export function extract_runtime_snapshot(
   ui: any,
@@ -167,30 +34,51 @@ export function extract_runtime_snapshot(
   const pages = Array.isArray(ui?.pages) ? ui.pages : [];
   const selectedIds = getSelectionIds(ui?.editor?.graph);
   const currentPageId = getCurrentPageId(ui);
-  const pageInputs = pages.slice(0, limits.maxPages);
+  const scope = normalizeScope(options.scope);
+  const pageCandidates = pages
+    .map((page: any, index: number) => ({
+      page,
+      pageInfo: serialize_page_info(ui, page, index),
+    }))
+    .filter(({ pageInfo }: { pageInfo: ReturnType<typeof serialize_page_info> }) =>
+      scope.kind === "document" ? true : scope.pageIds?.includes(pageInfo.id) === true,
+    );
+  const pageInputs = pageCandidates.slice(0, limits.maxPages);
   const extractedPages: RuntimeSnapshotPage[] = [];
+  const budget = createPayloadBudget(limits, diagnostics);
 
-  if (pages.length > pageInputs.length) {
+  if (pageCandidates.length > pageInputs.length) {
     diagnostics.push({
       code: "page_limit_reached",
-      message: `Runtime snapshot included ${pageInputs.length} of ${pages.length} pages.`,
+      message: `Runtime snapshot included ${pageInputs.length} of ${pageCandidates.length} pages in requested scope.`,
       limit: limits.maxPages,
-      observed: pages.length,
+      observed: pageCandidates.length,
     });
   }
 
   for (let index = 0; index < pageInputs.length; index += 1) {
-    const page = pageInputs[index];
-    const pageInfo = serialize_page_info(ui, page, index);
+    const { pageInfo } = pageInputs[index];
     let execution: ReturnType<typeof prepare_target_page_execution> | undefined;
     try {
       execution = prepare_target_page_execution(ui, { id: pageInfo.id }, {
         prefer_background: true,
         sync_live_current_page_state: true,
       });
-      extractedPages.push(
-        extractPage(execution.ui, pageInfo, currentPageId, limits, diagnostics, options),
+      const extracted = extractPage(
+        execution.ui,
+        pageInfo,
+        currentPageId,
+        limits,
+        diagnostics,
+        options,
+        budget,
       );
+      if (extracted) {
+        extractedPages.push(extracted);
+      }
+      if (budget.hardLimitReached) {
+        break;
+      }
     } catch (error) {
       diagnostics.push({
         code: "page_extraction_failed",
@@ -215,6 +103,8 @@ export function extract_runtime_snapshot(
       : undefined;
   const extractionMs = now() - started;
   const revisionBase = {
+    contractVersion: CYBERDRAW_RUNTIME_CONTRACT_VERSION,
+    schemaVersion: CYBERDRAW_RUNTIME_SNAPSHOT_SCHEMA_VERSION,
     document: {
       id: documentInfo?.id,
       title: documentInfo?.title ?? undefined,
@@ -224,51 +114,68 @@ export function extract_runtime_snapshot(
       pageCount: pages.length,
       runtimeVersion: runtimeVersion(),
     },
+    scope,
     pages: extractedPages.map(contentRevisionPage),
     limits,
     diagnostics: contentRevisionDiagnostics(diagnostics),
-    truncated: hasTruncation(diagnostics),
+    complete: !hasTruncation(diagnostics),
   };
-  let contentRevision = deterministicHash(stableStringify(revisionBase));
-  const snapshotWithoutPerformance = {
-    schemaVersion: "cyberdraw.runtime-snapshot.v1" as const,
+  let contentRevision = computeContentRevision(revisionBase as JsonValue);
+  type RuntimeSnapshotWithoutPerformance = Omit<RuntimeSnapshot, "performance">;
+  const snapshotWithoutPerformance: RuntimeSnapshotWithoutPerformance = {
+    schemaVersion: CYBERDRAW_RUNTIME_SNAPSHOT_SCHEMA_VERSION,
+    contractVersion: CYBERDRAW_RUNTIME_CONTRACT_VERSION,
     document: {
       ...revisionBase.document,
       currentPageId: currentPageId ?? undefined,
+      capturedAt: new Date().toISOString(),
       extractedAt: new Date().toISOString(),
       revisionSignals: {
         documentId: documentInfo?.id,
         fileHash: documentInfo?.hash ?? undefined,
         pageIds: extractedPages.map((page) => page.id),
+        scope,
+        complete: !hasTruncation(diagnostics),
         contentRevision,
       },
     },
     pages: extractedPages,
     diagnostics,
+    completeness: completenessFromDiagnostics(diagnostics),
     truncated: hasTruncation(diagnostics),
     limits,
+    payload: {
+      approximateJsonBytes: budget.approximateBytes,
+      softLimitBytes: limits.softSnapshotBytes,
+      hardLimitBytes: limits.hardSnapshotBytes,
+    },
   };
   const serializationStarted = now();
   const approximateJsonBytes = stableStringify(snapshotWithoutPerformance).length;
   const serializationMs = now() - serializationStarted;
+  const mutableSnapshot = snapshotWithoutPerformance as {
+    document: {
+      revisionSignals: {
+        contentRevision: string;
+        complete: boolean;
+      };
+    };
+    completeness: RuntimeSnapshot["completeness"];
+    truncated: boolean;
+    payload: RuntimeSnapshot["payload"];
+  };
 
-  if (approximateJsonBytes > limits.maxSnapshotBytes) {
-    diagnostics.push({
-      code: "snapshot_size_limit_reached",
-      message: `Runtime snapshot is approximately ${approximateJsonBytes} bytes, above the configured ${limits.maxSnapshotBytes} byte limit.`,
-      limit: limits.maxSnapshotBytes,
-      observed: approximateJsonBytes,
-    });
-    contentRevision = deterministicHash(
-      stableStringify({
-        ...revisionBase,
-        diagnostics: contentRevisionDiagnostics(diagnostics),
-        truncated: true,
-      }),
+  if (approximateJsonBytes > limits.hardSnapshotBytes) {
+    throw new Error(
+      `Runtime snapshot payload exceeded hard limit after serialization (${approximateJsonBytes}/${limits.hardSnapshotBytes} bytes).`,
     );
-    snapshotWithoutPerformance.document.revisionSignals.contentRevision =
-      contentRevision;
   }
+  mutableSnapshot.payload = {
+    approximateJsonBytes,
+    measuredJsonBytes: approximateJsonBytes,
+    softLimitBytes: limits.softSnapshotBytes,
+    hardLimitBytes: limits.hardSnapshotBytes,
+  };
 
   return {
     ...snapshotWithoutPerformance,
@@ -291,12 +198,25 @@ function extractPage(
   limits: RuntimeSnapshotLimits,
   diagnostics: RuntimeSnapshotDiagnostic[],
   options: RuntimeSnapshotOptions,
-): RuntimeSnapshotPage {
+  budget: PayloadBudget,
+): RuntimeSnapshotPage | undefined {
   const graph = ui?.editor?.graph;
   const model = graph?.getModel?.();
   const root = model?.getRoot?.();
   const layers = extractLayers(model, root, pageInfo.id, limits, diagnostics);
-  const elements = extractElements(graph, model, root, pageInfo.id, limits, diagnostics, options);
+  if (!budget.tryInclude(layers, pageInfo.id)) {
+    return undefined;
+  }
+  const elements = extractElements(
+    graph,
+    model,
+    root,
+    pageInfo.id,
+    limits,
+    diagnostics,
+    options,
+    budget,
+  );
 
   return safeRecord({
     id: pageInfo.id,
@@ -324,6 +244,18 @@ function extractLayers(
   limits: RuntimeSnapshotLimits,
   diagnostics: RuntimeSnapshotDiagnostic[],
 ): RuntimeSnapshotLayer[] {
+  reportMissingApi(
+    typeof model?.getChildCount === "function",
+    "mxGraphModel.getChildCount",
+    diagnostics,
+    pageId,
+  );
+  reportMissingApi(
+    typeof model?.getChildAt === "function",
+    "mxGraphModel.getChildAt",
+    diagnostics,
+    pageId,
+  );
   const count = typeof model?.getChildCount === "function" ? model.getChildCount(root) : 0;
   const included = Math.min(count, limits.maxLayersPerPage);
   if (count > included) {
@@ -339,12 +271,19 @@ function extractLayers(
   const layers: RuntimeSnapshotLayer[] = [];
   for (let index = 0; index < included; index += 1) {
     const layer = model.getChildAt(root, index);
+    const hasLockedApi = typeof layer?.isConnectable === "function";
+    reportMissingApi(
+      hasLockedApi,
+      "mxCell.isConnectable",
+      diagnostics,
+      pageId,
+    );
     layers.push(
       safeRecord({
         id: safeString(layer?.getId?.() ?? layer?.id, limits.maxMetadataStringLength, diagnostics, pageId) ?? `layer-${index}`,
         name: safeString(layer?.getValue?.() ?? layer?.value ?? `Layer ${index}`, limits.maxMetadataStringLength, diagnostics, pageId) ?? `Layer ${index}`,
         visible: typeof layer?.isVisible === "function" ? Boolean(layer.isVisible()) : undefined,
-        locked: typeof layer?.isConnectable === "function" ? !Boolean(layer.isConnectable()) : undefined,
+        locked: hasLockedApi ? !Boolean(layer.isConnectable()) : undefined,
         pageId,
         index,
       }) as RuntimeSnapshotLayer,
@@ -361,6 +300,7 @@ function extractElements(
   limits: RuntimeSnapshotLimits,
   diagnostics: RuntimeSnapshotDiagnostic[],
   options: RuntimeSnapshotOptions,
+  budget: PayloadBudget,
 ): RuntimeSnapshotElement[] {
   const collected = collectElementCells(model, root, limits.maxElementsPerPage);
   const included = collected.cells;
@@ -374,9 +314,23 @@ function extractElements(
     });
   }
 
-  return included.map((cell) =>
-    extractElement(graph, model, cell, pageId, limits, diagnostics, options),
-  );
+  const elements: RuntimeSnapshotElement[] = [];
+  for (const cell of included) {
+    const element = extractElement(
+      graph,
+      model,
+      cell,
+      pageId,
+      limits,
+      diagnostics,
+      options,
+    );
+    if (!budget.tryInclude(element, pageId, element.id)) {
+      break;
+    }
+    elements.push(element);
+  }
+  return elements;
 }
 
 function extractElement(
@@ -720,23 +674,20 @@ function contentRevisionPage(page: RuntimeSnapshotPage) {
 function applyLimits(
   overrides: Partial<RuntimeSnapshotLimits> | undefined,
 ): RuntimeSnapshotLimits {
-  const requested = {
-    ...DEFAULT_LIMITS,
+  const legacyMaxSnapshotBytes =
+    overrides && "maxSnapshotBytes" in overrides
+      ? Number((overrides as { readonly maxSnapshotBytes?: unknown }).maxSnapshotBytes)
+      : undefined;
+  const hasLegacyMaxSnapshotBytes = Number.isFinite(legacyMaxSnapshotBytes);
+  return normalizeRuntimeSnapshotLimits({
     ...overrides,
-  };
-  return {
-    maxPages: boundedInteger(requested.maxPages, MIN_LIMITS.maxPages),
-    maxLayersPerPage: boundedInteger(requested.maxLayersPerPage, MIN_LIMITS.maxLayersPerPage),
-    maxElementsPerPage: boundedInteger(requested.maxElementsPerPage, MIN_LIMITS.maxElementsPerPage),
-    maxLabelLength: boundedInteger(requested.maxLabelLength, MIN_LIMITS.maxLabelLength),
-    maxStyleLength: boundedInteger(requested.maxStyleLength, MIN_LIMITS.maxStyleLength),
-    maxMetadataKeys: boundedInteger(requested.maxMetadataKeys, MIN_LIMITS.maxMetadataKeys),
-    maxMetadataStringLength: boundedInteger(requested.maxMetadataStringLength, MIN_LIMITS.maxMetadataStringLength),
-    maxRawDepth: boundedInteger(requested.maxRawDepth, MIN_LIMITS.maxRawDepth),
-    maxRawKeys: boundedInteger(requested.maxRawKeys, MIN_LIMITS.maxRawKeys),
-    maxArrayItems: boundedInteger(requested.maxArrayItems, MIN_LIMITS.maxArrayItems),
-    maxSnapshotBytes: boundedInteger(requested.maxSnapshotBytes, MIN_LIMITS.maxSnapshotBytes),
-  };
+    ...(hasLegacyMaxSnapshotBytes
+      ? {
+          hardSnapshotBytes: legacyMaxSnapshotBytes as number,
+          softSnapshotBytes: Math.floor((legacyMaxSnapshotBytes as number) * 0.75),
+        }
+      : {}),
+  });
 }
 
 function sanitizeJson(
@@ -856,14 +807,8 @@ function jsonRecord(
 ): JsonRecord | undefined {
   const sanitized = sanitizeJson(value, limits, diagnostics, pageId, elementId);
   return sanitized && typeof sanitized === "object" && !Array.isArray(sanitized)
-    ? sanitized
+    ? (sanitized as JsonRecord)
     : undefined;
-}
-
-function boundedInteger(value: unknown, minimum: number): number {
-  return typeof value === "number" && Number.isFinite(value)
-    ? Math.max(minimum, Math.floor(value))
-    : minimum;
 }
 
 function safeEntries(
@@ -906,7 +851,119 @@ function contentRevisionDiagnostics(
       elementId: diagnostic.elementId,
       limit: diagnostic.limit,
       observed: diagnostic.observed,
+      api: diagnostic.api,
     }));
+}
+
+type PayloadBudget = {
+  readonly approximateBytes: number;
+  readonly hardLimitReached: boolean;
+  tryInclude: (value: unknown, pageId?: string, elementId?: string) => boolean;
+};
+
+function createPayloadBudget(
+  limits: RuntimeSnapshotLimits,
+  diagnostics: RuntimeSnapshotDiagnostic[],
+): PayloadBudget {
+  let approximateBytes = 0;
+  let softLimitReached = false;
+  let hardLimitReached = false;
+  return {
+    get approximateBytes() {
+      return approximateBytes;
+    },
+    get hardLimitReached() {
+      return hardLimitReached;
+    },
+    tryInclude(value, pageId, elementId) {
+      if (hardLimitReached) {
+        return false;
+      }
+      const bytes = stableStringify(value).length;
+      const next = approximateBytes + bytes;
+      if (next > limits.hardSnapshotBytes) {
+        hardLimitReached = true;
+        diagnostics.push({
+          code: "snapshot_hard_limit_reached",
+          message: `Runtime snapshot stopped before adding data that would exceed the ${limits.hardSnapshotBytes} byte hard limit.`,
+          pageId,
+          elementId,
+          limit: limits.hardSnapshotBytes,
+          observed: next,
+        });
+        return false;
+      }
+      approximateBytes = next;
+      if (!softLimitReached && approximateBytes > limits.softSnapshotBytes) {
+        softLimitReached = true;
+        diagnostics.push({
+          code: "snapshot_soft_limit_reached",
+          message: `Runtime snapshot exceeded the ${limits.softSnapshotBytes} byte soft limit and is marked partial.`,
+          pageId,
+          elementId,
+          limit: limits.softSnapshotBytes,
+          observed: approximateBytes,
+        });
+      }
+      return true;
+    },
+  };
+}
+
+function normalizeScope(scope: RuntimeSnapshotOptions["scope"]) {
+  if (scope?.kind === "pages" && Array.isArray(scope.pageIds)) {
+    return {
+      kind: "pages" as const,
+      pageIds: scope.pageIds.filter((id: unknown): id is string => typeof id === "string"),
+    };
+  }
+  return { kind: "document" as const };
+}
+
+function completenessFromDiagnostics(
+  diagnostics: readonly RuntimeSnapshotDiagnostic[],
+): RuntimeSnapshot["completeness"] {
+  if (diagnostics.some((diagnostic) => diagnostic.code === "snapshot_hard_limit_reached")) {
+    return { status: "partial", reason: "hard-limit" };
+  }
+  if (diagnostics.some((diagnostic) => diagnostic.code === "snapshot_soft_limit_reached")) {
+    return { status: "partial", reason: "soft-limit" };
+  }
+  if (diagnostics.some((diagnostic) => diagnostic.code === "page_extraction_failed")) {
+    return { status: "partial", reason: "page-error" };
+  }
+  if (hasTruncation(diagnostics)) {
+    return { status: "partial", reason: "count-limit" };
+  }
+  return { status: "complete" };
+}
+
+function reportMissingApi(
+  present: boolean,
+  api: string,
+  diagnostics: RuntimeSnapshotDiagnostic[],
+  pageId?: string,
+) {
+  if (present) {
+    return;
+  }
+  if (
+    diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "compatibility_api_missing" &&
+        diagnostic.api === api &&
+        diagnostic.pageId === pageId,
+    )
+  ) {
+    return;
+  }
+  diagnostics.push({
+    code: "compatibility_api_missing",
+    message: `Runtime snapshot compatibility guard used a fallback because ${api} is unavailable.`,
+    pageId,
+    api,
+    runtimeVersion: runtimeVersion(),
+  });
 }
 
 function safeString(
@@ -964,28 +1021,4 @@ function now(): number {
   return typeof performance !== "undefined" && typeof performance.now === "function"
     ? performance.now()
     : Date.now();
-}
-
-function stableStringify(value: unknown): string {
-  if (value === null || typeof value !== "object") {
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) {
-    return `[${value.map((entry) => stableStringify(entry)).join(",")}]`;
-  }
-  const record = value as Record<string, unknown>;
-  return `{${Object.keys(record)
-    .sort()
-    .filter((key) => record[key] !== undefined)
-    .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
-    .join(",")}}`;
-}
-
-function deterministicHash(value: string): string {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return `fnv1a32:${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }

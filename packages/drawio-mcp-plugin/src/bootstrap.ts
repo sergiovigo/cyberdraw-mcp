@@ -18,9 +18,12 @@ import { extractShapesFromSidebar } from "./shape-extractor";
 import { toolDefinitions } from "./tool-registry";
 import { sendCompatReport } from "./drawio-compat/report.js";
 import {
-  CYBERDRAW_RUNTIME_SNAPSHOT_EVENT,
   extract_runtime_snapshot,
 } from "./runtime-snapshot.js";
+import {
+  CYBERDRAW_RUNTIME_SNAPSHOT_EVENT,
+  createRuntimeCapabilities,
+} from "cyberdraw-runtime-contract";
 import type {
   DrawIOFunction,
   DrawioEventListener,
@@ -76,6 +79,7 @@ export function bootstrapPlugin(opts: BootstrapOptions): BootstrapHandle {
     transport.send({
       __control: "document-state",
       document: serialize_document_info(ui, currentDocumentId),
+      runtime: createRuntimeCapabilities(),
     });
   };
 

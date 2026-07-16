@@ -11,45 +11,13 @@ import { callToolJson } from "./tools.js";
 import { expectToolSuccess, unwrapToolPayload } from "./test-helpers.js";
 import type { RealEnvironmentContext } from "./types.js";
 import { requestCyberdrawRuntimeSnapshot } from "../cyberdraw-runtime-snapshot.js";
+import type { RuntimeSnapshot } from "cyberdraw-runtime-contract";
 
 type PageInfo = {
   index: number;
   id: string;
   name: string;
   is_current: boolean;
-};
-
-type RuntimeSnapshot = {
-  schemaVersion: "cyberdraw.runtime-snapshot.v1";
-  document: {
-    currentPageId?: string;
-    revisionSignals: {
-      contentRevision: string;
-      semanticRevision?: string;
-    };
-  };
-  pages: Array<{
-    id: string;
-    visible: boolean;
-    background: boolean;
-    layers: Array<{ id: string; pageId: string }>;
-    elements: Array<{
-      id: string;
-      pageId: string;
-      layerId?: string;
-      parentId?: string;
-      sourceId?: string;
-      targetId?: string;
-      label?: { text?: string; html?: string };
-    }>;
-  }>;
-  diagnostics: Array<{ code: string; pageId?: string; elementId?: string }>;
-  truncated: boolean;
-  performance: {
-    extractionMs: number;
-    serializationMs: number;
-    approximateJsonBytes: number;
-  };
 };
 
 describe("real environment/runtime snapshot", () => {
@@ -150,7 +118,13 @@ describe("real environment/runtime snapshot", () => {
         .find((page) => page.id === backgroundPage.id)
         ?.elements.some((element) => element.id === backgroundRect.id),
     ).toBe(true);
-    expect(snapshot.document.revisionSignals.contentRevision).toMatch(/^fnv1a32:/);
+    expect(snapshot.contractVersion).toBe(1);
+    expect(snapshot.document.capturedAt).toEqual(expect.any(String));
+    expect(snapshot.document.revisionSignals.contentRevision).toMatch(
+      /^cyberdraw-content-v1:fnv1a64:[0-9a-f]{16}$/,
+    );
+    expect(snapshot.document.revisionSignals.complete).toBe(true);
+    expect(snapshot.completeness.status).toBe("complete");
     expect(snapshot.document.revisionSignals.semanticRevision).toBeUndefined();
     expect(snapshot.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
       "semantic_revision_deferred",
@@ -158,6 +132,7 @@ describe("real environment/runtime snapshot", () => {
     expect(JSON.parse(JSON.stringify(snapshot)).schemaVersion).toBe(
       "cyberdraw.runtime-snapshot.v1",
     );
+    expect(snapshot.payload.measuredJsonBytes).toBeGreaterThan(0);
 
     const equivalent = (await requestCyberdrawRuntimeSnapshot(context.app.context, {
       includeRaw: true,
@@ -173,6 +148,7 @@ describe("real environment/runtime snapshot", () => {
       limits: { maxElementsPerPage: 1 },
     })) as RuntimeSnapshot;
     expect(truncated.truncated).toBe(true);
+    expect(truncated.completeness.status).toBe("partial");
     expect(truncated.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
       "element_limit_reached",
     );

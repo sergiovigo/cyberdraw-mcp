@@ -206,6 +206,13 @@ preserving existing MCP tool responses. It validates visible/background page
 read extraction and provisional `contentRevision`, but large payload strategy,
 cross-version draw.io evidence, stable identity and public schemas remain open.
 
+M4 runtime snapshot hardening evidence is recorded in
+`docs/cyberdraw/milestones/M4-runtime-snapshot-product-hardening.md`. It adds
+private capability negotiation, a shared internal contract package, soft/hard
+payload policy, deterministic versioned content revision and stale-read
+comparison helpers. The RFC remains Draft and no public graph-model API or MCP
+tool is introduced.
+
 ## Data Model Proposal
 
 Use normalized entities keyed by internal ID, plus explicit references. Prefer

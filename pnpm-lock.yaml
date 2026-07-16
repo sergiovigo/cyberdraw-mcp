@@ -52,6 +52,27 @@ importers:
         specifier: 'catalog:'
         version: 5.9.3
 
+  packages/cyberdraw-runtime-contract:
+    devDependencies:
+      '@jest/globals':
+        specifier: 30.2.0
+        version: 30.2.0
+      '@types/jest':
+        specifier: 30.0.0
+        version: 30.0.0
+      '@types/node':
+        specifier: 25.0.3
+        version: 25.0.3
+      jest:
+        specifier: 30.2.0
+        version: 30.2.0(@types/node@25.0.3)(node-notifier@10.0.1)
+      rimraf:
+        specifier: 6.1.3
+        version: 6.1.3
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+
   packages/drawio-mcp-compat:
     devDependencies:
       '@biomejs/biome':
@@ -115,6 +136,9 @@ importers:
 
   packages/drawio-mcp-plugin:
     dependencies:
+      cyberdraw-runtime-contract:
+        specifier: workspace:*
+        version: link:../cyberdraw-runtime-contract
       drawio-mcp-compat:
         specifier: workspace:*
         version: link:../drawio-mcp-compat
@@ -143,6 +167,9 @@ importers:
       cachedir:
         specifier: 2.4.0
         version: 2.4.0
+      cyberdraw-runtime-contract:
+        specifier: workspace:*
+        version: link:../cyberdraw-runtime-contract
       hono:
         specifier: 4.12.25
         version: 4.12.25

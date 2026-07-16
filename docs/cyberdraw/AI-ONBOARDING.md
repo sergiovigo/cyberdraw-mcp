@@ -29,6 +29,8 @@ diagramming work.
    integrating the internal graph model at runtime.
 9. `docs/cyberdraw/spikes/0002-runtime-snapshot-handler.md` when working on the
    internal runtime snapshot handler prototype.
+10. `docs/cyberdraw/milestones/M4-runtime-snapshot-product-hardening.md` before
+    using runtime snapshots for future product features.
 
 Read `AGENTS.md` before modifying anything. It contains repository-wide logging,
 navigation and command-output discipline.
@@ -42,6 +44,7 @@ navigation and command-output discipline.
 | `packages/drawio-mcp-extension/` | WXT browser extension, popup/options UI and content scripts |
 | `packages/drawio-mcp-compat/` | Shared draw.io version compatibility helpers |
 | `packages/cyberdraw-graph-model/` | Private pure read-only graph model spike package; core consumes experimental `CanonicalDiagramInput`, legacy draw.io/MCP read shapes stay in an adapter |
+| `packages/cyberdraw-runtime-contract/` | Private runtime snapshot contract constants, types, validation and revision helpers shared by server and plugin |
 | `packages/drawio-mcp-dev-proxy/` | Local HTTPS/WSS development proxy |
 | `docs/cyberdraw/` | Official CyberDraw fork documentation |
 | `docs/cyberdraw/adr/` | Architecture decision records |
@@ -133,6 +136,8 @@ direct shell commands and package scripts.
 - Runtime snapshot spike: `packages/drawio-mcp-plugin/src/runtime-snapshot.ts`,
   `packages/drawio-mcp-server/src/cyberdraw-runtime-snapshot.ts` and
   `packages/cyberdraw-graph-model/src/runtime-snapshot-adapter.ts`
+- Runtime snapshot contract:
+  `packages/cyberdraw-runtime-contract/src/index.ts`
 
 For architecture-level orientation, prefer `ARCHITECTURE.md` before reading
 source files.
