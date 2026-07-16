@@ -4,6 +4,10 @@
 
 Draft.
 
+M2 spike evidence: see
+`docs/cyberdraw/spikes/0001-internal-graph-readonly.md`. The RFC remains Draft;
+the spike is not an acceptance ADR or stable product contract.
+
 ## Authors
 
 - CyberDraw MCP maintainers.
@@ -177,6 +181,14 @@ Recommendation: Alternative C should be the preferred design direction for a
 future implementation, with server-first adoption and plugin participation kept
 limited to snapshot extraction until evidence shows shared browser code is worth
 the cost. This is a recommendation for review, not an accepted decision.
+
+M2 read-only spike evidence supports the feasibility of Alternative C as a
+private pure package for normalization, indexing and broken-reference detection.
+A follow-up refactor separated the legacy `list-paged-model` shape from a
+neutral internal `CanonicalDiagramInput` boundary, so the core no longer needs
+to know mxCell-shaped references or the inherited tool name. The spike does not
+yet prove runtime snapshot extraction completeness, large WebSocket payload
+behavior, public schema stability or stable identity across page moves/imports.
 
 ## Data Model Proposal
 
