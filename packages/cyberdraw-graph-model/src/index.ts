@@ -1,5 +1,9 @@
 export { fromLegacyPagedModel, toCanonicalDiagramInput } from "./legacy-adapter.js";
 export {
+  fromRuntimeSnapshot,
+  toCanonicalRuntimeSnapshotInput,
+} from "./runtime-snapshot-adapter.js";
+export {
   provisionalDiagramId,
   provisionalElementId,
   provisionalLayerId,

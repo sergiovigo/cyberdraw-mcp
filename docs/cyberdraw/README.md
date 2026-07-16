@@ -23,6 +23,7 @@ before CyberDraw-specific features are introduced.
 | [AI-ONBOARDING.md](AI-ONBOARDING.md) | Practical guide for future AI agents | Operational guide |
 | [rfc/0001-internal-graph-model.md](rfc/0001-internal-graph-model.md) | Proposed internal graph model for architecture intelligence | Draft RFC |
 | [spikes/0001-internal-graph-readonly.md](spikes/0001-internal-graph-readonly.md) | M2 read-only prototype evidence for RFC 0001 Alternative C | Spike evidence |
+| [spikes/0002-runtime-snapshot-handler.md](spikes/0002-runtime-snapshot-handler.md) | M3 internal runtime snapshot handler spike evidence for ADR 0003 exit criteria | Spike evidence |
 | [diagrams/internal-graph-model.md](diagrams/internal-graph-model.md) | Mermaid diagrams supporting RFC 0001 | Draft supporting diagrams |
 | [adr/0001-fork-strategy.md](adr/0001-fork-strategy.md) | Decision to begin as a conservative fork | Accepted ADR |
 | [adr/0002-runtime-and-baseline-policy.md](adr/0002-runtime-and-baseline-policy.md) | Node, pnpm and audit baseline policy | Accepted ADR |
@@ -52,7 +53,9 @@ Related root documents:
 11. `spikes/0001-internal-graph-readonly.md` for M2 prototype evidence.
 12. `adr/0003-internal-graph-model-architecture.md` for the accepted package
     architecture and runtime-integration guardrails.
-13. `adr/` when a lasting decision needs historical context.
+13. `spikes/0002-runtime-snapshot-handler.md` for M3 runtime snapshot handler
+    evidence.
+14. `adr/` when a lasting decision needs historical context.
 
 ## Question Map
 
@@ -70,6 +73,7 @@ Related root documents:
 | What should another AI agent do first? | `AI-ONBOARDING.md`, `GOVERNANCE.md` |
 | What is the proposed internal graph model? | `rfc/0001-internal-graph-model.md`, `diagrams/internal-graph-model.md` |
 | What evidence exists for the read-only internal model spike? | `spikes/0001-internal-graph-readonly.md` |
+| What evidence exists for runtime snapshot extraction? | `spikes/0002-runtime-snapshot-handler.md` |
 | What internal graph model architecture was accepted? | `adr/0003-internal-graph-model-architecture.md` |
 | Where are lasting decisions recorded? | `adr/` |
 | What third-party assets need review? | `../../THIRD_PARTY_NOTICES.md` |

@@ -140,6 +140,15 @@ validated. That integration must prove real draw.io snapshot extraction,
 payload limits, invalidation, revision handling, rollback behavior and no
 changes to existing MCP responses before it can become product behavior.
 
+M3 spike update: `docs/cyberdraw/spikes/0002-runtime-snapshot-handler.md`
+implements an internal read-only runtime snapshot handler behind the private
+`cyberdraw.runtimeSnapshot.v1` message, plus a source-specific adapter into
+`CanonicalDiagramInput`. It provides evidence for visible/background extraction,
+state restoration, JSON-serializable plain data, provisional `contentRevision`
+and truncation diagnostics. It does not change this ADR's non-goals: no public
+MCP tool, public schema, stable identity, semantic revision, persistence or
+accepted product runtime integration is introduced.
+
 This ADR explicitly does not accept:
 
 - the current provisional identity strategy as definitive;

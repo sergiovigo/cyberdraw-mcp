@@ -17,6 +17,10 @@ import { setRuntimeCatalog } from "./shape-library";
 import { extractShapesFromSidebar } from "./shape-extractor";
 import { toolDefinitions } from "./tool-registry";
 import { sendCompatReport } from "./drawio-compat/report.js";
+import {
+  CYBERDRAW_RUNTIME_SNAPSHOT_EVENT,
+  extract_runtime_snapshot,
+} from "./runtime-snapshot.js";
 import type {
   DrawIOFunction,
   DrawioEventListener,
@@ -214,6 +218,16 @@ export function bootstrapPlugin(opts: BootstrapOptions): BootstrapHandle {
     console.debug(`[plugin] registered tool ${def.name}`);
   });
 
+  const internalHandlers = new Map<string, (request: any) => void>();
+  internalHandlers.set(
+    CYBERDRAW_RUNTIME_SNAPSHOT_EVENT,
+    buildToolHandler(
+      CYBERDRAW_RUNTIME_SNAPSHOT_EVENT,
+      new Set(["target_document", "limits", "includeRaw"]),
+      extract_runtime_snapshot,
+    ),
+  );
+
   transport.onMessage((message: any) => {
     if (!message) return;
 
@@ -228,6 +242,15 @@ export function bootstrapPlugin(opts: BootstrapOptions): BootstrapHandle {
         : undefined;
     if (handler) {
       handler(message);
+      return;
+    }
+
+    const internalHandler =
+      typeof message.__event === "string"
+        ? internalHandlers.get(message.__event)
+        : undefined;
+    if (internalHandler) {
+      internalHandler(message);
     }
   });
 

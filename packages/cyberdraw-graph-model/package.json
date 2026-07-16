@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "build": "rimraf build && tsc",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest build/",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --testMatch '**/build/**/*.test.js'",
     "lint": "tsc --noEmit",
     "clean": "rimraf build coverage"
   },
