@@ -65,7 +65,8 @@ export function requestCyberdrawRuntimeSnapshot(
   );
 
   return channel(request, {} as never).then((result) => {
-    const text = result.content[0]?.type === "text" ? result.content[0].text : "{}";
+    const text =
+      result.content[0]?.type === "text" ? result.content[0].text : "{}";
     const parsed = JSON.parse(text) as unknown;
     const validation = validateRuntimeSnapshot(parsed);
     if (!validation.ok) {

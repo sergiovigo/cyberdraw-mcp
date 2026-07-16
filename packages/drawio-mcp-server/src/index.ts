@@ -508,11 +508,15 @@ export function createDrawioMcpApp(options?: {
     }
 
     const result =
-      record.result && typeof record.result === "object" && !Array.isArray(record.result)
+      record.result &&
+      typeof record.result === "object" &&
+      !Array.isArray(record.result)
         ? (record.result as Record<string, unknown>)
         : undefined;
     const payload =
-      result?.payload && typeof result.payload === "object" && !Array.isArray(result.payload)
+      result?.payload &&
+      typeof result.payload === "object" &&
+      !Array.isArray(result.payload)
         ? (result.payload as Record<string, unknown>)
         : undefined;
     const completeness =
@@ -528,17 +532,21 @@ export function createDrawioMcpApp(options?: {
       success: record.success === true,
       result: result
         ? {
-            schemaVersion: normalizeOptionalString(result.schemaVersion) ?? undefined,
+            schemaVersion:
+              normalizeOptionalString(result.schemaVersion) ?? undefined,
             contractVersion:
               typeof result.contractVersion === "number"
                 ? result.contractVersion
                 : undefined,
-            pages: Array.isArray(result.pages) ? result.pages.length : undefined,
+            pages: Array.isArray(result.pages)
+              ? result.pages.length
+              : undefined,
             diagnostics: Array.isArray(result.diagnostics)
               ? result.diagnostics.length
               : undefined,
             truncated: result.truncated === true,
-            completeness: normalizeOptionalString(completeness?.status) ?? undefined,
+            completeness:
+              normalizeOptionalString(completeness?.status) ?? undefined,
             approximateJsonBytes:
               typeof payload?.approximateJsonBytes === "number"
                 ? payload.approximateJsonBytes
