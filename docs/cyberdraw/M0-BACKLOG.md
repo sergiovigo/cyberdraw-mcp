@@ -74,7 +74,8 @@ baseline. It is not an implementation plan for M0 itself.
 
 ### M0-P1-005: Review Architecture Intelligence Foundation RFC
 
-- Type: Draft RFC; M2 spike evidence added.
+- Type: Architecture location resolved by ADR 0003; runtime integration remains
+  open.
 - Description: `docs/cyberdraw/rfc/0001-internal-graph-model.md` proposes an
   internal graph model for semantic diagram queries, validation and analysis.
 - Evidence: RFC 0001, supporting example JSON and Mermaid diagrams.
@@ -88,8 +89,14 @@ baseline. It is not an implementation plan for M0 itself.
   read-only prototype for normalized snapshots, provisional identity and broken
   reference detection. No MCP API, WebSocket protocol or persistence change was
   introduced.
+- ADR 0003 resolution: RFC 0001 Alternative C is accepted as a private,
+  server-first internal package architecture. The decision does not stabilize
+  identity, `CanonicalDiagramInput`, JSON Schema, persisted findings, change
+  plans, semantic diff, WebSocket integration or new MCP tools. Runtime
+  integration is deferred until the ADR exit criteria are met.
 - Effort: M.
-- Suggested milestone: Architecture Intelligence Foundation review.
+- Suggested milestone: Architecture Intelligence Foundation runtime integration
+  design.
 
 ### M0-P1-001: Complete third-party license inventory
 

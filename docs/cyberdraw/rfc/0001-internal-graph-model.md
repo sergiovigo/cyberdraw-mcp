@@ -8,6 +8,13 @@ M2 spike evidence: see
 `docs/cyberdraw/spikes/0001-internal-graph-readonly.md`. The RFC remains Draft;
 the spike is not an acceptance ADR or stable product contract.
 
+ADR 0003 accepts the architectural location of Alternative C: a private
+independent package in the monorepo, consumed server-first, with the plugin
+limited initially to plain-data snapshot extraction. That ADR does not stabilize
+the RFC's illustrative schemas, identity strategy, runtime integration, public
+API, persisted findings, semantic diff, change plans, WebSocket changes or new
+MCP tools.
+
 ## Authors
 
 - CyberDraw MCP maintainers.
@@ -180,7 +187,9 @@ consume only narrow snapshot helpers if justified.
 Recommendation: Alternative C should be the preferred design direction for a
 future implementation, with server-first adoption and plugin participation kept
 limited to snapshot extraction until evidence shows shared browser code is worth
-the cost. This is a recommendation for review, not an accepted decision.
+the cost. ADR 0003 accepts this package-location and responsibility split as the
+internal graph model architecture. The rest of this RFC remains design context
+and does not by itself define product behavior or a stable public contract.
 
 M2 read-only spike evidence supports the feasibility of Alternative C as a
 private pure package for normalization, indexing and broken-reference detection.

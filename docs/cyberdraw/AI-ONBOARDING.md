@@ -25,6 +25,8 @@ diagramming work.
 6. `docs/cyberdraw/M0-BACKLOG.md` before planning the next milestone.
 7. `docs/cyberdraw/rfc/0001-internal-graph-model.md` when working on the draft
    Architecture Intelligence Foundation proposal.
+8. `docs/cyberdraw/adr/0003-internal-graph-model-architecture.md` before
+   integrating the internal graph model at runtime.
 
 Read `AGENTS.md` before modifying anything. It contains repository-wide logging,
 navigation and command-output discipline.
@@ -70,6 +72,9 @@ navigation and command-output discipline.
 - Do not remove inherited compatibility logic without an explicit policy change.
 - Do not expose HTTP/WebSocket services beyond loopback without documented auth.
 - Do not treat historical plans under `docs/superpowers/` as current backlog.
+- Do not treat the internal graph model spike as product behavior: ADR 0003
+  accepts only the private, server-first package architecture and defers runtime
+  integration, stable identity, public schemas and new MCP tools.
 - Do not commit or push unless the user explicitly asks.
 - Do not treat draft RFCs as accepted architecture; record implementation
   decisions separately when they are approved.

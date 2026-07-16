@@ -4,6 +4,10 @@
 
 Read-only M2 prototype.
 
+This spike is evidence for ADR 0003. It is not stable product behavior, does
+not change runtime integration and does not define a public API, public schema
+or definitive identity strategy.
+
 ## Objective
 
 Validate whether CyberDraw can build a normalized, reconstructable, internal
@@ -301,7 +305,9 @@ Not proven:
 
 ## Recommended Decision
 
-Review and tentatively accept RFC 0001 Alternative C for the next milestone
-planning step, with the package remaining private and internal until a later ADR
-defines runtime integration, snapshot extraction and public compatibility
-boundaries.
+ADR 0003 accepts RFC 0001 Alternative C as the internal graph model architecture:
+`packages/cyberdraw-graph-model` remains a private independent package,
+server-first adoption is the initial path and the plugin is limited initially to
+plain-data snapshot extraction. Runtime integration, snapshot extraction
+contracts and public compatibility boundaries remain deferred until the ADR exit
+criteria are met.

@@ -26,6 +26,7 @@ before CyberDraw-specific features are introduced.
 | [diagrams/internal-graph-model.md](diagrams/internal-graph-model.md) | Mermaid diagrams supporting RFC 0001 | Draft supporting diagrams |
 | [adr/0001-fork-strategy.md](adr/0001-fork-strategy.md) | Decision to begin as a conservative fork | Accepted ADR |
 | [adr/0002-runtime-and-baseline-policy.md](adr/0002-runtime-and-baseline-policy.md) | Node, pnpm and audit baseline policy | Accepted ADR |
+| [adr/0003-internal-graph-model-architecture.md](adr/0003-internal-graph-model-architecture.md) | Decision to adopt RFC 0001 Alternative C as a private server-first internal graph package architecture | Accepted ADR |
 
 Related root documents:
 
@@ -49,7 +50,9 @@ Related root documents:
 10. `rfc/0001-internal-graph-model.md` for the draft Architecture Intelligence
     Foundation proposal.
 11. `spikes/0001-internal-graph-readonly.md` for M2 prototype evidence.
-12. `adr/` when a lasting decision needs historical context.
+12. `adr/0003-internal-graph-model-architecture.md` for the accepted package
+    architecture and runtime-integration guardrails.
+13. `adr/` when a lasting decision needs historical context.
 
 ## Question Map
 
@@ -67,6 +70,7 @@ Related root documents:
 | What should another AI agent do first? | `AI-ONBOARDING.md`, `GOVERNANCE.md` |
 | What is the proposed internal graph model? | `rfc/0001-internal-graph-model.md`, `diagrams/internal-graph-model.md` |
 | What evidence exists for the read-only internal model spike? | `spikes/0001-internal-graph-readonly.md` |
+| What internal graph model architecture was accepted? | `adr/0003-internal-graph-model-architecture.md` |
 | Where are lasting decisions recorded? | `adr/` |
 | What third-party assets need review? | `../../THIRD_PARTY_NOTICES.md` |
 
