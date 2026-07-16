@@ -334,3 +334,17 @@ Remaining limitations:
 - no published JSON Schema;
 - no chunking or product streaming;
 - no second real draw.io runtime execution in this environment.
+
+## M5 Follow-Up
+
+M5 scoped delivery is documented in
+`docs/cyberdraw/milestones/M5-scoped-snapshot-delivery.md`.
+
+Implemented follow-up evidence:
+
+- runtime snapshot scopes now cover document, pages, layers and selection;
+- capability metadata advertises supported scopes;
+- scoped requests fail immediately when unsupported;
+- response validation rejects scope mismatches and silent document fallback;
+- graph-model adaptation distinguishes external references omitted by scope
+  from conclusive broken references.

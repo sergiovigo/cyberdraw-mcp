@@ -103,6 +103,10 @@ baseline. It is not an implementation plan for M0 itself.
   records internal capability negotiation, shared runtime contract, hard payload
   policy, deterministic versioned content revision and stale-read comparison
   helpers. Runtime snapshots remain private and no public MCP tool is added.
+- M5 update: `docs/cyberdraw/milestones/M5-scoped-snapshot-delivery.md`
+  records private scoped runtime snapshot delivery for document, pages, layers
+  and selection scopes. It keeps the path internal, adds no public MCP tool and
+  preserves document-only compatibility for older peers.
 - Effort: M.
 - Suggested milestone: Architecture Intelligence Foundation runtime integration
   hardening and compatibility evidence.

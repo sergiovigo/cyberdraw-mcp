@@ -9,6 +9,17 @@ export const CYBERDRAW_DOCUMENT_STATE_CONTROL = "document-state";
 export const CYBERDRAW_SYNC_DOCUMENT_STATE_CONTROL = "sync-document-state";
 export const CYBERDRAW_CONTENT_REVISION_PREFIX = "cyberdraw-content-v1";
 export const CYBERDRAW_CONTENT_REVISION_ALGORITHM = "fnv1a64";
+export const CYBERDRAW_RUNTIME_SCOPE_ALGORITHM = "cyberdraw-scope-v1";
+
+export const SUPPORTED_RUNTIME_SNAPSHOT_SCOPES = [
+  "document",
+  "pages",
+  "layers",
+  "selection",
+] as const;
+export type RuntimeSnapshotScopeKind =
+  (typeof SUPPORTED_RUNTIME_SNAPSHOT_SCOPES)[number];
+export const MAX_RUNTIME_SCOPE_IDS = 1_000;
 
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue =
@@ -66,6 +77,7 @@ export type RuntimeSnapshotCapability = {
   readonly name: typeof CYBERDRAW_RUNTIME_SNAPSHOT_CAPABILITY;
   readonly contractVersion: typeof CYBERDRAW_RUNTIME_CONTRACT_VERSION;
   readonly snapshotVersion: 1;
+  readonly scopes: readonly RuntimeSnapshotScopeKind[];
   readonly limits: RuntimeSnapshotLimits;
   readonly features: {
     readonly contentRevision: true;
@@ -86,10 +98,26 @@ export type RuntimeSnapshotOptions = {
   readonly includeRaw?: boolean;
 };
 
-export type RuntimeSnapshotScope = {
-  readonly kind: "document" | "pages";
-  readonly pageIds?: readonly string[];
-};
+export type RuntimeSnapshotScope =
+  | { readonly kind: "document" }
+  | { readonly kind: "pages"; readonly pageIds: readonly string[] }
+  | {
+      readonly kind: "layers";
+      readonly pageId: string;
+      readonly layerIds: readonly string[];
+    }
+  | { readonly kind: "selection"; readonly pageId?: string };
+
+export type RuntimeSnapshotScopeValidationResult =
+  | { readonly ok: true; readonly scope: RuntimeSnapshotScope }
+  | {
+      readonly ok: false;
+      readonly code:
+        | "scope_invalid"
+        | "scope_empty"
+        | "scope_too_many_ids";
+      readonly error: string;
+    };
 
 export type RuntimeSnapshotDiagnosticCode =
   | "page_limit_reached"
@@ -102,6 +130,15 @@ export type RuntimeSnapshotDiagnosticCode =
   | "snapshot_hard_limit_reached"
   | "snapshot_size_limit_reached"
   | "page_extraction_failed"
+  | "scope_invalid"
+  | "scope_empty"
+  | "scope_too_many_ids"
+  | "scope_not_supported"
+  | "page_not_found"
+  | "layer_not_found"
+  | "external_reference_omitted"
+  | "context_element_included"
+  | "selection_empty"
   | "compatibility_api_missing"
   | "semantic_revision_deferred";
 
@@ -109,7 +146,10 @@ export type RuntimeSnapshotDiagnostic = {
   readonly code: RuntimeSnapshotDiagnosticCode;
   readonly message: string;
   readonly pageId?: string;
+  readonly layerId?: string;
   readonly elementId?: string;
+  readonly referenceType?: "parent" | "source" | "target" | "edge" | "layer";
+  readonly referencedId?: string;
   readonly limit?: number;
   readonly observed?: number;
   readonly runtimeVersion?: string;
@@ -127,16 +167,52 @@ export type RuntimeSnapshotCompleteness =
   | { readonly status: "complete" }
   | {
       readonly status: "partial";
-      readonly reason: "soft-limit" | "hard-limit" | "count-limit" | "page-error";
+      readonly reason:
+        | "soft-limit"
+        | "hard-limit"
+        | "count-limit"
+        | "page-error"
+        | "missing-scope";
     };
+
+export type RuntimeSnapshotExternalReference = {
+  readonly pageId: string;
+  readonly elementId: string;
+  readonly referenceType: "parent" | "source" | "target" | "edge" | "layer";
+  readonly referencedId: string;
+};
+
+export type RuntimeSnapshotScopeMetadata = {
+  readonly requestedScope: RuntimeSnapshotScope;
+  readonly resolvedScope: RuntimeSnapshotScope;
+  readonly includedPages: readonly string[];
+  readonly includedLayers: readonly {
+    readonly pageId: string;
+    readonly layerIds: readonly string[];
+  }[];
+  readonly includedElementCount: number;
+  readonly contextElementCount: number;
+  readonly externalReferences: readonly RuntimeSnapshotExternalReference[];
+  readonly missingPageIds: readonly string[];
+  readonly missingLayerIds: readonly {
+    readonly pageId: string;
+    readonly layerIds: readonly string[];
+  }[];
+  readonly includedContext: boolean;
+  readonly requiresScopeExpansion: boolean;
+  readonly conclusive: boolean;
+};
 
 export type RuntimeSnapshotRevisionSignals = {
   readonly documentId?: string;
   readonly fileHash?: string;
   readonly pageIds: readonly string[];
   readonly scope: RuntimeSnapshotScope;
+  readonly requestedScope?: RuntimeSnapshotScope;
+  readonly resolvedScope?: RuntimeSnapshotScope;
   readonly complete: boolean;
   readonly contentRevision: string;
+  readonly selectionRevision?: string;
   readonly semanticRevision?: string;
 };
 
@@ -156,6 +232,7 @@ export type RuntimeSnapshot = {
     readonly extractedAt?: string;
     readonly revisionSignals: RuntimeSnapshotRevisionSignals;
   };
+  readonly scope: RuntimeSnapshotScopeMetadata;
   readonly pages: readonly RuntimeSnapshotPage[];
   readonly diagnostics: readonly RuntimeSnapshotDiagnostic[];
   readonly completeness: RuntimeSnapshotCompleteness;
@@ -228,7 +305,9 @@ const MAX_VALIDATION_DIAGNOSTICS = 100_000;
 
 export function createRuntimeCapabilities(
   limits: RuntimeSnapshotLimits = DEFAULT_RUNTIME_SNAPSHOT_LIMITS,
+  scopes: readonly RuntimeSnapshotScopeKind[] = SUPPORTED_RUNTIME_SNAPSHOT_SCOPES,
 ): RuntimeCapabilities {
+  const normalizedScopes = normalizeCapabilityScopes(scopes);
   return {
     contractVersion: CYBERDRAW_RUNTIME_CONTRACT_VERSION,
     capabilities: [
@@ -236,6 +315,7 @@ export function createRuntimeCapabilities(
         name: CYBERDRAW_RUNTIME_SNAPSHOT_CAPABILITY,
         contractVersion: CYBERDRAW_RUNTIME_CONTRACT_VERSION,
         snapshotVersion: 1,
+        scopes: normalizedScopes,
         limits,
         features: {
           contentRevision: true,
@@ -245,6 +325,83 @@ export function createRuntimeCapabilities(
       },
     ],
   };
+}
+
+export function normalizeRuntimeSnapshotScope(
+  scope: unknown,
+  options: { readonly allowEmptyIds?: boolean } = {},
+): RuntimeSnapshotScopeValidationResult {
+  if (scope === undefined || scope === null) {
+    return { ok: true, scope: { kind: "document" } };
+  }
+  if (!isPlainRecord(scope) || typeof scope.kind !== "string") {
+    return {
+      ok: false,
+      code: "scope_invalid",
+      error: "Runtime snapshot scope is malformed",
+    };
+  }
+  switch (scope.kind) {
+    case "document":
+      return { ok: true, scope: { kind: "document" } };
+    case "pages": {
+      const pageIds = normalizeIdArray(scope.pageIds, options);
+      if (!pageIds.ok) {
+        return pageIds;
+      }
+      return { ok: true, scope: { kind: "pages", pageIds: pageIds.ids } };
+    }
+    case "layers": {
+      const pageId = normalizeId(scope.pageId);
+      const layerIds = normalizeIdArray(scope.layerIds, options);
+      if (!pageId) {
+        return {
+          ok: false,
+          code: "scope_invalid",
+          error: "Runtime snapshot layers scope pageId is invalid",
+        };
+      }
+      if (!layerIds.ok) {
+        return layerIds;
+      }
+      return {
+        ok: true,
+        scope: { kind: "layers", pageId, layerIds: layerIds.ids },
+      };
+    }
+    case "selection": {
+      const pageId =
+        scope.pageId === undefined ? undefined : normalizeId(scope.pageId);
+      if (scope.pageId !== undefined && !pageId) {
+        return {
+          ok: false,
+          code: "scope_invalid",
+          error: "Runtime snapshot selection scope pageId is invalid",
+        };
+      }
+      return {
+        ok: true,
+        scope: pageId ? { kind: "selection", pageId } : { kind: "selection" },
+      };
+    }
+    default:
+      return {
+        ok: false,
+        code: "scope_invalid",
+        error: "Runtime snapshot scope kind is unsupported",
+      };
+  }
+}
+
+export function runtimeSnapshotScopeKey(scope: RuntimeSnapshotScope): string {
+  return stableStringify(scope);
+}
+
+export function runtimeSnapshotScopeSupported(
+  capability: RuntimeSnapshotCapability,
+  scope: RuntimeSnapshotScope,
+): boolean {
+  return capability.scopes.includes(scope.kind);
 }
 
 export function normalizeRuntimeSnapshotLimits(
@@ -331,6 +488,7 @@ export function findRuntimeSnapshotCapability(
       name: CYBERDRAW_RUNTIME_SNAPSHOT_CAPABILITY,
       contractVersion: CYBERDRAW_RUNTIME_CONTRACT_VERSION,
       snapshotVersion: 1,
+      scopes: normalizeCapabilityScopes(capability.scopes),
       limits: normalizeRuntimeSnapshotLimits(
         isPlainRecord(capability.limits)
           ? (capability.limits as Partial<RuntimeSnapshotLimits>)
@@ -363,6 +521,29 @@ export function validateRuntimeSnapshot(
   }
   if (!isPlainRecord(value.document.revisionSignals)) {
     return { ok: false, error: "Runtime snapshot revision signals are missing" };
+  }
+  if (!isPlainRecord(value.scope)) {
+    return { ok: false, error: "Runtime snapshot scope metadata is missing" };
+  }
+  const scopeResult = validateSnapshotScopeMetadata(value.scope);
+  if (!scopeResult.ok) {
+    return scopeResult;
+  }
+  const signalScope = normalizeRuntimeSnapshotScope(
+    value.document.revisionSignals.scope,
+    { allowEmptyIds: true },
+  );
+  if (!signalScope.ok) {
+    return { ok: false, error: "Runtime snapshot revision scope is invalid" };
+  }
+  if (
+    runtimeSnapshotScopeKey(signalScope.scope) !==
+    runtimeSnapshotScopeKey(scopeResult.scope.resolvedScope)
+  ) {
+    return {
+      ok: false,
+      error: "Runtime snapshot revision scope does not match resolved scope",
+    };
   }
   if (
     typeof value.document.revisionSignals.contentRevision !== "string" ||
@@ -410,6 +591,33 @@ export function validateRuntimeSnapshot(
     return { ok: false, error: "Runtime snapshot truncation state is inconsistent" };
   }
   return { ok: true, snapshot: value as RuntimeSnapshot };
+}
+
+export function validateRuntimeSnapshotResponseForRequest(
+  value: unknown,
+  requestedScope: RuntimeSnapshotScope,
+): RuntimeSnapshotValidationResult {
+  const validation = validateRuntimeSnapshot(value);
+  if (!validation.ok) {
+    return validation;
+  }
+  const snapshot = validation.snapshot;
+  if (
+    runtimeSnapshotScopeKey(snapshot.scope.requestedScope) !==
+    runtimeSnapshotScopeKey(requestedScope)
+  ) {
+    return {
+      ok: false,
+      error: "Runtime snapshot response requested scope does not match request",
+    };
+  }
+  if (snapshot.scope.resolvedScope.kind !== requestedScope.kind) {
+    return {
+      ok: false,
+      error: "Runtime snapshot response resolved scope kind does not match request",
+    };
+  }
+  return validation;
 }
 
 export function computeContentRevision(base: JsonValue): string {
@@ -584,6 +792,139 @@ function hasSnapshotFeatures(value: unknown): boolean {
     value.backgroundPages === true &&
     value.truncationDiagnostics === true
   );
+}
+
+function normalizeCapabilityScopes(value: unknown): RuntimeSnapshotScopeKind[] {
+  const source = Array.isArray(value) ? value : ["document"];
+  const allowed = new Set<RuntimeSnapshotScopeKind>(
+    SUPPORTED_RUNTIME_SNAPSHOT_SCOPES,
+  );
+  const seen = new Set<RuntimeSnapshotScopeKind>();
+  for (const item of source) {
+    if (typeof item !== "string" || !allowed.has(item as RuntimeSnapshotScopeKind)) {
+      continue;
+    }
+    seen.add(item as RuntimeSnapshotScopeKind);
+  }
+  return SUPPORTED_RUNTIME_SNAPSHOT_SCOPES.filter((scope) => seen.has(scope));
+}
+
+function normalizeId(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function normalizeIdArray(
+  value: unknown,
+  options: { readonly allowEmptyIds?: boolean } = {},
+): RuntimeSnapshotScopeValidationResult extends infer _Unused
+  ? { readonly ok: true; readonly ids: readonly string[] }
+    | {
+        readonly ok: false;
+        readonly code: "scope_invalid" | "scope_empty" | "scope_too_many_ids";
+        readonly error: string;
+      }
+  : never {
+  if (!Array.isArray(value)) {
+    return {
+      ok: false,
+      code: "scope_invalid",
+      error: "Runtime snapshot scope ids are malformed",
+    };
+  }
+  if (value.length > MAX_RUNTIME_SCOPE_IDS) {
+    return {
+      ok: false,
+      code: "scope_too_many_ids",
+      error: "Runtime snapshot scope has too many ids",
+    };
+  }
+  const ids = [...new Set(value.map(normalizeId).filter((id): id is string => id !== undefined))]
+    .sort(compareCodeUnits);
+  if (ids.length === 0 && options.allowEmptyIds !== true) {
+    return {
+      ok: false,
+      code: "scope_empty",
+      error: "Runtime snapshot scope must include at least one id",
+    };
+  }
+  return { ok: true, ids };
+}
+
+function validateSnapshotScopeMetadata(
+  value: Record<string, unknown>,
+): ValidationFailure | { readonly ok: true; readonly scope: RuntimeSnapshotScopeMetadata } {
+  const requested = normalizeRuntimeSnapshotScope(value.requestedScope);
+  const resolved = normalizeRuntimeSnapshotScope(value.resolvedScope, {
+    allowEmptyIds: true,
+  });
+  if (!requested.ok) {
+    return {
+      ok: false,
+      error: `Runtime snapshot requested scope metadata is invalid: ${requested.error}`,
+    };
+  }
+  if (!resolved.ok) {
+    return {
+      ok: false,
+      error: `Runtime snapshot resolved scope metadata is invalid: ${resolved.error}`,
+    };
+  }
+  if (!Array.isArray(value.includedPages)) {
+    return { ok: false, error: "Runtime snapshot included pages metadata is invalid" };
+  }
+  if (!Array.isArray(value.includedLayers)) {
+    return { ok: false, error: "Runtime snapshot included layers metadata is invalid" };
+  }
+  if (!Array.isArray(value.externalReferences)) {
+    return { ok: false, error: "Runtime snapshot external references metadata is invalid" };
+  }
+  if (!Array.isArray(value.missingPageIds) || !Array.isArray(value.missingLayerIds)) {
+    return { ok: false, error: "Runtime snapshot missing scope metadata is invalid" };
+  }
+  if (
+    typeof value.includedElementCount !== "number" ||
+    !Number.isInteger(value.includedElementCount) ||
+    value.includedElementCount < 0 ||
+    typeof value.contextElementCount !== "number" ||
+    !Number.isInteger(value.contextElementCount) ||
+    value.contextElementCount < 0
+  ) {
+    return { ok: false, error: "Runtime snapshot scope counts are invalid" };
+  }
+  if (
+    typeof value.includedContext !== "boolean" ||
+    typeof value.requiresScopeExpansion !== "boolean" ||
+    typeof value.conclusive !== "boolean"
+  ) {
+    return { ok: false, error: "Runtime snapshot scope flags are invalid" };
+  }
+  return {
+    ok: true,
+    scope: {
+      requestedScope: requested.scope,
+      resolvedScope: resolved.scope,
+      includedPages: value.includedPages.filter(
+        (id): id is string => typeof id === "string" && id.length > 0,
+      ),
+      includedLayers: value.includedLayers as RuntimeSnapshotScopeMetadata["includedLayers"],
+      includedElementCount: value.includedElementCount,
+      contextElementCount: value.contextElementCount,
+      externalReferences:
+        value.externalReferences as RuntimeSnapshotScopeMetadata["externalReferences"],
+      missingPageIds: value.missingPageIds.filter(
+        (id): id is string => typeof id === "string" && id.length > 0,
+      ),
+      missingLayerIds:
+        value.missingLayerIds as RuntimeSnapshotScopeMetadata["missingLayerIds"],
+      includedContext: value.includedContext,
+      requiresScopeExpansion: value.requiresScopeExpansion,
+      conclusive: value.conclusive,
+    },
+  };
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {

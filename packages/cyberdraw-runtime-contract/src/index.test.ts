@@ -7,8 +7,10 @@ import {
   createRuntimeCapabilities,
   DEFAULT_RUNTIME_SNAPSHOT_LIMITS,
   findRuntimeSnapshotCapability,
+  normalizeRuntimeSnapshotScope,
   stableStringify,
   validateRuntimeSnapshot,
+  validateRuntimeSnapshotResponseForRequest,
 } from "./index.js";
 
 describe("cyberdraw runtime contract", () => {
@@ -19,6 +21,75 @@ describe("cyberdraw runtime contract", () => {
     expect(capability?.name).toBe(CYBERDRAW_RUNTIME_SNAPSHOT_CAPABILITY);
     expect(capability?.snapshotVersion).toBe(1);
     expect(capability?.features.contentRevision).toBe(true);
+    expect(capability?.scopes).toEqual([
+      "document",
+      "pages",
+      "layers",
+      "selection",
+    ]);
+  });
+
+  it("treats old M4 capabilities without scopes as document-only", () => {
+    const capability = findRuntimeSnapshotCapability({
+      capabilities: [
+        {
+          name: CYBERDRAW_RUNTIME_SNAPSHOT_CAPABILITY,
+          contractVersion: 1,
+          snapshotVersion: 1,
+          limits: DEFAULT_RUNTIME_SNAPSHOT_LIMITS,
+          features: {
+            contentRevision: true,
+            backgroundPages: true,
+            truncationDiagnostics: true,
+          },
+        },
+      ],
+    });
+
+    expect(capability?.scopes).toEqual(["document"]);
+  });
+
+  it("normalizes runtime snapshot scopes deterministically", () => {
+    expect(
+      normalizeRuntimeSnapshotScope({
+        kind: "pages",
+        pageIds: ["p2", "p1", "p1", " "],
+      }),
+    ).toEqual({
+      ok: true,
+      scope: { kind: "pages", pageIds: ["p1", "p2"] },
+    });
+    expect(
+      normalizeRuntimeSnapshotScope({
+        kind: "layers",
+        pageId: "p1",
+        layerIds: ["l2", "l1", "l2"],
+      }),
+    ).toEqual({
+      ok: true,
+      scope: { kind: "layers", pageId: "p1", layerIds: ["l1", "l2"] },
+    });
+    expect(normalizeRuntimeSnapshotScope({ kind: "selection" })).toEqual({
+      ok: true,
+      scope: { kind: "selection" },
+    });
+  });
+
+  it("rejects malformed runtime snapshot scopes", () => {
+    expect(normalizeRuntimeSnapshotScope({ kind: "pages", pageIds: [] })).toEqual({
+      ok: false,
+      code: "scope_empty",
+      error: "Runtime snapshot scope must include at least one id",
+    });
+    expect(
+      normalizeRuntimeSnapshotScope({ kind: "layers", pageId: "", layerIds: ["l1"] }),
+    ).toMatchObject({ ok: false, code: "scope_invalid" });
+    expect(
+      normalizeRuntimeSnapshotScope({
+        kind: "pages",
+        pageIds: Array.from({ length: 1_001 }, (_, index) => `p${index}`),
+      }),
+    ).toMatchObject({ ok: false, code: "scope_too_many_ids" });
   });
 
   it("rejects absent, malformed, and unsupported capabilities", () => {
@@ -83,6 +154,34 @@ describe("cyberdraw runtime contract", () => {
     expect(
       validateRuntimeSnapshot({
         ...snapshot,
+        scope: {
+          ...snapshot.scope,
+          resolvedScope: { kind: "pages", pageIds: ["p1"] },
+        },
+        document: {
+          ...snapshot.document,
+          revisionSignals: {
+            ...snapshot.document.revisionSignals,
+            scope: { kind: "document" },
+          },
+        },
+      }),
+    ).toEqual({
+      ok: false,
+      error: "Runtime snapshot revision scope does not match resolved scope",
+    });
+    expect(
+      validateRuntimeSnapshotResponseForRequest(snapshot, {
+        kind: "pages",
+        pageIds: ["p1"],
+      }),
+    ).toEqual({
+      ok: false,
+      error: "Runtime snapshot response requested scope does not match request",
+    });
+    expect(
+      validateRuntimeSnapshot({
+        ...snapshot,
         payload: {
           ...snapshot.payload,
           measuredJsonBytes: snapshot.limits.hardSnapshotBytes + 1,
@@ -128,6 +227,20 @@ function validSnapshot() {
         complete: true,
         contentRevision: "cyberdraw-content-v1:fnv1a64:0000000000000001",
       },
+    },
+    scope: {
+      requestedScope: { kind: "document" },
+      resolvedScope: { kind: "document" },
+      includedPages: ["p1"],
+      includedLayers: [{ pageId: "p1", layerIds: [] }],
+      includedElementCount: 0,
+      contextElementCount: 0,
+      externalReferences: [],
+      missingPageIds: [],
+      missingLayerIds: [],
+      includedContext: false,
+      requiresScopeExpansion: false,
+      conclusive: true,
     },
     pages: [
       {

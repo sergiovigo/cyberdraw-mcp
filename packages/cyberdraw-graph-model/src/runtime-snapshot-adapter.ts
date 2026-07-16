@@ -32,7 +32,22 @@ export type RuntimeSnapshotInput = {
   readonly pages?: readonly RuntimeSnapshotPageInput[];
   readonly diagnostics?: readonly unknown[];
   readonly completeness?: { readonly status?: unknown };
+  readonly scope?: {
+    readonly requestedScope?: unknown;
+    readonly resolvedScope?: unknown;
+    readonly externalReferences?: readonly RuntimeSnapshotExternalReferenceInput[];
+    readonly contextElementCount?: unknown;
+    readonly requiresScopeExpansion?: unknown;
+    readonly conclusive?: unknown;
+  };
   readonly truncated?: unknown;
+};
+
+export type RuntimeSnapshotExternalReferenceInput = {
+  readonly pageId?: unknown;
+  readonly elementId?: unknown;
+  readonly referenceType?: unknown;
+  readonly referencedId?: unknown;
 };
 
 export type RuntimeSnapshotPageInput = {
@@ -103,6 +118,7 @@ export function toCanonicalRuntimeSnapshotInput(
   const limits = applyLimits(options.limits);
   const documentId = safeString(input.document?.id, limits.maxStringLength);
   const partialSnapshot = isPartialRuntimeSnapshot(input);
+  const externalReferences = buildExternalReferenceSet(input, limits);
   return {
     documentId,
     source: {
@@ -134,7 +150,14 @@ export function toCanonicalRuntimeSnapshotInput(
           toCanonicalLayer(layer, pageSource),
         ),
         elements: (page.elements ?? []).map((element) =>
-          toCanonicalElement(element, layerIds, pageSource, limits, partialSnapshot),
+          toCanonicalElement(
+            element,
+            layerIds,
+            pageSource,
+            limits,
+            partialSnapshot,
+            externalReferences,
+          ),
         ),
       };
     }),
@@ -160,6 +183,7 @@ function toCanonicalElement(
   pageSource: SourceRef,
   limits: ReturnType<typeof applyLimits>,
   partialSnapshot: boolean,
+  externalReferences: ReadonlySet<string>,
 ): CanonicalElementInput {
   const externalId = safeString(element.id, limits.maxStringLength);
   const parentExternalId = safeString(element.parentId, limits.maxStringLength);
@@ -175,10 +199,14 @@ function toCanonicalElement(
     : parentExternalId;
   const sourceExternalId = partialSnapshot
     ? undefined
-    : safeString(element.sourceId, limits.maxStringLength);
+    : externalReferenceOmitted(element, "source", externalReferences)
+      ? undefined
+      : safeString(element.sourceId, limits.maxStringLength);
   const targetExternalId = partialSnapshot
     ? undefined
-    : safeString(element.targetId, limits.maxStringLength);
+    : externalReferenceOmitted(element, "target", externalReferences)
+      ? undefined
+      : safeString(element.targetId, limits.maxStringLength);
   const style = normalizeStyle(element, limits);
   const metadata = normalizeMetadata(element, limits);
   const geometry = normalizeGeometry(element, limits);
@@ -187,7 +215,10 @@ function toCanonicalElement(
     externalId,
     kind: detectKind(element),
     layerExternalId,
-    parentExternalId: partialSnapshot ? undefined : containmentParentExternalId,
+    parentExternalId:
+      partialSnapshot || externalReferenceOmitted(element, "parent", externalReferences)
+        ? undefined
+        : containmentParentExternalId,
     sourceExternalId,
     targetExternalId,
     label: normalizeLabel(element.label, limits),
@@ -201,6 +232,10 @@ function toCanonicalElement(
         relativeGeometry: element.relativeGeometry,
         raw: element.raw,
         runtimeSnapshotPartial: partialSnapshot ? true : undefined,
+        runtimeSnapshotContextOnly:
+          readRawFlag(element.raw, "contextOnly") ? true : undefined,
+        runtimeSnapshotExternalReferencesOmitted:
+          externalReferences.size > 0 ? true : undefined,
       },
       limits,
     ),
@@ -211,6 +246,53 @@ function toCanonicalElement(
       ...(targetExternalId ? { targetExternalId } : {}),
     },
   };
+}
+
+function readRawFlag(value: unknown, key: string): boolean {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    (value as Record<string, unknown>)[key] === true
+  );
+}
+
+function buildExternalReferenceSet(
+  input: RuntimeSnapshotInput,
+  limits: ReturnType<typeof applyLimits>,
+): ReadonlySet<string> {
+  const references = new Set<string>();
+  for (const reference of input.scope?.externalReferences ?? []) {
+    const pageId = safeString(reference.pageId, limits.maxStringLength);
+    const elementId = safeString(reference.elementId, limits.maxStringLength);
+    const referencedId = safeString(reference.referencedId, limits.maxStringLength);
+    const referenceType = safeString(reference.referenceType, limits.maxStringLength);
+    if (pageId && elementId && referencedId && referenceType) {
+      references.add(`${pageId}\u0000${elementId}\u0000${referenceType}\u0000${referencedId}`);
+    }
+  }
+  return references;
+}
+
+function externalReferenceOmitted(
+  element: RuntimeSnapshotElementInput,
+  referenceType: "parent" | "source" | "target",
+  externalReferences: ReadonlySet<string>,
+): boolean {
+  const pageId = typeof element.pageId === "string" ? element.pageId : "";
+  const elementId = typeof element.id === "string" ? element.id : "";
+  const referencedId =
+    referenceType === "parent"
+      ? element.parentId
+      : referenceType === "source"
+        ? element.sourceId
+        : element.targetId;
+  if (typeof referencedId !== "string") {
+    return false;
+  }
+  return externalReferences.has(
+    `${pageId}\u0000${elementId}\u0000${referenceType}\u0000${referencedId}`,
+  );
 }
 
 function isPartialRuntimeSnapshot(input: RuntimeSnapshotInput): boolean {

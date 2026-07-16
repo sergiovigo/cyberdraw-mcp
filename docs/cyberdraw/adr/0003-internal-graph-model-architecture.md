@@ -157,6 +157,13 @@ revision and stale-read comparison helpers. These changes harden the internal
 integration evidence but still do not accept public WebSocket/API stability,
 new MCP tools, public schemas, persisted findings or definitive stable identity.
 
+M5 scoped delivery update:
+`docs/cyberdraw/milestones/M5-scoped-snapshot-delivery.md` keeps the same
+private runtime snapshot path and adds internal document, pages, layers and
+selection scopes with response-side validation and no silent downgrade. This is
+implementation evidence for bounded runtime extraction; it still does not
+accept a public schema, public MCP tool, stable identity or mutation model.
+
 This ADR explicitly does not accept:
 
 - the current provisional identity strategy as definitive;
