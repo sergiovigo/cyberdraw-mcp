@@ -27,6 +27,8 @@ diagramming work.
    Architecture Intelligence Foundation proposal.
 8. `docs/cyberdraw/adr/0003-internal-graph-model-architecture.md` before
    integrating the internal graph model at runtime.
+9. `docs/cyberdraw/spikes/0002-runtime-snapshot-handler.md` when working on the
+   internal runtime snapshot handler prototype.
 
 Read `AGENTS.md` before modifying anything. It contains repository-wide logging,
 navigation and command-output discipline.
@@ -73,8 +75,9 @@ navigation and command-output discipline.
 - Do not expose HTTP/WebSocket services beyond loopback without documented auth.
 - Do not treat historical plans under `docs/superpowers/` as current backlog.
 - Do not treat the internal graph model spike as product behavior: ADR 0003
-  accepts only the private, server-first package architecture and defers runtime
-  integration, stable identity, public schemas and new MCP tools.
+  accepts only the private, server-first package architecture. The M3 runtime
+  snapshot spike adds an internal handler but still defers stable identity,
+  public schemas and new MCP tools.
 - Do not commit or push unless the user explicitly asks.
 - Do not treat draft RFCs as accepted architecture; record implementation
   decisions separately when they are approved.
@@ -127,6 +130,9 @@ direct shell commands and package scripts.
 - Draw.io compatibility matrix: `packages/drawio-mcp-plugin/src/drawio-compat/`
 - Extension popup/options: `packages/drawio-mcp-extension/entrypoints/`
 - Internal graph spike: `packages/cyberdraw-graph-model/src/`
+- Runtime snapshot spike: `packages/drawio-mcp-plugin/src/runtime-snapshot.ts`,
+  `packages/drawio-mcp-server/src/cyberdraw-runtime-snapshot.ts` and
+  `packages/cyberdraw-graph-model/src/runtime-snapshot-adapter.ts`
 
 For architecture-level orientation, prefer `ARCHITECTURE.md` before reading
 source files.

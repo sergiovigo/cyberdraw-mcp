@@ -199,6 +199,13 @@ to know mxCell-shaped references or the inherited tool name. The spike does not
 yet prove runtime snapshot extraction completeness, large WebSocket payload
 behavior, public schema stability or stable identity across page moves/imports.
 
+M3 runtime snapshot handler evidence is recorded in
+`docs/cyberdraw/spikes/0002-runtime-snapshot-handler.md`. That spike adds a
+private versioned runtime snapshot message and a runtime snapshot adapter while
+preserving existing MCP tool responses. It validates visible/background page
+read extraction and provisional `contentRevision`, but large payload strategy,
+cross-version draw.io evidence, stable identity and public schemas remain open.
+
 ## Data Model Proposal
 
 Use normalized entities keyed by internal ID, plus explicit references. Prefer
@@ -829,7 +836,7 @@ Code not to touch initially:
 | Model location | Server-only; shared server/plugin; independent package | Independent package, server-first | Medium | Prototype package size, build impact and snapshot adapter complexity |
 | First persistence mode | In-memory; sidecar; embedded metadata; database | In-memory plus JSON debug serialization | High | Privacy policy for findings and sidecar merge behavior |
 | ID strategy | draw.io only; internal only; both | Maintain both, but keep internal ID derivation open | Medium | Fixtures with duplicate IDs, moves across pages, cloned documents and imports |
-| Snapshot source | `list-paged-model`; new plugin snapshot handler; XML export parse | New bounded snapshot handler based on existing extraction ideas | Medium | Payload size and background-page behavior tests |
+| Snapshot source | `list-paged-model`; new plugin snapshot handler; XML export parse | New bounded snapshot handler based on existing extraction ideas | Medium | M3 validates visible/background behavior; large payload and cross-version evidence remain pending |
 | Schema technology | TypeScript only; Zod; JSON Schema; both Zod and JSON Schema | Start with TS/Zod internally, publish JSON Schema when stable | Medium | Consumer needs outside TypeScript |
 | Change application | Direct XML; existing MCP operations; hybrid | Existing MCP operations by default | High | Coverage of operations needed by first vertical use case |
 | Domain extension mechanism | Optional fields; free metadata; typed extensions; ECS; plugins | Namespaced typed extensions | Medium | Validation ergonomics and examples from two domains |

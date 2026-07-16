@@ -8,6 +8,11 @@ This spike is evidence for ADR 0003. It is not stable product behavior, does
 not change runtime integration and does not define a public API, public schema
 or definitive identity strategy.
 
+M3 follow-up evidence: see
+`docs/cyberdraw/spikes/0002-runtime-snapshot-handler.md` for the internal
+runtime snapshot handler prototype that feeds this package through a separate
+runtime snapshot adapter.
+
 ## Objective
 
 Validate whether CyberDraw can build a normalized, reconstructable, internal
@@ -302,6 +307,10 @@ Not proven:
   JSON Schema, generic `externalIds`, stable public API, snapshot revisions,
   identity across snapshots, 100,000 element stress tests, runtime integration
   and any new MCP tool wrapper.
+- M3 implemented the plugin snapshot handler and a runtime snapshot adapter as
+  an internal prototype only. XML adapter, stable public API, definitive
+  snapshot revision semantics, identity across snapshots, very large stress
+  tests and any new MCP tool wrapper remain open.
 
 ## Recommended Decision
 

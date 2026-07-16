@@ -94,9 +94,14 @@ baseline. It is not an implementation plan for M0 itself.
   identity, `CanonicalDiagramInput`, JSON Schema, persisted findings, change
   plans, semantic diff, WebSocket integration or new MCP tools. Runtime
   integration is deferred until the ADR exit criteria are met.
+- M3 update: `docs/cyberdraw/spikes/0002-runtime-snapshot-handler.md` records an
+  internal read-only runtime snapshot handler prototype. It adds a private
+  versioned server-plugin message, runtime snapshot adapter and real
+  visible/background page evidence, but still does not add public MCP tools,
+  public schemas, persistence, stable identity or semantic diff.
 - Effort: M.
 - Suggested milestone: Architecture Intelligence Foundation runtime integration
-  design.
+  hardening and compatibility evidence.
 
 ### M0-P1-001: Complete third-party license inventory
 
@@ -164,13 +169,16 @@ baseline. It is not an implementation plan for M0 itself.
 
 ### M0-P2-002: Decide plugin test strategy
 
-- Type: Decision pending.
+- Type: Partially addressed by real-environment coverage; decision pending.
 - Description: `drawio-mcp-plugin` has no `test` script.
 - Evidence: `packages/drawio-mcp-plugin/package.json`.
 - Impact: Plugin behavior is tested indirectly through server real-environment
   tests.
 - Proposal: Decide whether indirect coverage is sufficient or add plugin-local
   unit tests.
+- M3 update: runtime snapshot behavior is covered through server
+  real-environment tests because the plugin still has no package-local `test`
+  script. A formal plugin-local unit test strategy remains open.
 - Effort: M.
 - Suggested milestone: M2.
 
