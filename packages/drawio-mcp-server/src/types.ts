@@ -26,6 +26,7 @@ export type ResolvedDocumentTarget = {
   connection_id: string;
   target_document: TargetDocumentSelector;
   document: ConnectedDocumentInfo;
+  runtime_capabilities?: unknown;
 };
 
 export type BusListener<RL> = (reply: RL) => void;

@@ -1,4 +1,4 @@
-import { Bus, Context } from "./types.js";
+import { Bus, Context, ResolvedDocumentTarget } from "./types.js";
 import {
   CallToolResult,
   ServerNotification,
@@ -16,6 +16,8 @@ export type ToolExecutionOptions = {
   queue?: boolean;
   reply_timeout_ms?: number;
   routing?: "document" | "none";
+  before_send?: (resolved: ResolvedDocumentTarget) => void;
+  log_reply?: boolean;
 };
 
 const DEFAULT_REPLY_TIMEOUT_MS = (() => {
@@ -91,7 +93,11 @@ export function build_channel<S>(
         (reply: Record<string, any>) => {
           // bus.on(reply_name, (args) => {
           finish(() => {
-            log.debug(`[${reply_name}] received response`, reply);
+            if (options.log_reply === false) {
+              log.debug(`[${reply_name}] received response`);
+            } else {
+              log.debug(`[${reply_name}] received response`, reply);
+            }
             const data = strip_internal_fields(reply);
 
             try {
@@ -122,6 +128,7 @@ export function build_channel<S>(
     if (routing === "document") {
       const resolved =
         await document_routing.resolve_target_document(request_payload);
+      options.before_send?.(resolved);
       queue_key = resolved.connection_id;
       request_payload = {
         ...request_payload,

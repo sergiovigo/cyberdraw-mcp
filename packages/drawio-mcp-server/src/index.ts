@@ -61,6 +61,10 @@ import { createServerWithSchemaStripping } from "./register-tool.js";
 import { target_document_field } from "./tools/shared.js";
 import { resolveTlsMaterial, type ResolvedTlsMaterial } from "./tls/index.js";
 import { handleCompatReport } from "./drawio-compat/log-report.js";
+import {
+  CYBERDRAW_RUNTIME_SNAPSHOT_EVENT,
+  findRuntimeSnapshotCapability,
+} from "cyberdraw-runtime-contract";
 
 const fatalLog = create_console_logger();
 
@@ -451,6 +455,7 @@ export function createDrawioMcpApp(options?: {
     connection_id: string;
     ws: WebSocket;
     documents: Map<string, ConnectedDocumentInfo>;
+    runtime_capabilities: unknown;
     updated_at: number;
     sync_waiters: Set<() => void>;
   };
@@ -487,6 +492,65 @@ export function createDrawioMcpApp(options?: {
     }
 
     return String(value);
+  }
+
+  function redactInboundWsMessageForLog(value: unknown): unknown {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return value;
+    }
+    const record = value as Record<string, unknown>;
+    const event = normalizeOptionalString(record.__event);
+    if (
+      event !== CYBERDRAW_RUNTIME_SNAPSHOT_EVENT &&
+      !event?.startsWith(`${CYBERDRAW_RUNTIME_SNAPSHOT_EVENT}.`)
+    ) {
+      return value;
+    }
+
+    const result =
+      record.result && typeof record.result === "object" && !Array.isArray(record.result)
+        ? (record.result as Record<string, unknown>)
+        : undefined;
+    const payload =
+      result?.payload && typeof result.payload === "object" && !Array.isArray(result.payload)
+        ? (result.payload as Record<string, unknown>)
+        : undefined;
+    const completeness =
+      result?.completeness &&
+      typeof result.completeness === "object" &&
+      !Array.isArray(result.completeness)
+        ? (result.completeness as Record<string, unknown>)
+        : undefined;
+
+    return {
+      __event: event,
+      __request_id: normalizeOptionalString(record.__request_id) ?? undefined,
+      success: record.success === true,
+      result: result
+        ? {
+            schemaVersion: normalizeOptionalString(result.schemaVersion) ?? undefined,
+            contractVersion:
+              typeof result.contractVersion === "number"
+                ? result.contractVersion
+                : undefined,
+            pages: Array.isArray(result.pages) ? result.pages.length : undefined,
+            diagnostics: Array.isArray(result.diagnostics)
+              ? result.diagnostics.length
+              : undefined,
+            truncated: result.truncated === true,
+            completeness: normalizeOptionalString(completeness?.status) ?? undefined,
+            approximateJsonBytes:
+              typeof payload?.approximateJsonBytes === "number"
+                ? payload.approximateJsonBytes
+                : undefined,
+            measuredJsonBytes:
+              typeof payload?.measuredJsonBytes === "number"
+                ? payload.measuredJsonBytes
+                : undefined,
+          }
+        : undefined,
+      error: record.error === undefined ? undefined : "[redacted]",
+    };
   }
 
   function normalizeCurrentPage(
@@ -664,6 +728,7 @@ export function createDrawioMcpApp(options?: {
           connection_id: entry.connection_id,
           target_document: { id: documentId },
           document,
+          runtime_capabilities: entry.runtime_capabilities,
         };
       }
 
@@ -691,6 +756,7 @@ export function createDrawioMcpApp(options?: {
         connection_id: entry.connection_id,
         target_document: { id: document.id },
         document,
+        runtime_capabilities: entry.runtime_capabilities,
       };
     },
   };
@@ -928,6 +994,7 @@ export function createDrawioMcpApp(options?: {
         connection_id,
         ws,
         documents: new Map(),
+        runtime_capabilities: null,
         updated_at: Date.now(),
         sync_waiters: new Set(),
       };
@@ -943,13 +1010,23 @@ export function createDrawioMcpApp(options?: {
         const str = typeof data === "string" ? data : data.toString();
         try {
           const json = JSON.parse(str);
-          getLog().debug(`[ws] received from Extension`, json);
+          getLog().debug(
+            `[ws] received from Extension`,
+            redactInboundWsMessageForLog(json),
+          );
 
           if (json?.__control === "document-state") {
             const document = normalizeDocumentState(json.document);
             if (document) {
               entry.documents.set(document.id, document);
             }
+            entry.runtime_capabilities = json.runtime ?? null;
+            const snapshotCapability = findRuntimeSnapshotCapability(
+              entry.runtime_capabilities,
+            );
+            getLog().debug(
+              `[cyberdraw.runtimeSnapshot] capability ${snapshotCapability ? "supported" : "unsupported"} on connection ${connection_id}`,
+            );
             entry.updated_at = Date.now();
             flushSyncWaiters(entry);
             broadcastDocumentsChanged();

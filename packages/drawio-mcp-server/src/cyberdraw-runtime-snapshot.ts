@@ -1,14 +1,14 @@
 import { build_channel } from "./tool.js";
 import type { Context } from "./types.js";
+import {
+  CYBERDRAW_RUNTIME_SNAPSHOT_EVENT,
+  findRuntimeSnapshotCapability,
+  validateRuntimeSnapshot,
+  type RuntimeSnapshot,
+  type RuntimeSnapshotOptions,
+} from "cyberdraw-runtime-contract";
 
-export const CYBERDRAW_RUNTIME_SNAPSHOT_EVENT =
-  "cyberdraw.runtimeSnapshot.v1";
-
-export type RuntimeSnapshotRequest = {
-  readonly target_document?: { readonly id: string };
-  readonly limits?: Record<string, number>;
-  readonly includeRaw?: boolean;
-};
+export type RuntimeSnapshotRequest = RuntimeSnapshotOptions;
 
 export type RuntimeSnapshotReply = {
   readonly success?: boolean;
@@ -22,7 +22,7 @@ export function requestCyberdrawRuntimeSnapshot(
   context: Context,
   request: RuntimeSnapshotRequest,
   options: { readonly replyTimeoutMs?: number } = {},
-): Promise<unknown> {
+): Promise<RuntimeSnapshot> {
   const channel = build_channel<RuntimeSnapshotRequest>(
     context,
     CYBERDRAW_RUNTIME_SNAPSHOT_EVENT,
@@ -41,14 +41,45 @@ export function requestCyberdrawRuntimeSnapshot(
     },
     {
       queue: true,
+      log_reply: false,
       reply_timeout_ms:
         options.replyTimeoutMs ?? DEFAULT_RUNTIME_SNAPSHOT_TIMEOUT_MS,
+      before_send: (resolved) => {
+        const capability = findRuntimeSnapshotCapability(
+          resolved.runtime_capabilities,
+        );
+        if (!capability) {
+          context.log.log(
+            "warn",
+            `[cyberdraw.runtimeSnapshot] peer ${resolved.connection_id} does not advertise cyberdraw.runtimeSnapshot.v1`,
+          );
+          throw new Error(
+            `Connected Draw.io peer for document ${resolved.document.id} does not support cyberdraw.runtimeSnapshot.v1`,
+          );
+        }
+        context.log.debug(
+          `[cyberdraw.runtimeSnapshot] starting request for document ${resolved.document.id} on peer ${resolved.connection_id}`,
+        );
+      },
     },
   );
 
   return channel(request, {} as never).then((result) => {
     const text = result.content[0]?.type === "text" ? result.content[0].text : "{}";
-    return JSON.parse(text);
+    const parsed = JSON.parse(text) as unknown;
+    const validation = validateRuntimeSnapshot(parsed);
+    if (!validation.ok) {
+      context.log.log(
+        "warn",
+        `[cyberdraw.runtimeSnapshot] rejected malformed snapshot response: ${validation.error}`,
+      );
+      throw new Error(validation.error);
+    }
+    const snapshot = validation.snapshot;
+    context.log.debug(
+      `[cyberdraw.runtimeSnapshot] completed revision=${snapshot.document.revisionSignals.contentRevision} pages=${snapshot.pages.length} elements=${snapshot.pages.reduce((sum, page) => sum + page.elements.length, 0)} bytes=${snapshot.payload.measuredJsonBytes ?? snapshot.payload.approximateJsonBytes} truncated=${snapshot.truncated}`,
+    );
+    return snapshot;
   });
 }
 

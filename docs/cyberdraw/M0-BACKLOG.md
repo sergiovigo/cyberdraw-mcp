@@ -99,6 +99,10 @@ baseline. It is not an implementation plan for M0 itself.
   versioned server-plugin message, runtime snapshot adapter and real
   visible/background page evidence, but still does not add public MCP tools,
   public schemas, persistence, stable identity or semantic diff.
+- M4 update: `docs/cyberdraw/milestones/M4-runtime-snapshot-product-hardening.md`
+  records internal capability negotiation, shared runtime contract, hard payload
+  policy, deterministic versioned content revision and stale-read comparison
+  helpers. Runtime snapshots remain private and no public MCP tool is added.
 - Effort: M.
 - Suggested milestone: Architecture Intelligence Foundation runtime integration
   hardening and compatibility evidence.
@@ -179,6 +183,8 @@ baseline. It is not an implementation plan for M0 itself.
 - M3 update: runtime snapshot behavior is covered through server
   real-environment tests because the plugin still has no package-local `test`
   script. A formal plugin-local unit test strategy remains open.
+- M4 update: the shared contract has unit tests, but plugin extraction remains
+  covered indirectly through server real-environment tests.
 - Effort: M.
 - Suggested milestone: M2.
 

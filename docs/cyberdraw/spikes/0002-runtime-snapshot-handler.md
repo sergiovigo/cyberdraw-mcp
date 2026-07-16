@@ -309,3 +309,28 @@ productizing any runtime graph-model feature, add broader draw.io-version
 fixtures, repeat browser payload benchmarks for 2,000 and 20,000 elements,
 define stale-read policy around `contentRevision`, and decide whether runtime
 snapshots should remain full-document or gain internal page-scoped paging.
+
+## M4 Follow-Up
+
+M4 hardening is documented in
+`docs/cyberdraw/milestones/M4-runtime-snapshot-product-hardening.md`.
+
+Implemented follow-up evidence:
+
+- peers advertise `cyberdraw.runtimeSnapshot.v1` through optional
+  `document-state` runtime metadata;
+- the server fails immediately for incompatible peers instead of waiting for the
+  snapshot timeout;
+- snapshot limits now distinguish soft and hard byte limits;
+- partial snapshots carry `completeness`, `truncated`, diagnostics and revision
+  signals;
+- `contentRevision` changed from provisional `fnv1a32` to
+  `cyberdraw-content-v1:fnv1a64:<digest>` over canonical JSON;
+- server-side stale-read helpers classify fresh, stale and unknown states.
+
+Remaining limitations:
+
+- no public MCP tool;
+- no published JSON Schema;
+- no chunking or product streaming;
+- no second real draw.io runtime execution in this environment.

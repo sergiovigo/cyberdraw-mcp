@@ -65,6 +65,19 @@ describe("runtime snapshot adapter", () => {
     );
   });
 
+  it("does not report broken references as definitive findings for partial snapshots", () => {
+    const partialInput = {
+      ...structuredClone(runtimeSnapshotFixture),
+      completeness: { status: "partial", reason: "soft-limit" },
+      truncated: true,
+    };
+    const snapshot = fromRuntimeSnapshot(partialInput);
+
+    expect(snapshot.findings.map((finding) => finding.code)).not.toEqual(
+      expect.arrayContaining(["missing_parent", "missing_edge_target"]),
+    );
+  });
+
   it("preserves HTML and dangerous metadata as inert sanitized data", () => {
     const snapshot = fromRuntimeSnapshot(runtimeSnapshotFixture);
     const nodeA = snapshot.elements.find((element) => element.drawioId === "node-a");

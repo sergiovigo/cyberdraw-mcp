@@ -31,6 +31,7 @@ export type RuntimeSnapshotInput = {
   };
   readonly pages?: readonly RuntimeSnapshotPageInput[];
   readonly diagnostics?: readonly unknown[];
+  readonly completeness?: { readonly status?: unknown };
   readonly truncated?: unknown;
 };
 
@@ -101,6 +102,7 @@ export function toCanonicalRuntimeSnapshotInput(
 ): CanonicalDiagramInput {
   const limits = applyLimits(options.limits);
   const documentId = safeString(input.document?.id, limits.maxStringLength);
+  const partialSnapshot = isPartialRuntimeSnapshot(input);
   return {
     documentId,
     source: {
@@ -132,7 +134,7 @@ export function toCanonicalRuntimeSnapshotInput(
           toCanonicalLayer(layer, pageSource),
         ),
         elements: (page.elements ?? []).map((element) =>
-          toCanonicalElement(element, layerIds, pageSource, limits),
+          toCanonicalElement(element, layerIds, pageSource, limits, partialSnapshot),
         ),
       };
     }),
@@ -157,6 +159,7 @@ function toCanonicalElement(
   layerIds: ReadonlySet<string>,
   pageSource: SourceRef,
   limits: ReturnType<typeof applyLimits>,
+  partialSnapshot: boolean,
 ): CanonicalElementInput {
   const externalId = safeString(element.id, limits.maxStringLength);
   const parentExternalId = safeString(element.parentId, limits.maxStringLength);
@@ -164,12 +167,18 @@ function toCanonicalElement(
   const parentPointsToLayer =
     parentExternalId !== undefined && layerIds.has(parentExternalId);
   const layerExternalId =
-    explicitLayerExternalId ?? (parentPointsToLayer ? parentExternalId : undefined);
+    partialSnapshot
+      ? undefined
+      : explicitLayerExternalId ?? (parentPointsToLayer ? parentExternalId : undefined);
   const containmentParentExternalId = parentPointsToLayer
     ? undefined
     : parentExternalId;
-  const sourceExternalId = safeString(element.sourceId, limits.maxStringLength);
-  const targetExternalId = safeString(element.targetId, limits.maxStringLength);
+  const sourceExternalId = partialSnapshot
+    ? undefined
+    : safeString(element.sourceId, limits.maxStringLength);
+  const targetExternalId = partialSnapshot
+    ? undefined
+    : safeString(element.targetId, limits.maxStringLength);
   const style = normalizeStyle(element, limits);
   const metadata = normalizeMetadata(element, limits);
   const geometry = normalizeGeometry(element, limits);
@@ -178,7 +187,7 @@ function toCanonicalElement(
     externalId,
     kind: detectKind(element),
     layerExternalId,
-    parentExternalId: containmentParentExternalId,
+    parentExternalId: partialSnapshot ? undefined : containmentParentExternalId,
     sourceExternalId,
     targetExternalId,
     label: normalizeLabel(element.label, limits),
@@ -191,6 +200,7 @@ function toCanonicalElement(
         pageId: element.pageId,
         relativeGeometry: element.relativeGeometry,
         raw: element.raw,
+        runtimeSnapshotPartial: partialSnapshot ? true : undefined,
       },
       limits,
     ),
@@ -201,6 +211,10 @@ function toCanonicalElement(
       ...(targetExternalId ? { targetExternalId } : {}),
     },
   };
+}
+
+function isPartialRuntimeSnapshot(input: RuntimeSnapshotInput): boolean {
+  return input.truncated === true || input.completeness?.status === "partial";
 }
 
 function detectKind(element: RuntimeSnapshotElementInput): ElementKind {
