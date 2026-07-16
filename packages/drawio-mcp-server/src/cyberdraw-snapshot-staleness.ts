@@ -2,7 +2,10 @@ import type {
   RuntimeSnapshot,
   RuntimeSnapshotScope,
 } from "cyberdraw-runtime-contract";
-import { stableStringify } from "cyberdraw-runtime-contract";
+import {
+  runtimeSnapshotScopeKey,
+  stableStringify,
+} from "cyberdraw-runtime-contract";
 
 export type SnapshotFreshness =
   | { readonly status: "fresh" }
@@ -47,10 +50,8 @@ export function compareRuntimeSnapshotFreshness(
     return { status: "stale", reason: "document-changed" };
   }
   if (
-    !sameScope(
-      expected.document.revisionSignals.scope,
-      current.document.revisionSignals.scope,
-    )
+    !sameScope(expected.scope.requestedScope, current.scope.requestedScope) ||
+    !sameScope(expected.scope.resolvedScope, current.scope.resolvedScope)
   ) {
     return { status: "stale", reason: "scope-changed" };
   }
@@ -104,16 +105,5 @@ function sameScope(
   left: RuntimeSnapshotScope,
   right: RuntimeSnapshotScope,
 ): boolean {
-  if (left.kind !== right.kind) {
-    return false;
-  }
-  if (left.kind === "document" && right.kind === "document") {
-    return true;
-  }
-  const leftIds = [...(left.pageIds ?? [])].sort();
-  const rightIds = [...(right.pageIds ?? [])].sort();
-  return (
-    leftIds.length === rightIds.length &&
-    leftIds.every((id, index) => id === rightIds[index])
-  );
+  return runtimeSnapshotScopeKey(left) === runtimeSnapshotScopeKey(right);
 }

@@ -31,6 +31,8 @@ diagramming work.
    internal runtime snapshot handler prototype.
 10. `docs/cyberdraw/milestones/M4-runtime-snapshot-product-hardening.md` before
     using runtime snapshots for future product features.
+11. `docs/cyberdraw/milestones/M5-scoped-snapshot-delivery.md` before changing
+    internal runtime snapshot scopes.
 
 Read `AGENTS.md` before modifying anything. It contains repository-wide logging,
 navigation and command-output discipline.
@@ -138,6 +140,8 @@ direct shell commands and package scripts.
   `packages/cyberdraw-graph-model/src/runtime-snapshot-adapter.ts`
 - Runtime snapshot contract:
   `packages/cyberdraw-runtime-contract/src/index.ts`
+- Scoped snapshot milestone:
+  `docs/cyberdraw/milestones/M5-scoped-snapshot-delivery.md`
 
 For architecture-level orientation, prefer `ARCHITECTURE.md` before reading
 source files.

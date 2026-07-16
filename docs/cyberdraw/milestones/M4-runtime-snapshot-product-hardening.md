@@ -211,3 +211,11 @@ bundled into the plugin.
 
 M4 meets the internal hardening criteria when build, lint, tests, dependency
 audit and `git diff --check` pass and no public MCP tool is added.
+
+## M5 Follow-Up
+
+Scoped runtime snapshot delivery is documented in
+`docs/cyberdraw/milestones/M5-scoped-snapshot-delivery.md`. M5 builds on M4
+without making the internal snapshot path public: peers can advertise document,
+pages, layers and selection scopes, and the server validates scoped responses
+without downgrading to document snapshots.

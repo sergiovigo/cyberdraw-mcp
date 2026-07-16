@@ -9,6 +9,7 @@ import {
   CYBERDRAW_RUNTIME_SNAPSHOT_EVENT,
   CYBERDRAW_RUNTIME_SNAPSHOT_SCHEMA_VERSION,
   computeContentRevision,
+  normalizeRuntimeSnapshotScope,
   normalizeRuntimeSnapshotLimits,
   stableStringify,
   type JsonRecord,
@@ -16,10 +17,13 @@ import {
   type RuntimeSnapshot,
   type RuntimeSnapshotDiagnostic,
   type RuntimeSnapshotElement,
+  type RuntimeSnapshotExternalReference,
   type RuntimeSnapshotLimits,
   type RuntimeSnapshotOptions,
   type RuntimeSnapshotPage,
   type RuntimeSnapshotLayer,
+  type RuntimeSnapshotScope,
+  type RuntimeSnapshotScopeMetadata,
 } from "cyberdraw-runtime-contract";
 
 const DANGEROUS_KEYS = new Set(["__proto__", "prototype", "constructor"]);
@@ -34,17 +38,22 @@ export function extract_runtime_snapshot(
   const pages = Array.isArray(ui?.pages) ? ui.pages : [];
   const selectedIds = getSelectionIds(ui?.editor?.graph);
   const currentPageId = getCurrentPageId(ui);
-  const scope = normalizeScope(options.scope);
-  const pageCandidates = pages
-    .map((page: any, index: number) => ({
-      page,
-      pageInfo: serialize_page_info(ui, page, index),
-    }))
-    .filter(({ pageInfo }: { pageInfo: ReturnType<typeof serialize_page_info> }) =>
-      scope.kind === "document" ? true : scope.pageIds?.includes(pageInfo.id) === true,
-    );
+  const requestedScope = normalizeScope(options.scope, diagnostics);
+  const allPageInfos = pages.map((page: any, index: number) => ({
+    page,
+    pageInfo: serialize_page_info(ui, page, index),
+  }));
+  const scopePlan = planScope(
+    allPageInfos,
+    requestedScope,
+    currentPageId,
+    ui?.editor?.graph,
+    diagnostics,
+  );
+  const pageCandidates = scopePlan.pageCandidates;
   const pageInputs = pageCandidates.slice(0, limits.maxPages);
   const extractedPages: RuntimeSnapshotPage[] = [];
+  const externalReferences: RuntimeSnapshotExternalReference[] = [];
   const budget = createPayloadBudget(limits, diagnostics);
 
   if (pageCandidates.length > pageInputs.length) {
@@ -71,6 +80,8 @@ export function extract_runtime_snapshot(
         limits,
         diagnostics,
         options,
+        scopePlan,
+        externalReferences,
         budget,
       );
       if (extracted) {
@@ -102,6 +113,27 @@ export function extract_runtime_snapshot(
       ? serialize_document_info(ui, options.target_document.id)
       : undefined;
   const extractionMs = now() - started;
+  const scopeMetadata = buildScopeMetadata(
+    requestedScope,
+    scopePlan,
+    extractedPages,
+    externalReferences,
+    diagnostics,
+  );
+  const selectionRevision =
+    requestedScope.kind === "selection"
+      ? computeContentRevision({
+          algorithm: "cyberdraw-selection-v1",
+          scope: requestedScope,
+          currentPageId,
+          selectedIds,
+          includedPages: extractedPages.map((page) => page.id),
+          includedElements: extractedPages.flatMap((page) =>
+            page.elements.map((element) => element.id),
+          ),
+        } as JsonValue)
+      : undefined;
+  const completeness = completenessFromDiagnostics(diagnostics);
   const revisionBase = {
     contractVersion: CYBERDRAW_RUNTIME_CONTRACT_VERSION,
     schemaVersion: CYBERDRAW_RUNTIME_SNAPSHOT_SCHEMA_VERSION,
@@ -114,11 +146,24 @@ export function extract_runtime_snapshot(
       pageCount: pages.length,
       runtimeVersion: runtimeVersion(),
     },
-    scope,
+    scopeAlgorithm: "cyberdraw-scope-v1",
+    requestedScope,
+    resolvedScope: scopeMetadata.resolvedScope,
+    scopeMetadata: {
+      includedPages: scopeMetadata.includedPages,
+      includedLayers: scopeMetadata.includedLayers,
+      includedElementCount: scopeMetadata.includedElementCount,
+      contextElementCount: scopeMetadata.contextElementCount,
+      externalReferences: scopeMetadata.externalReferences,
+      missingPageIds: scopeMetadata.missingPageIds,
+      missingLayerIds: scopeMetadata.missingLayerIds,
+      conclusive: scopeMetadata.conclusive,
+    },
     pages: extractedPages.map(contentRevisionPage),
     limits,
     diagnostics: contentRevisionDiagnostics(diagnostics),
-    complete: !hasTruncation(diagnostics),
+    complete: completeness.status === "complete",
+    selectionRevision,
   };
   let contentRevision = computeContentRevision(revisionBase as JsonValue);
   type RuntimeSnapshotWithoutPerformance = Omit<RuntimeSnapshot, "performance">;
@@ -134,15 +179,19 @@ export function extract_runtime_snapshot(
         documentId: documentInfo?.id,
         fileHash: documentInfo?.hash ?? undefined,
         pageIds: extractedPages.map((page) => page.id),
-        scope,
-        complete: !hasTruncation(diagnostics),
+        scope: cloneScope(scopeMetadata.resolvedScope),
+        requestedScope: cloneScope(requestedScope),
+        resolvedScope: cloneScope(scopeMetadata.resolvedScope),
+        complete: completeness.status === "complete",
         contentRevision,
+        selectionRevision,
       },
     },
+    scope: cloneScopeMetadata(scopeMetadata),
     pages: extractedPages,
     diagnostics,
-    completeness: completenessFromDiagnostics(diagnostics),
-    truncated: hasTruncation(diagnostics),
+    completeness,
+    truncated: completeness.status !== "complete",
     limits,
     payload: {
       approximateJsonBytes: budget.approximateBytes,
@@ -179,9 +228,7 @@ export function extract_runtime_snapshot(
 
   return {
     ...snapshotWithoutPerformance,
-    truncated:
-      snapshotWithoutPerformance.truncated ||
-      hasTruncation(diagnostics),
+    truncated: snapshotWithoutPerformance.truncated,
     diagnostics,
     performance: {
       extractionMs,
@@ -198,15 +245,26 @@ function extractPage(
   limits: RuntimeSnapshotLimits,
   diagnostics: RuntimeSnapshotDiagnostic[],
   options: RuntimeSnapshotOptions,
+  scopePlan: ScopePlan,
+  externalReferences: RuntimeSnapshotExternalReference[],
   budget: PayloadBudget,
 ): RuntimeSnapshotPage | undefined {
   const graph = ui?.editor?.graph;
   const model = graph?.getModel?.();
   const root = model?.getRoot?.();
-  const layers = extractLayers(model, root, pageInfo.id, limits, diagnostics);
+  const layerFilter = scopePlan.layersByPage.get(pageInfo.id);
+  const layers = extractLayers(
+    model,
+    root,
+    pageInfo.id,
+    limits,
+    diagnostics,
+    layerFilter,
+  );
   if (!budget.tryInclude(layers, pageInfo.id)) {
     return undefined;
   }
+  recordMissingLayers(pageInfo.id, layerFilter, layers, scopePlan, diagnostics);
   const elements = extractElements(
     graph,
     model,
@@ -215,6 +273,8 @@ function extractPage(
     limits,
     diagnostics,
     options,
+    scopePlan,
+    externalReferences,
     budget,
   );
 
@@ -243,6 +303,7 @@ function extractLayers(
   pageId: string,
   limits: RuntimeSnapshotLimits,
   diagnostics: RuntimeSnapshotDiagnostic[],
+  layerFilter: ReadonlySet<string> | undefined,
 ): RuntimeSnapshotLayer[] {
   reportMissingApi(
     typeof model?.getChildCount === "function",
@@ -271,6 +332,10 @@ function extractLayers(
   const layers: RuntimeSnapshotLayer[] = [];
   for (let index = 0; index < included; index += 1) {
     const layer = model.getChildAt(root, index);
+    const layerId = safeCellId(layer) ?? `layer-${index}`;
+    if (layerFilter && !layerFilter.has(layerId)) {
+      continue;
+    }
     const hasLockedApi = typeof layer?.isConnectable === "function";
     reportMissingApi(
       hasLockedApi,
@@ -300,9 +365,18 @@ function extractElements(
   limits: RuntimeSnapshotLimits,
   diagnostics: RuntimeSnapshotDiagnostic[],
   options: RuntimeSnapshotOptions,
+  scopePlan: ScopePlan,
+  externalReferences: RuntimeSnapshotExternalReference[],
   budget: PayloadBudget,
 ): RuntimeSnapshotElement[] {
-  const collected = collectElementCells(model, root, limits.maxElementsPerPage);
+  const collected = collectElementCells(
+    model,
+    root,
+    limits.maxElementsPerPage,
+    scopePlan,
+    graph,
+    pageId,
+  );
   const included = collected.cells;
   if (collected.observed > included.length) {
     diagnostics.push({
@@ -324,12 +398,14 @@ function extractElements(
       limits,
       diagnostics,
       options,
+      scopePlan.contextElementIds.has(safeCellId(cell) ?? ""),
     );
     if (!budget.tryInclude(element, pageId, element.id)) {
       break;
     }
     elements.push(element);
   }
+  recordExternalReferences(scopePlan, elements, externalReferences);
   return elements;
 }
 
@@ -341,6 +417,7 @@ function extractElement(
   limits: RuntimeSnapshotLimits,
   diagnostics: RuntimeSnapshotDiagnostic[],
   options: RuntimeSnapshotOptions,
+  contextOnly: boolean,
 ): RuntimeSnapshotElement {
   const style = parseStyle(cell?.style, limits, diagnostics, pageId, cell?.id);
   const geometry = extractGeometry(cell?.geometry, limits, diagnostics, pageId, cell?.id);
@@ -355,9 +432,10 @@ function extractElement(
           vertex: cell?.vertex,
           edge: cell?.edge,
           connectable: cell?.connectable,
-          visible: cell?.visible,
-          collapsed: cell?.collapsed,
-        },
+        visible: cell?.visible,
+        collapsed: cell?.collapsed,
+        contextOnly: contextOnly || undefined,
+      },
         limits,
         diagnostics,
         pageId,
@@ -395,6 +473,9 @@ function collectElementCells(
   model: any,
   root: any,
   maxElements: number,
+  scopePlan: ScopePlan,
+  graph: any,
+  pageId: string,
 ): { cells: any[]; observed: number } {
   const cells: any[] = [];
   const seen = new Set<any>();
@@ -405,8 +486,11 @@ function collectElementCells(
     }
     seen.add(cell);
     if (!isRoot(cell, root) && !isLayer(model, root, cell)) {
-      observed += 1;
-      if (cells.length < maxElements) {
+      const include = shouldIncludeCell(cell, scopePlan, graph, pageId);
+      if (include) {
+        observed += 1;
+      }
+      if (include && cells.length < maxElements) {
         cells.push(cell);
       }
     }
@@ -910,14 +994,367 @@ function createPayloadBudget(
   };
 }
 
-function normalizeScope(scope: RuntimeSnapshotOptions["scope"]) {
-  if (scope?.kind === "pages" && Array.isArray(scope.pageIds)) {
-    return {
-      kind: "pages" as const,
-      pageIds: scope.pageIds.filter((id: unknown): id is string => typeof id === "string"),
+type PageCandidate = {
+  readonly page: any;
+  readonly pageInfo: ReturnType<typeof serialize_page_info>;
+};
+
+type ScopePlan = {
+  readonly requestedScope: RuntimeSnapshotScope;
+  readonly resolvedScope: RuntimeSnapshotScope;
+  readonly pageCandidates: readonly PageCandidate[];
+  readonly layersByPage: ReadonlyMap<string, ReadonlySet<string>>;
+  readonly selectionIds: ReadonlySet<string>;
+  readonly contextElementIds: ReadonlySet<string>;
+  readonly missingPageIds: readonly string[];
+  readonly missingLayerIds: readonly {
+    readonly pageId: string;
+    readonly layerIds: readonly string[];
+  }[];
+};
+
+function normalizeScope(
+  scope: RuntimeSnapshotOptions["scope"],
+  diagnostics: RuntimeSnapshotDiagnostic[],
+): RuntimeSnapshotScope {
+  const result = normalizeRuntimeSnapshotScope(scope);
+  if (result.ok) {
+    return result.scope;
+  }
+  diagnostics.push({
+    code: result.code,
+    message: result.error,
+  });
+  return { kind: "document" };
+}
+
+function planScope(
+  allPages: readonly PageCandidate[],
+  requestedScope: RuntimeSnapshotScope,
+  currentPageId: string | null,
+  graph: any,
+  diagnostics: RuntimeSnapshotDiagnostic[],
+): ScopePlan {
+  const pagesById = new Map(allPages.map((candidate) => [candidate.pageInfo.id, candidate]));
+  const missingPageIds: string[] = [];
+  const missingLayerIds: Array<{ pageId: string; layerIds: readonly string[] }> = [];
+  const layersByPage = new Map<string, ReadonlySet<string>>();
+  const contextElementIds = new Set<string>();
+  let pageCandidates: readonly PageCandidate[] = allPages;
+  let resolvedScope = requestedScope;
+  if (requestedScope.kind === "pages") {
+    pageCandidates = allPages.filter((candidate) =>
+      requestedScope.pageIds.includes(candidate.pageInfo.id),
+    );
+    for (const pageId of requestedScope.pageIds) {
+      if (!pagesById.has(pageId)) {
+        missingPageIds.push(pageId);
+        diagnostics.push({
+          code: "page_not_found",
+          message: "Runtime snapshot requested a page that does not exist.",
+          pageId,
+        });
+      }
+    }
+    resolvedScope = {
+      kind: "pages",
+      pageIds: pageCandidates.map((candidate) => candidate.pageInfo.id),
     };
   }
-  return { kind: "document" as const };
+
+  if (requestedScope.kind === "layers") {
+    const candidate = pagesById.get(requestedScope.pageId);
+    pageCandidates = candidate ? [candidate] : [];
+    if (!candidate) {
+      missingPageIds.push(requestedScope.pageId);
+      diagnostics.push({
+        code: "page_not_found",
+        message: "Runtime snapshot requested a page that does not exist.",
+        pageId: requestedScope.pageId,
+      });
+      resolvedScope = { kind: "layers", pageId: requestedScope.pageId, layerIds: [] };
+    } else {
+      const requestedLayerIds = new Set(requestedScope.layerIds);
+      layersByPage.set(requestedScope.pageId, requestedLayerIds);
+      resolvedScope = requestedScope;
+    }
+  }
+
+  if (requestedScope.kind === "selection") {
+    const selectionPageId = requestedScope.pageId ?? currentPageId ?? undefined;
+    const candidate = selectionPageId ? pagesById.get(selectionPageId) : undefined;
+    pageCandidates = candidate ? [candidate] : [];
+    if (!selectionPageId || !candidate) {
+      diagnostics.push({
+        code: "page_not_found",
+        message: "Runtime snapshot selection scope could not resolve the visible page.",
+        pageId: selectionPageId,
+      });
+      resolvedScope = selectionPageId
+        ? { kind: "selection", pageId: selectionPageId }
+        : { kind: "selection" };
+    } else {
+      resolvedScope = { kind: "selection", pageId: selectionPageId };
+    }
+  }
+
+  const selectionIds = requestedScope.kind === "selection"
+    ? new Set(getSelectionIds(graph))
+    : new Set<string>();
+  if (requestedScope.kind === "selection" && selectionIds.size === 0) {
+    diagnostics.push({
+      code: "selection_empty",
+      message: "Runtime snapshot selection scope resolved an empty selection.",
+      pageId: requestedScope.pageId ?? currentPageId ?? undefined,
+    });
+  }
+
+  return {
+    requestedScope,
+    resolvedScope,
+    pageCandidates,
+    layersByPage,
+    selectionIds,
+    contextElementIds,
+    missingPageIds,
+    missingLayerIds,
+  };
+}
+
+function shouldIncludeCell(
+  cell: any,
+  scopePlan: ScopePlan,
+  graph: any,
+  pageId: string,
+): boolean {
+  if (scopePlan.requestedScope.kind === "document" || scopePlan.requestedScope.kind === "pages") {
+    return true;
+  }
+  const id = safeCellId(cell);
+  if (!id) {
+    return false;
+  }
+  if (scopePlan.requestedScope.kind === "selection") {
+    if (scopePlan.selectionIds.has(id)) {
+      markAncestors(cell, scopePlan.contextElementIds);
+      return true;
+    }
+    return scopePlan.contextElementIds.has(id);
+  }
+  const layerFilter = scopePlan.layersByPage.get(pageId);
+  if (!layerFilter) {
+    return false;
+  }
+  const layerId = safeCellId(getLayerForCell(graph, cell));
+  if (layerId && layerFilter.has(layerId)) {
+    markAncestors(cell, scopePlan.contextElementIds);
+    return true;
+  }
+  return scopePlan.contextElementIds.has(id);
+}
+
+function markAncestors(cell: any, contextElementIds: ReadonlySet<string>) {
+  const mutable = contextElementIds as Set<string>;
+  let current = cell?.parent;
+  while (current) {
+    const id = safeCellId(current);
+    if (id) {
+      mutable.add(id);
+    }
+    current = current.parent;
+  }
+}
+
+function recordMissingLayers(
+  pageId: string,
+  requestedLayerIds: ReadonlySet<string> | undefined,
+  layers: readonly RuntimeSnapshotLayer[],
+  scopePlan: ScopePlan,
+  diagnostics: RuntimeSnapshotDiagnostic[],
+) {
+  if (!requestedLayerIds) {
+    return;
+  }
+  const included = new Set(layers.map((layer) => layer.id));
+  const missing = [...requestedLayerIds].filter((id) => !included.has(id));
+  if (missing.length === 0) {
+    return;
+  }
+  (scopePlan.missingLayerIds as Array<{ pageId: string; layerIds: readonly string[] }>).push({
+    pageId,
+    layerIds: missing,
+  });
+  for (const layerId of missing) {
+    diagnostics.push({
+      code: "layer_not_found",
+      message: "Runtime snapshot requested a layer that does not exist on the resolved page.",
+      pageId,
+      layerId,
+    });
+  }
+}
+
+function recordExternalReferences(
+  scopePlan: ScopePlan,
+  elements: readonly RuntimeSnapshotElement[],
+  externalReferences: RuntimeSnapshotExternalReference[],
+) {
+  if (
+    scopePlan.requestedScope.kind !== "layers" &&
+    scopePlan.requestedScope.kind !== "selection"
+  ) {
+    return;
+  }
+  const included = new Set(elements.map((element) => element.id));
+  for (const element of elements) {
+    const references: Array<["parent" | "source" | "target", string | undefined]> = [
+      ["parent", element.parentId],
+      ["source", element.sourceId],
+      ["target", element.targetId],
+    ];
+    for (const [referenceType, referencedId] of references) {
+      if (!referencedId || included.has(referencedId)) {
+        continue;
+      }
+      externalReferences.push({
+        pageId: element.pageId,
+        elementId: element.id,
+        referenceType,
+        referencedId,
+      });
+    }
+  }
+}
+
+function buildScopeMetadata(
+  requestedScope: RuntimeSnapshotScope,
+  scopePlan: ScopePlan,
+  pages: readonly RuntimeSnapshotPage[],
+  externalReferences: readonly RuntimeSnapshotExternalReference[],
+  diagnostics: RuntimeSnapshotDiagnostic[],
+): RuntimeSnapshotScopeMetadata {
+  const contextElementCount = pages.reduce(
+    (sum, page) =>
+      sum + page.elements.filter((element) => element.raw?.contextOnly === true).length,
+    0,
+  );
+  for (const reference of externalReferences.slice(0, 100)) {
+    diagnostics.push({
+      code: "external_reference_omitted",
+      message: "Runtime snapshot omitted a referenced element outside the requested scope.",
+      pageId: reference.pageId,
+      elementId: reference.elementId,
+      referenceType: reference.referenceType,
+      referencedId: reference.referencedId,
+    });
+  }
+  if (contextElementCount > 0) {
+    diagnostics.push({
+      code: "context_element_included",
+      message: "Runtime snapshot included minimal ancestor context for scoped extraction.",
+      observed: contextElementCount,
+    });
+  }
+  const includedLayers = pages.map((page) => ({
+    pageId: page.id,
+    layerIds: page.layers.map((layer) => layer.id),
+  }));
+  const includedElementCount = pages.reduce(
+    (sum, page) => sum + page.elements.length,
+    0,
+  );
+  const missingScope =
+    scopePlan.missingPageIds.length > 0 || scopePlan.missingLayerIds.length > 0;
+  const resolvedScope = resolveIncludedScope(requestedScope, scopePlan, pages);
+  return {
+    requestedScope,
+    resolvedScope,
+    includedPages: pages.map((page) => page.id),
+    includedLayers,
+    includedElementCount,
+    contextElementCount,
+    externalReferences,
+    missingPageIds: scopePlan.missingPageIds,
+    missingLayerIds: scopePlan.missingLayerIds,
+    includedContext: contextElementCount > 0,
+    requiresScopeExpansion: externalReferences.length > 0 || missingScope,
+    conclusive:
+      !missingScope &&
+      externalReferences.length === 0 &&
+      !hasTruncation(diagnostics),
+  };
+}
+
+function resolveIncludedScope(
+  requestedScope: RuntimeSnapshotScope,
+  scopePlan: ScopePlan,
+  pages: readonly RuntimeSnapshotPage[],
+): RuntimeSnapshotScope {
+  if (requestedScope.kind === "document") {
+    return { kind: "document" };
+  }
+  if (requestedScope.kind === "pages") {
+    return { kind: "pages", pageIds: pages.map((page) => page.id) };
+  }
+  if (requestedScope.kind === "layers") {
+    const pageId = requestedScope.pageId;
+    const includedPage = pages.find((page) => page.id === pageId);
+    return {
+      kind: "layers",
+      pageId,
+      layerIds: includedPage?.layers.map((layer) => layer.id) ?? [],
+    };
+  }
+  return scopePlan.resolvedScope;
+}
+
+function cloneScope(scope: RuntimeSnapshotScope): RuntimeSnapshotScope {
+  switch (scope.kind) {
+    case "document":
+      return { kind: "document" };
+    case "pages":
+      return { kind: "pages", pageIds: [...scope.pageIds] };
+    case "layers":
+      return {
+        kind: "layers",
+        pageId: scope.pageId,
+        layerIds: [...scope.layerIds],
+      };
+    case "selection":
+      return scope.pageId
+        ? { kind: "selection", pageId: scope.pageId }
+        : { kind: "selection" };
+  }
+}
+
+function cloneScopeMetadata(
+  scope: RuntimeSnapshotScopeMetadata,
+): RuntimeSnapshotScopeMetadata {
+  return {
+    requestedScope: cloneScope(scope.requestedScope),
+    resolvedScope: cloneScope(scope.resolvedScope),
+    includedPages: [...scope.includedPages],
+    includedLayers: scope.includedLayers.map((entry) => ({
+      pageId: entry.pageId,
+      layerIds: [...entry.layerIds],
+    })),
+    includedElementCount: scope.includedElementCount,
+    contextElementCount: scope.contextElementCount,
+    externalReferences: scope.externalReferences.map((reference) => ({
+      pageId: reference.pageId,
+      elementId: reference.elementId,
+      referenceType: reference.referenceType,
+      referencedId: reference.referencedId,
+    })),
+    missingPageIds: [...scope.missingPageIds],
+    missingLayerIds: scope.missingLayerIds.map((entry) => ({
+      pageId: entry.pageId,
+      layerIds: [...entry.layerIds],
+    })),
+    includedContext: scope.includedContext,
+    requiresScopeExpansion: scope.requiresScopeExpansion,
+    conclusive: scope.conclusive,
+  };
 }
 
 function completenessFromDiagnostics(
@@ -931,6 +1368,17 @@ function completenessFromDiagnostics(
   }
   if (diagnostics.some((diagnostic) => diagnostic.code === "page_extraction_failed")) {
     return { status: "partial", reason: "page-error" };
+  }
+  if (
+    diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "page_not_found" ||
+        diagnostic.code === "layer_not_found" ||
+        diagnostic.code === "scope_empty" ||
+        diagnostic.code === "scope_invalid",
+    )
+  ) {
+    return { status: "partial", reason: "missing-scope" };
   }
   if (hasTruncation(diagnostics)) {
     return { status: "partial", reason: "count-limit" };

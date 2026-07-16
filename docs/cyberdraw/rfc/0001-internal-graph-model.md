@@ -213,6 +213,12 @@ payload policy, deterministic versioned content revision and stale-read
 comparison helpers. The RFC remains Draft and no public graph-model API or MCP
 tool is introduced.
 
+M5 scoped snapshot delivery evidence is recorded in
+`docs/cyberdraw/milestones/M5-scoped-snapshot-delivery.md`. It adds private
+document, pages, layers and selection scopes to reduce runtime extraction and
+payload size while preserving the RFC's non-goals: no public API, no public MCP
+tool, no persisted model and no stable identity guarantee.
+
 ## Data Model Proposal
 
 Use normalized entities keyed by internal ID, plus explicit references. Prefer

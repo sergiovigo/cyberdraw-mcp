@@ -78,6 +78,57 @@ describe("runtime snapshot adapter", () => {
     );
   });
 
+  it("treats scope-omitted external references separately from broken references", () => {
+    const scopedInput = {
+      ...structuredClone(runtimeSnapshotFixture),
+      scope: {
+        requestedScope: {
+          kind: "layers",
+          pageId: "page-visible",
+          layerIds: ["layer-main"],
+        },
+        resolvedScope: {
+          kind: "layers",
+          pageId: "page-visible",
+          layerIds: ["layer-main"],
+        },
+        externalReferences: [
+          {
+            pageId: "page-visible",
+            elementId: "edge-a-b",
+            referenceType: "target",
+            referencedId: "node-b",
+          },
+        ],
+        contextElementCount: 1,
+        requiresScopeExpansion: true,
+        conclusive: false,
+      },
+      pages: [
+        {
+          ...runtimeSnapshotFixture.pages![0],
+          elements: runtimeSnapshotFixture.pages![0]!.elements!.map((element) =>
+            element.id === "group-1"
+              ? { ...element, raw: { ...(element.raw ?? {}), contextOnly: true } }
+              : element,
+          ),
+        },
+      ],
+    };
+
+    const snapshot = fromRuntimeSnapshot(scopedInput);
+    const edge = snapshot.elements.find((element) => element.drawioId === "edge-a-b");
+    const context = snapshot.elements.find((element) => element.drawioId === "group-1");
+
+    expect(snapshot.findings.map((finding) => finding.code)).not.toEqual(
+      expect.arrayContaining(["missing_edge_target"]),
+    );
+    expect(edge?.raw).toMatchObject({
+      runtimeSnapshotExternalReferencesOmitted: true,
+    });
+    expect(context?.raw).toMatchObject({ runtimeSnapshotContextOnly: true });
+  });
+
   it("preserves HTML and dangerous metadata as inert sanitized data", () => {
     const snapshot = fromRuntimeSnapshot(runtimeSnapshotFixture);
     const nodeA = snapshot.elements.find((element) => element.drawioId === "node-a");

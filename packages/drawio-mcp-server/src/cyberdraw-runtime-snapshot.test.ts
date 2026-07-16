@@ -105,6 +105,60 @@ describe("cyberdraw runtime snapshot internal channel", () => {
     });
   });
 
+  it("fails immediately when a peer does not support the requested scope", async () => {
+    const sent: unknown[] = [];
+    const context = createTestContext({
+      sent,
+      generate: () => "request-1",
+      onReply: () => () => {},
+      runtimeCapabilities: createRuntimeCapabilities(undefined, [
+        "document",
+        "pages",
+      ]),
+    });
+
+    await expect(
+      requestCyberdrawRuntimeSnapshot(
+        context,
+        { scope: { kind: "layers", pageId: "p1", layerIds: ["l1"] } },
+        { replyTimeoutMs: 5 },
+      ),
+    ).rejects.toThrow("does not support runtime snapshot scope layers");
+    expect(sent).toHaveLength(0);
+  });
+
+  it("does not accept a document snapshot for a scoped request", async () => {
+    const listeners = new Map<string, BusListener<Record<string, unknown>>>();
+    const sent: unknown[] = [];
+    const context = createTestContext({
+      sent,
+      generate: () => "request-1",
+      onReply: (eventName, listener) => {
+        listeners.set(eventName, listener);
+        return () => {};
+      },
+      runtimeCapabilities: createRuntimeCapabilities(),
+    });
+
+    const request = requestCyberdrawRuntimeSnapshot(context, {
+      scope: { kind: "pages", pageIds: ["page-1"] },
+    });
+    await flushMicrotasks();
+
+    expect(sent[0]).toMatchObject({
+      scope: { kind: "pages", pageIds: ["page-1"] },
+    });
+    listeners.get("cyberdraw.runtimeSnapshot.v1.request-1")?.({
+      __event: "cyberdraw.runtimeSnapshot.v1.request-1",
+      success: true,
+      result: snapshot(),
+    });
+
+    await expect(request).rejects.toThrow(
+      "Runtime snapshot response requested scope does not match request",
+    );
+  });
+
   it("ignores a late timed-out reply and resolves the next request by request id", async () => {
     jest.useFakeTimers();
     const listeners = new Map<string, BusListener<Record<string, unknown>>>();
@@ -250,6 +304,20 @@ function snapshot(): RuntimeSnapshot {
         complete: true,
         contentRevision: "cyberdraw-content-v1:fnv1a64:0000000000000001",
       },
+    },
+    scope: {
+      requestedScope: { kind: "document" },
+      resolvedScope: { kind: "document" },
+      includedPages: [],
+      includedLayers: [],
+      includedElementCount: 0,
+      contextElementCount: 0,
+      externalReferences: [],
+      missingPageIds: [],
+      missingLayerIds: [],
+      includedContext: false,
+      requiresScopeExpansion: false,
+      conclusive: true,
     },
     pages: [],
     diagnostics: [],
