@@ -37,6 +37,7 @@ navigation and command-output discipline.
 | `packages/drawio-mcp-plugin/` | Browser plugin loaded into draw.io; executes tool handlers |
 | `packages/drawio-mcp-extension/` | WXT browser extension, popup/options UI and content scripts |
 | `packages/drawio-mcp-compat/` | Shared draw.io version compatibility helpers |
+| `packages/cyberdraw-graph-model/` | Private pure read-only graph model spike package; core consumes experimental `CanonicalDiagramInput`, legacy draw.io/MCP read shapes stay in an adapter |
 | `packages/drawio-mcp-dev-proxy/` | Local HTTPS/WSS development proxy |
 | `docs/cyberdraw/` | Official CyberDraw fork documentation |
 | `docs/cyberdraw/adr/` | Architecture decision records |
@@ -120,6 +121,7 @@ direct shell commands and package scripts.
 - Plugin tool dispatch: `packages/drawio-mcp-plugin/src/tool-registry.ts`
 - Draw.io compatibility matrix: `packages/drawio-mcp-plugin/src/drawio-compat/`
 - Extension popup/options: `packages/drawio-mcp-extension/entrypoints/`
+- Internal graph spike: `packages/cyberdraw-graph-model/src/`
 
 For architecture-level orientation, prefer `ARCHITECTURE.md` before reading
 source files.

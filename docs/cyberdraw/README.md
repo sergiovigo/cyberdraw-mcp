@@ -22,6 +22,7 @@ before CyberDraw-specific features are introduced.
 | [M0-BACKLOG.md](M0-BACKLOG.md) | Follow-up work discovered during M0 | Open backlog |
 | [AI-ONBOARDING.md](AI-ONBOARDING.md) | Practical guide for future AI agents | Operational guide |
 | [rfc/0001-internal-graph-model.md](rfc/0001-internal-graph-model.md) | Proposed internal graph model for architecture intelligence | Draft RFC |
+| [spikes/0001-internal-graph-readonly.md](spikes/0001-internal-graph-readonly.md) | M2 read-only prototype evidence for RFC 0001 Alternative C | Spike evidence |
 | [diagrams/internal-graph-model.md](diagrams/internal-graph-model.md) | Mermaid diagrams supporting RFC 0001 | Draft supporting diagrams |
 | [adr/0001-fork-strategy.md](adr/0001-fork-strategy.md) | Decision to begin as a conservative fork | Accepted ADR |
 | [adr/0002-runtime-and-baseline-policy.md](adr/0002-runtime-and-baseline-policy.md) | Node, pnpm and audit baseline policy | Accepted ADR |
@@ -47,7 +48,8 @@ Related root documents:
 9. `AI-ONBOARDING.md` when an AI agent needs a concise operating guide.
 10. `rfc/0001-internal-graph-model.md` for the draft Architecture Intelligence
     Foundation proposal.
-11. `adr/` when a lasting decision needs historical context.
+11. `spikes/0001-internal-graph-readonly.md` for M2 prototype evidence.
+12. `adr/` when a lasting decision needs historical context.
 
 ## Question Map
 
@@ -64,6 +66,7 @@ Related root documents:
 | What work remains after M0? | `M0-BACKLOG.md` |
 | What should another AI agent do first? | `AI-ONBOARDING.md`, `GOVERNANCE.md` |
 | What is the proposed internal graph model? | `rfc/0001-internal-graph-model.md`, `diagrams/internal-graph-model.md` |
+| What evidence exists for the read-only internal model spike? | `spikes/0001-internal-graph-readonly.md` |
 | Where are lasting decisions recorded? | `adr/` |
 | What third-party assets need review? | `../../THIRD_PARTY_NOTICES.md` |
 
@@ -74,6 +77,7 @@ Related root documents:
 - Open backlog: unresolved follow-up work that must be planned separately.
 - Operational guide: practical instructions that summarize official documents.
 - Draft RFC: proposal under review; not accepted architecture or implementation.
+- Spike evidence: prototype findings for review; not accepted product behavior.
 - ADR accepted: durable decision record.
 
 M0 documentation is authoritative for the baseline state. Future milestones must
