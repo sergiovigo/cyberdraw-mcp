@@ -82,7 +82,9 @@ describe("real environment/runtime snapshot", () => {
       text: "Background Runtime",
     });
     expectToolSuccess(backgroundRectPayload);
-    const backgroundRect = unwrapToolPayload<{ id: string }>(backgroundRectPayload);
+    const backgroundRect = unwrapToolPayload<{ id: string }>(
+      backgroundRectPayload,
+    );
 
     const { payload: edgePayload } = await callToolJson<{
       success: boolean;
@@ -99,15 +101,22 @@ describe("real environment/runtime snapshot", () => {
     await selectCell(context.page, visibleRect.id);
     const beforeState = await readEditorState(context);
 
-    const snapshot = (await requestCyberdrawRuntimeSnapshot(context.app.context, {
-      includeRaw: true,
-    })) as RuntimeSnapshot;
+    const snapshot = (await requestCyberdrawRuntimeSnapshot(
+      context.app.context,
+      {
+        includeRaw: true,
+      },
+    )) as RuntimeSnapshot;
 
     expect(snapshot.schemaVersion).toBe("cyberdraw.runtime-snapshot.v1");
     expect(snapshot.document.currentPageId).toBe(visiblePage.id);
     expect(snapshot.pages).toHaveLength(2);
-    expect(snapshot.pages.find((page) => page.id === visiblePage.id)?.visible).toBe(true);
-    expect(snapshot.pages.find((page) => page.id === backgroundPage.id)?.background).toBe(true);
+    expect(
+      snapshot.pages.find((page) => page.id === visiblePage.id)?.visible,
+    ).toBe(true);
+    expect(
+      snapshot.pages.find((page) => page.id === backgroundPage.id)?.background,
+    ).toBe(true);
     expect(
       snapshot.pages
         .find((page) => page.id === visiblePage.id)
@@ -134,9 +143,12 @@ describe("real environment/runtime snapshot", () => {
     );
     expect(snapshot.payload.measuredJsonBytes).toBeGreaterThan(0);
 
-    const equivalent = (await requestCyberdrawRuntimeSnapshot(context.app.context, {
-      includeRaw: true,
-    })) as RuntimeSnapshot;
+    const equivalent = (await requestCyberdrawRuntimeSnapshot(
+      context.app.context,
+      {
+        includeRaw: true,
+      },
+    )) as RuntimeSnapshot;
     expect(equivalent.document.revisionSignals.contentRevision).toBe(
       snapshot.document.revisionSignals.contentRevision,
     );
@@ -144,14 +156,17 @@ describe("real environment/runtime snapshot", () => {
     const afterState = await readEditorState(context);
     expect(afterState).toEqual(beforeState);
 
-    const truncated = (await requestCyberdrawRuntimeSnapshot(context.app.context, {
-      limits: { maxElementsPerPage: 1 },
-    })) as RuntimeSnapshot;
+    const truncated = (await requestCyberdrawRuntimeSnapshot(
+      context.app.context,
+      {
+        limits: { maxElementsPerPage: 1 },
+      },
+    )) as RuntimeSnapshot;
     expect(truncated.truncated).toBe(true);
     expect(truncated.completeness.status).toBe("partial");
-    expect(truncated.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
-      "element_limit_reached",
-    );
+    expect(
+      truncated.diagnostics.map((diagnostic) => diagnostic.code),
+    ).toContain("element_limit_reached");
     expect(truncated.document.revisionSignals.contentRevision).not.toBe(
       snapshot.document.revisionSignals.contentRevision,
     );
@@ -168,7 +183,10 @@ describe("real environment/runtime snapshot", () => {
       }
     }, visibleRect.id);
 
-    const changed = (await requestCyberdrawRuntimeSnapshot(context.app.context, {})) as RuntimeSnapshot;
+    const changed = (await requestCyberdrawRuntimeSnapshot(
+      context.app.context,
+      {},
+    )) as RuntimeSnapshot;
     expect(changed.document.revisionSignals.contentRevision).not.toBe(
       snapshot.document.revisionSignals.contentRevision,
     );
@@ -194,7 +212,8 @@ async function readEditorState(context: RealEnvironmentContext) {
       selectionIds: Array.isArray(selection)
         ? selection.map((cell: any) => String(cell.id)).sort()
         : [],
-      editing: typeof graph?.isEditing === "function" ? graph.isEditing() : false,
+      editing:
+        typeof graph?.isEditing === "function" ? graph.isEditing() : false,
     };
   });
 }

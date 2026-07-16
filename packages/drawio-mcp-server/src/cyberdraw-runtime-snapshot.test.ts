@@ -24,9 +24,7 @@ describe("cyberdraw runtime snapshot internal channel", () => {
 
     await expect(
       requestCyberdrawRuntimeSnapshot(context, {}, { replyTimeoutMs: 5 }),
-    ).rejects.toThrow(
-      "does not support cyberdraw.runtimeSnapshot.v1",
-    );
+    ).rejects.toThrow("does not support cyberdraw.runtimeSnapshot.v1");
     expect(sent).toHaveLength(0);
   });
 
@@ -65,7 +63,9 @@ describe("cyberdraw runtime snapshot internal channel", () => {
       sent,
       generate: () => "request-1",
       onReply: () => () => {},
-      runtimeCapabilities: { capabilities: [{ name: "cyberdraw.runtimeSnapshot.v1" }] },
+      runtimeCapabilities: {
+        capabilities: [{ name: "cyberdraw.runtimeSnapshot.v1" }],
+      },
     });
 
     await expect(
@@ -122,7 +122,11 @@ describe("cyberdraw runtime snapshot internal channel", () => {
       runtimeCapabilities: createRuntimeCapabilities(),
     });
 
-    const first = requestCyberdrawRuntimeSnapshot(context, {}, { replyTimeoutMs: 25 });
+    const first = requestCyberdrawRuntimeSnapshot(
+      context,
+      {},
+      { replyTimeoutMs: 25 },
+    );
     const firstFailure = expect(first).rejects.toThrow(
       "Timed out waiting for reply to `cyberdraw.runtimeSnapshot.v1` after 25ms",
     );
@@ -131,7 +135,11 @@ describe("cyberdraw runtime snapshot internal channel", () => {
     await flushMicrotasks();
     expect(listeners.has("cyberdraw.runtimeSnapshot.v1.request-1")).toBe(false);
 
-    const second = requestCyberdrawRuntimeSnapshot(context, {}, { replyTimeoutMs: 25 });
+    const second = requestCyberdrawRuntimeSnapshot(
+      context,
+      {},
+      { replyTimeoutMs: 25 },
+    );
     await flushMicrotasks();
 
     listeners.get("cyberdraw.runtimeSnapshot.v1.request-1")?.({
@@ -161,7 +169,11 @@ describe("cyberdraw runtime snapshot internal channel", () => {
       runtimeCapabilities: createRuntimeCapabilities(),
     });
 
-    const request = requestCyberdrawRuntimeSnapshot(context, {}, { replyTimeoutMs: 25 });
+    const request = requestCyberdrawRuntimeSnapshot(
+      context,
+      {},
+      { replyTimeoutMs: 25 },
+    );
     const failure = expect(request).rejects.toThrow(
       "Timed out waiting for reply to `cyberdraw.runtimeSnapshot.v1` after 25ms",
     );

@@ -28,12 +28,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build compat
-        run: pnpm --filter drawio-mcp-compat run build
-
       - name: Build plugin
-        run: pnpm run build
-        working-directory: packages/drawio-mcp-plugin
+        run: pnpm --filter drawio-mcp-plugin... run build
 
       - name: Package extension (chrome)
         run: pnpm run zip

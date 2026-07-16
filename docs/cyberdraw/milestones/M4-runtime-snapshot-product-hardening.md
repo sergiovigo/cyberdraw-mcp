@@ -130,6 +130,10 @@ second asset is available.
 - revision helpers.
 
 The contract remains private and experimental. No JSON Schema is published.
+Because the package exports compiled `build/` entrypoints, clean-checkout
+consumers must be built with their workspace dependency closure, for example
+`pnpm --filter drawio-mcp-plugin... run build` or
+`pnpm --filter drawio-mcp-server... run build`.
 
 ## Security
 

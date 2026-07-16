@@ -43,9 +43,7 @@ export function compareRuntimeSnapshotFreshness(
   if (!expectedDocumentId || !currentDocumentId) {
     return { status: "unknown", reason: "revision-missing" };
   }
-  if (
-    expectedDocumentId !== currentDocumentId
-  ) {
+  if (expectedDocumentId !== currentDocumentId) {
     return { status: "stale", reason: "document-changed" };
   }
   if (
@@ -92,7 +90,11 @@ export function classifyRuntimeSnapshotCaptureError(
   if (/Timed out waiting for reply/.test(message)) {
     return { status: "unknown", reason: "timeout" };
   }
-  if (/no longer connected|No connected Draw\.io documents|was not found/.test(message)) {
+  if (
+    /no longer connected|No connected Draw\.io documents|was not found/.test(
+      message,
+    )
+  ) {
     return { status: "unknown", reason: "document-disconnected" };
   }
   return { status: "unknown", reason: "capture-failed" };

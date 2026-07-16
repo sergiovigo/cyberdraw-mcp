@@ -4,6 +4,7 @@ on:
   release:
     types: created
     paths:
+      - 'packages/cyberdraw-runtime-contract/**'
       - 'packages/drawio-mcp-server/**'
       - '.github/workflows/server-publish.yml'
   workflow_dispatch:
@@ -30,17 +31,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build compat
-        run: pnpm --filter drawio-mcp-compat run build
-
-      - name: Build plugin
-        run: pnpm --filter drawio-mcp-plugin run build
-
-      - name: Build dev proxy
-        run: pnpm --filter drawio-mcp-dev-proxy run build
-
       - name: Build server
-        run: pnpm --filter drawio-mcp-server run build
+        run: pnpm --filter drawio-mcp-server... run build
 
       - name: Publish
         run: pnpm --filter drawio-mcp-server publish --provenance --access public

@@ -35,14 +35,10 @@ COPY packages ./packages
 
 RUN pnpm install --frozen-lockfile
 
-# Build order matters: the server's `vendor:compat` step copies
-# ../drawio-mcp-compat/src, its build copies the bundled plugin from
-# node_modules/drawio-mcp-plugin/dist, and tsc type-checks
-# src/real-environment/, which imports drawio-mcp-dev-proxy.
-RUN pnpm --filter drawio-mcp-compat run build \
- && pnpm --filter drawio-mcp-dev-proxy run build \
- && pnpm --filter drawio-mcp-plugin run build \
- && pnpm --filter drawio-mcp-server run build
+# Build the server and its workspace dependency closure topologically. The
+# server build copies the bundled plugin and type-checks real-environment code
+# that imports drawio-mcp-dev-proxy.
+RUN pnpm --filter drawio-mcp-server... run build
 
 # ---------------------------------------------------------------------------
 # Stage 3: Runtime — install production deps and run

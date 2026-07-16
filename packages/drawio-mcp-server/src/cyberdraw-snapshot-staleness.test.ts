@@ -80,12 +80,16 @@ describe("cyberdraw runtime snapshot staleness", () => {
   it("classifies capture errors for future recapture paths", () => {
     expect(
       classifyRuntimeSnapshotCaptureError(
-        new Error("Connected Draw.io peer does not support cyberdraw.runtimeSnapshot.v1"),
+        new Error(
+          "Connected Draw.io peer does not support cyberdraw.runtimeSnapshot.v1",
+        ),
       ),
     ).toEqual({ status: "unknown", reason: "peer-incompatible" });
     expect(
       classifyRuntimeSnapshotCaptureError(
-        new Error("Timed out waiting for reply to `cyberdraw.runtimeSnapshot.v1`"),
+        new Error(
+          "Timed out waiting for reply to `cyberdraw.runtimeSnapshot.v1`",
+        ),
       ),
     ).toEqual({ status: "unknown", reason: "timeout" });
   });
@@ -119,8 +123,7 @@ function snapshot(
         scope,
         complete: completeness.status === "complete",
         contentRevision:
-          overrides.revision ??
-          "cyberdraw-content-v1:fnv1a64:0000000000000001",
+          overrides.revision ?? "cyberdraw-content-v1:fnv1a64:0000000000000001",
       },
     },
     pages: [],
