@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "build": "tsc && esbuild src/plugin.ts --bundle --outfile=dist/mcp-plugin.js --format=iife --global-name=DrawMcp --target=chrome120",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.js",
     "clean": "rimraf dist"
   },
   "keywords": [

@@ -111,6 +111,11 @@ baseline. It is not an implementation plan for M0 itself.
   records synthetic benchmark evidence for document, pages, layers and
   selection scopes. Draft ADR 0004 proposes scoped/hierarchical snapshots as the
   M7 scaling strategy, with chunking and incremental analysis deferred.
+- M7 update:
+  `docs/cyberdraw/milestones/M7-real-environment-snapshot-benchmarks.md`
+  records real draw.io browser benchmark evidence for document, pages, layers
+  and selection scopes. ADR 0004 is accepted with a scope-first/hierarchical
+  strategy; chunking, streaming and incremental analysis remain deferred.
 - Effort: M.
 - Suggested milestone: Architecture Intelligence Foundation runtime integration
   hardening and compatibility evidence.

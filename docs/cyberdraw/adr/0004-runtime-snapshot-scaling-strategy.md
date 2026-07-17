@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed.
+Accepted.
 
 ## Context
 
@@ -19,6 +19,16 @@ while a visible page was about 2.18 MiB and one layer about 427 KiB.
 
 The current architecture remains private and discardable. Snapshots are not
 persisted, public MCP responses are unchanged, and identity remains provisional.
+
+M7 real-environment benchmark evidence confirms the same direction inside a
+real draw.io browser runtime. On draw.io `30.3.12`, the medium real fixture
+produced a document snapshot of 612,655 bytes with about 797 ms plugin time,
+while a visible page was 205,400 bytes with about 52 ms plugin time, one layer
+was 72,607 bytes with about 16 ms plugin time, and selection was about 5.7 KiB
+with about 5 ms plugin time. Background page extraction was materially slower
+than visible page extraction because it must prepare and clean up non-active
+draw.io graph state. Limit fixtures showed document scope near the hard limit
+failing clearly, while layer and selection scopes remained practical.
 
 ## Alternatives
 
@@ -54,19 +64,23 @@ selection snapshots on demand.
 Use scopes and hierarchical requests first; reserve chunking for exceptional
 single-scope overflow; defer incremental analysis until identity is stronger.
 
-## Proposed Decision
+## Decision
 
 Adopt the hybrid strategy with scopes as the primary scaling mechanism for M7.
 
-M7 should keep complete snapshots bounded by scope, use hierarchical internal
-analysis planning, and fail with clear hard-limit guidance when a requested
-scope is too broad. M7 should not implement productive chunking, streaming,
+M7 keeps complete snapshots bounded by scope, uses hierarchical internal
+analysis planning, and fails with clear hard-limit guidance when a requested
+scope is too broad. M7 does not implement productive chunking, streaming,
 persistence or incremental analysis.
 
 Chunking may be reconsidered only if real-environment evidence shows that a
 single necessary page or layer commonly exceeds the hard limit and cannot be
 handled by narrower analysis. Incremental analysis should wait for a stable
 identity decision.
+
+M8 should continue with hierarchical scoped analysis over the existing private
+scope family: use document scope for bounded diagrams, prefer pages and layers
+for larger diagrams, and use selection only for UI-bound focused analysis.
 
 ## Consequences
 
@@ -93,6 +107,8 @@ Negative:
 - Heap deltas are approximate, not peak memory.
 - Current provisional identity is not enough for incremental analysis.
 - Hard-limit failures may require better internal caller UX.
+- HTTPS/Caddy real-environment benchmark execution was unstable in the local M7
+  environment and should not be used as performance evidence until repaired.
 
 ## Reversibility
 
@@ -106,6 +122,31 @@ same private event family or a new private event after a separate ADR.
 - Should internal callers first request a page/layer inventory before analysis?
 - What identity strategy is sufficient for future incremental analysis?
 - Should hard-limit diagnostics include a recommended narrower scope?
+
+## M7 Evidence
+
+Versioned M7 artifacts:
+
+- `docs/cyberdraw/benchmarks/m7-real-small-summary.json`;
+- `docs/cyberdraw/benchmarks/m7-real-medium-summary.json`;
+- `docs/cyberdraw/benchmarks/m7-real-soft-limit-summary.json`;
+- `docs/cyberdraw/benchmarks/m7-real-hard-limit-summary.json`;
+- `docs/cyberdraw/benchmarks/m7-real-summary.md`;
+- `docs/cyberdraw/milestones/M7-real-environment-snapshot-benchmarks.md`.
+
+The evidence supports the accepted strategy:
+
+- scopes reduce real browser payload and processing cost;
+- visible and background pages both work, with background pages costlier;
+- layers provide strong reductions and preserve context/external-reference
+  semantics;
+- selection remains small and preserves UI;
+- hard-limit behavior is observed without introducing chunking;
+- no public MCP tool, public schema or persisted state is introduced.
+
+HTTPS/Caddy validation is not part of this ADR's acceptance criteria. M7
+records it as a residual environment validation gap, not as benchmark evidence
+for or against the scaling decision.
 
 ## Acceptance Criteria
 

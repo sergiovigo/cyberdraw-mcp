@@ -31,8 +31,40 @@ const DANGEROUS_KEYS = new Set(["__proto__", "prototype", "constructor"]);
 export function extract_runtime_snapshot(
   ui: any,
   options: RuntimeSnapshotOptions = {},
+): RuntimeSnapshot | Promise<RuntimeSnapshot> {
+  if (options.measureMainThreadImpact !== true) {
+    return extractRuntimeSnapshotSync(ui, options);
+  }
+
+  const impact = createMainThreadImpactProbe();
+  let snapshot: RuntimeSnapshot;
+  try {
+    snapshot = extractRuntimeSnapshotSync(ui, options);
+  } catch (error) {
+    impact.dispose();
+    throw error;
+  }
+
+  return impact
+    .finish()
+    .then((mainThreadImpact) => ({
+      ...snapshot,
+      performance: {
+        ...snapshot.performance,
+        ...mainThreadImpact,
+      },
+    }))
+    .finally(() => {
+      impact.dispose();
+    });
+}
+
+export function extractRuntimeSnapshotSync(
+  ui: any,
+  options: RuntimeSnapshotOptions = {},
 ): RuntimeSnapshot {
   const started = now();
+  const scopeStarted = now();
   const limits = applyLimits(options.limits);
   const diagnostics: RuntimeSnapshotDiagnostic[] = [];
   const pages = Array.isArray(ui?.pages) ? ui.pages : [];
@@ -50,6 +82,7 @@ export function extract_runtime_snapshot(
     ui?.editor?.graph,
     diagnostics,
   );
+  const scopeResolutionMs = now() - scopeStarted;
   const pageCandidates = scopePlan.pageCandidates;
   const pageInputs = pageCandidates.slice(0, limits.maxPages);
   const extractedPages: RuntimeSnapshotPage[] = [];
@@ -65,6 +98,7 @@ export function extract_runtime_snapshot(
     });
   }
 
+  const traversalStarted = now();
   for (let index = 0; index < pageInputs.length; index += 1) {
     const { pageInfo } = pageInputs[index];
     let execution: ReturnType<typeof prepare_target_page_execution> | undefined;
@@ -101,6 +135,7 @@ export function extract_runtime_snapshot(
       restoreSelection(ui?.editor?.graph, selectedIds);
     }
   }
+  const traversalMs = now() - traversalStarted;
 
   diagnostics.push({
     code: "semantic_revision_deferred",
@@ -108,11 +143,11 @@ export function extract_runtime_snapshot(
       "semanticRevision is deferred because runtime extraction cannot yet prove which visual or metadata changes are semantically irrelevant.",
   });
 
+  const assemblyStarted = now();
   const documentInfo =
     typeof options.target_document?.id === "string"
       ? serialize_document_info(ui, options.target_document.id)
       : undefined;
-  const extractionMs = now() - started;
   const scopeMetadata = buildScopeMetadata(
     requestedScope,
     scopePlan,
@@ -134,6 +169,7 @@ export function extract_runtime_snapshot(
         } as JsonValue)
       : undefined;
   const completeness = completenessFromDiagnostics(diagnostics);
+  const revisionStarted = now();
   const revisionBase = {
     contractVersion: CYBERDRAW_RUNTIME_CONTRACT_VERSION,
     schemaVersion: CYBERDRAW_RUNTIME_SNAPSHOT_SCHEMA_VERSION,
@@ -166,6 +202,9 @@ export function extract_runtime_snapshot(
     selectionRevision,
   };
   let contentRevision = computeContentRevision(revisionBase as JsonValue);
+  const revisionMs = now() - revisionStarted;
+  const snapshotAssemblyMs = now() - assemblyStarted;
+  const extractionMs = now() - started;
   type RuntimeSnapshotWithoutPerformance = Omit<RuntimeSnapshot, "performance">;
   const snapshotWithoutPerformance: RuntimeSnapshotWithoutPerformance = {
     schemaVersion: CYBERDRAW_RUNTIME_SNAPSHOT_SCHEMA_VERSION,
@@ -234,8 +273,146 @@ export function extract_runtime_snapshot(
       extractionMs,
       serializationMs,
       approximateJsonBytes,
+      scopeResolutionMs,
+      traversalMs,
+      snapshotAssemblyMs,
+      revisionMs,
+      totalPluginMs: now() - started,
     },
   };
+}
+
+export type MainThreadImpactProbe = {
+  readonly finish: () => Promise<{
+    readonly mainThreadTimerDriftMs: number;
+    readonly mainThreadRafDelayMs?: number;
+    readonly longTaskCount?: number;
+  }>;
+  readonly dispose: () => void;
+};
+
+export function createMainThreadImpactProbe(): MainThreadImpactProbe {
+  const started = now();
+  let timerFiredAt: number | undefined;
+  let rafFiredAt: number | undefined;
+  let longTaskCount: number | undefined;
+  let observer: PerformanceObserver | undefined;
+  let disposed = false;
+  let finished = false;
+  let initialTimerId: ReturnType<typeof setTimeout> | undefined;
+  let finishTimerId: ReturnType<typeof setTimeout> | undefined;
+  let animationFrameId: number | undefined;
+  let resolveFinish:
+    | ((
+        value: {
+          readonly mainThreadTimerDriftMs: number;
+          readonly mainThreadRafDelayMs?: number;
+          readonly longTaskCount?: number;
+        },
+      ) => void)
+    | undefined;
+
+  initialTimerId = setTimeout(() => {
+    initialTimerId = undefined;
+    timerFiredAt = now();
+  }, 0);
+
+  const runtimeWindow = (globalThis as { window?: any }).window;
+  const requestFrame = runtimeWindow?.requestAnimationFrame;
+  if (typeof requestFrame === "function") {
+    animationFrameId = requestFrame.call(runtimeWindow, () => {
+      animationFrameId = undefined;
+      rafFiredAt = now();
+    });
+  }
+
+  const PerformanceObserverCtor = runtimeWindow?.PerformanceObserver;
+  if (typeof PerformanceObserverCtor === "function") {
+    try {
+      longTaskCount = 0;
+      const createdObserver = new PerformanceObserverCtor((list: PerformanceObserverEntryList) => {
+        longTaskCount = (longTaskCount ?? 0) + list.getEntries().length;
+      });
+      createdObserver.observe({ entryTypes: ["longtask"] });
+      observer = createdObserver;
+    } catch {
+      longTaskCount = undefined;
+      observer = undefined;
+    }
+  }
+
+  const cleanup = () => {
+    if (initialTimerId !== undefined) {
+      clearTimeout(initialTimerId);
+      initialTimerId = undefined;
+    }
+    if (finishTimerId !== undefined) {
+      clearTimeout(finishTimerId);
+      finishTimerId = undefined;
+    }
+    const cancelFrame = runtimeWindow?.cancelAnimationFrame;
+    if (
+      animationFrameId !== undefined &&
+      typeof cancelFrame === "function"
+    ) {
+      cancelFrame.call(runtimeWindow, animationFrameId);
+      animationFrameId = undefined;
+    }
+    observer?.disconnect();
+    observer = undefined;
+  };
+
+  const currentImpact = () => {
+    const completed = now();
+    return {
+      mainThreadTimerDriftMs: Math.max(
+        0,
+        (timerFiredAt ?? completed) - started,
+      ),
+      mainThreadRafDelayMs:
+        rafFiredAt === undefined ? undefined : Math.max(0, rafFiredAt - started),
+      longTaskCount,
+    };
+  };
+
+  const finish = () =>
+    new Promise<{
+      readonly mainThreadTimerDriftMs: number;
+      readonly mainThreadRafDelayMs?: number;
+      readonly longTaskCount?: number;
+    }>((resolve) => {
+      if (disposed || finished) {
+        resolve(currentImpact());
+        return;
+      }
+      resolveFinish = resolve;
+      finishTimerId = setTimeout(() => {
+        const completedFinishTimerId = finishTimerId;
+        finishTimerId = undefined;
+        if (completedFinishTimerId !== undefined) {
+          clearTimeout(completedFinishTimerId);
+        }
+        finished = true;
+        const impact = currentImpact();
+        cleanup();
+        resolve(impact);
+      }, 0);
+    });
+
+  const dispose = () => {
+    if (disposed) {
+      return;
+    }
+    disposed = true;
+    cleanup();
+    if (resolveFinish) {
+      const resolve = resolveFinish;
+      resolveFinish = undefined;
+      resolve(currentImpact());
+    }
+  };
+
+  return { finish, dispose };
 }
 
 function extractPage(

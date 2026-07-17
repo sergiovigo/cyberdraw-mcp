@@ -10,6 +10,8 @@
     "build": "pnpm -r build",
     "benchmark:cyberdraw": "pnpm --filter cyberdraw-runtime-benchmarks... run build && pnpm --filter cyberdraw-runtime-benchmarks run benchmark",
     "benchmark:cyberdraw:smoke": "pnpm --filter cyberdraw-runtime-benchmarks... run build && pnpm --filter cyberdraw-runtime-benchmarks run benchmark:smoke",
+    "benchmark:cyberdraw:real": "pnpm --filter drawio-mcp-server... run build && pnpm --filter cyberdraw-runtime-benchmarks... run build && pnpm --filter cyberdraw-runtime-benchmarks run benchmark:real",
+    "benchmark:cyberdraw:real:smoke": "pnpm --filter drawio-mcp-server... run build && pnpm --filter cyberdraw-runtime-benchmarks... run build && pnpm --filter cyberdraw-runtime-benchmarks run benchmark:real:smoke",
     "dev": "pnpm -r dev",
     "clean": "pnpm -r clean",
     "test": "pnpm -r test",

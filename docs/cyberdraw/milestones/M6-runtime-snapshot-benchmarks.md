@@ -287,3 +287,13 @@ M6 meets the benchmark and decision criteria for synthetic evidence. It is
 partial only with respect to real-environment benchmark breadth: M3-M5 retain
 real runtime correctness coverage, but M6 did not produce a new browser timing
 matrix.
+
+## M7 Follow-Up
+
+M7 real-environment benchmark evidence is documented in
+`docs/cyberdraw/milestones/M7-real-environment-snapshot-benchmarks.md` and
+`docs/cyberdraw/benchmarks/m7-real-summary.md`. The real draw.io `30.3.12`
+results confirm the M6 recommendation: keep scoped full snapshots private,
+prefer hierarchical page/layer/selection requests for larger diagrams, keep the
+current soft/hard byte limits, and defer chunking, streaming and incremental
+analysis until stronger evidence requires them. ADR 0004 is accepted by M7.

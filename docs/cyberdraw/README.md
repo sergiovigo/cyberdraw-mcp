@@ -27,12 +27,13 @@ before CyberDraw-specific features are introduced.
 | [milestones/M4-runtime-snapshot-product-hardening.md](milestones/M4-runtime-snapshot-product-hardening.md) | M4 internal hardening evidence for runtime snapshot negotiation, payload limits, revisions and stale-read policy | Internal milestone evidence |
 | [milestones/M5-scoped-snapshot-delivery.md](milestones/M5-scoped-snapshot-delivery.md) | M5 internal scoped runtime snapshot delivery semantics for pages, layers and selection | Internal milestone evidence |
 | [milestones/M6-runtime-snapshot-benchmarks.md](milestones/M6-runtime-snapshot-benchmarks.md) | M6 runtime snapshot benchmark evidence and M7 scaling recommendation | Internal milestone evidence |
-| [benchmarks/](benchmarks/) | Small aggregate M6 synthetic benchmark summaries | Benchmark evidence |
+| [milestones/M7-real-environment-snapshot-benchmarks.md](milestones/M7-real-environment-snapshot-benchmarks.md) | M7 real draw.io browser benchmark evidence for scoped runtime snapshots | Internal milestone evidence |
+| [benchmarks/](benchmarks/) | Small aggregate M6 synthetic and M7 real-environment benchmark summaries | Benchmark evidence |
 | [diagrams/internal-graph-model.md](diagrams/internal-graph-model.md) | Mermaid diagrams supporting RFC 0001 | Draft supporting diagrams |
 | [adr/0001-fork-strategy.md](adr/0001-fork-strategy.md) | Decision to begin as a conservative fork | Accepted ADR |
 | [adr/0002-runtime-and-baseline-policy.md](adr/0002-runtime-and-baseline-policy.md) | Node, pnpm and audit baseline policy | Accepted ADR |
 | [adr/0003-internal-graph-model-architecture.md](adr/0003-internal-graph-model-architecture.md) | Decision to adopt RFC 0001 Alternative C as a private server-first internal graph package architecture | Accepted ADR |
-| [adr/0004-runtime-snapshot-scaling-strategy.md](adr/0004-runtime-snapshot-scaling-strategy.md) | Proposed runtime snapshot scaling strategy for M7 | Proposed ADR |
+| [adr/0004-runtime-snapshot-scaling-strategy.md](adr/0004-runtime-snapshot-scaling-strategy.md) | Accepted runtime snapshot scaling strategy after M7 real-environment evidence | Accepted ADR |
 
 Related root documents:
 
@@ -65,7 +66,9 @@ Related root documents:
 15. `milestones/M5-scoped-snapshot-delivery.md` for scoped snapshot semantics.
 16. `milestones/M6-runtime-snapshot-benchmarks.md` for benchmark evidence and
     the M7 scaling recommendation.
-17. `adr/` when a lasting decision needs historical context.
+17. `milestones/M7-real-environment-snapshot-benchmarks.md` for real browser
+    evidence before changing snapshot limits or scaling strategy.
+18. `adr/` when a lasting decision needs historical context.
 
 ## Question Map
 
@@ -87,6 +90,7 @@ Related root documents:
 | How is the runtime snapshot path hardened internally? | `milestones/M4-runtime-snapshot-product-hardening.md` |
 | How do internal scoped runtime snapshots work? | `milestones/M5-scoped-snapshot-delivery.md` |
 | What benchmark evidence exists for snapshot scaling? | `milestones/M6-runtime-snapshot-benchmarks.md`, `benchmarks/`, `adr/0004-runtime-snapshot-scaling-strategy.md` |
+| What real draw.io runtime evidence exists for scoped snapshots? | `milestones/M7-real-environment-snapshot-benchmarks.md`, `benchmarks/m7-real-summary.md` |
 | What internal graph model architecture was accepted? | `adr/0003-internal-graph-model-architecture.md` |
 | Where are lasting decisions recorded? | `adr/` |
 | What third-party assets need review? | `../../THIRD_PARTY_NOTICES.md` |

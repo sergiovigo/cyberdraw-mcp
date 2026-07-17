@@ -96,6 +96,7 @@ export type RuntimeSnapshotOptions = {
   readonly scope?: RuntimeSnapshotScope;
   readonly limits?: Partial<RuntimeSnapshotLimits>;
   readonly includeRaw?: boolean;
+  readonly measureMainThreadImpact?: boolean;
 };
 
 export type RuntimeSnapshotScope =
@@ -243,6 +244,14 @@ export type RuntimeSnapshot = {
     readonly extractionMs: number;
     readonly serializationMs: number;
     readonly approximateJsonBytes: number;
+    readonly scopeResolutionMs?: number;
+    readonly traversalMs?: number;
+    readonly snapshotAssemblyMs?: number;
+    readonly revisionMs?: number;
+    readonly totalPluginMs?: number;
+    readonly mainThreadTimerDriftMs?: number;
+    readonly mainThreadRafDelayMs?: number;
+    readonly longTaskCount?: number;
   };
 };
 

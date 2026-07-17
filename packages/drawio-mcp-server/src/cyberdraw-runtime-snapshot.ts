@@ -1,5 +1,6 @@
 import { build_channel } from "./tool.js";
 import type { Context } from "./types.js";
+import { performance } from "node:perf_hooks";
 import {
   CYBERDRAW_RUNTIME_SNAPSHOT_EVENT,
   findRuntimeSnapshotCapability,
@@ -20,11 +21,32 @@ export type RuntimeSnapshotReply = {
 
 const DEFAULT_RUNTIME_SNAPSHOT_TIMEOUT_MS = 90_000;
 
+export type MeasuredRuntimeSnapshot = {
+  readonly snapshot: RuntimeSnapshot;
+  readonly metrics: {
+    readonly websocketRoundTripMs: number;
+    readonly serverParseMs: number;
+    readonly serverValidationMs: number;
+  };
+};
+
 export function requestCyberdrawRuntimeSnapshot(
   context: Context,
   request: RuntimeSnapshotRequest,
   options: { readonly replyTimeoutMs?: number } = {},
 ): Promise<RuntimeSnapshot> {
+  return requestCyberdrawRuntimeSnapshotMeasured(
+    context,
+    request,
+    options,
+  ).then((result) => result.snapshot);
+}
+
+export function requestCyberdrawRuntimeSnapshotMeasured(
+  context: Context,
+  request: RuntimeSnapshotRequest,
+  options: { readonly replyTimeoutMs?: number } = {},
+): Promise<MeasuredRuntimeSnapshot> {
   const requestedScopeResult = normalizeRuntimeSnapshotScope(request.scope);
   if (!requestedScopeResult.ok) {
     throw new Error(requestedScopeResult.error);
@@ -81,14 +103,20 @@ export function requestCyberdrawRuntimeSnapshot(
     },
   );
 
+  const roundTripStarted = performance.now();
   return channel(normalizedRequest, {} as never).then((result) => {
+    const websocketRoundTripMs = performance.now() - roundTripStarted;
     const text =
       result.content[0]?.type === "text" ? result.content[0].text : "{}";
+    const parseStarted = performance.now();
     const parsed = JSON.parse(text) as unknown;
+    const serverParseMs = performance.now() - parseStarted;
+    const validationStarted = performance.now();
     const validation = validateRuntimeSnapshotResponseForRequest(
       parsed,
       requestedScope,
     );
+    const serverValidationMs = performance.now() - validationStarted;
     if (!validation.ok) {
       context.log.log(
         "warn",
@@ -100,7 +128,14 @@ export function requestCyberdrawRuntimeSnapshot(
     context.log.debug(
       `[cyberdraw.runtimeSnapshot] completed scope=${snapshot.scope.resolvedScope.kind} revision=${snapshot.document.revisionSignals.contentRevision} pages=${snapshot.scope.includedPages.length} layers=${snapshot.scope.includedLayers.reduce((sum, entry) => sum + entry.layerIds.length, 0)} elements=${snapshot.scope.includedElementCount} context=${snapshot.scope.contextElementCount} externalRefs=${snapshot.scope.externalReferences.length} bytes=${snapshot.payload.measuredJsonBytes ?? snapshot.payload.approximateJsonBytes} completeness=${snapshot.completeness.status}`,
     );
-    return snapshot;
+    return {
+      snapshot,
+      metrics: {
+        websocketRoundTripMs,
+        serverParseMs,
+        serverValidationMs,
+      },
+    };
   });
 }
 
