@@ -1,0 +1,855 @@
+{
+  "generatedAt": "2026-07-17T11:22:02.484Z",
+  "benchmarkVersion": "m7-real-environment-snapshot-benchmarks-v1",
+  "environment": {
+    "node": "v24.18.0",
+    "pnpm": "10.8.1",
+    "os": "Linux",
+    "arch": "x64",
+    "commit": "bbd4b81eeb14",
+    "drawioRuntimeVersion": "30.3.12",
+    "transport": "http-ws",
+    "httpsCaddy": "failed"
+  },
+  "config": {
+    "fixtures": [
+      "soft-limit",
+      "hard-limit"
+    ],
+    "scenarioNames": [
+      "document",
+      "pages-visible",
+      "layers-small",
+      "selection-multiple"
+    ],
+    "iterations": 1,
+    "warmup": 0,
+    "seed": 424242,
+    "includeRaw": true,
+    "format": "human",
+    "writeDocs": true
+  },
+  "results": [
+    {
+      "fixture": "hard-limit",
+      "scenario": {
+        "name": "document",
+        "category": "document",
+        "description": "Full real draw.io document snapshot.",
+        "scope": {
+          "kind": "document"
+        }
+      },
+      "seed": 424242,
+      "iterations": 1,
+      "warmup": 0,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 10,
+        "elements": 1848,
+        "nodes": 1700,
+        "edges": 140,
+        "groups": 8,
+        "hiddenLayers": 2,
+        "metadataKeysApprox": 17000,
+        "labelBytesApprox": 13926400
+      },
+      "counts": {
+        "pagesVisited": 2,
+        "layersVisited": 12,
+        "elementsInspected": 1069,
+        "elementsIncluded": 1069,
+        "contextOnlyElements": 0,
+        "externalReferences": 0,
+        "diagnostics": 3
+      },
+      "hardLimitOutcome": "hard-limit-error",
+      "freshnessOutcome": "fresh",
+      "graphModelFindings": 0,
+      "uiPreservation": {
+        "activePagePreserved": true,
+        "selectionPreserved": true,
+        "zoomPreserved": true,
+        "scrollPreserved": true,
+        "noDialogsOpen": true,
+        "noEditing": true
+      },
+      "metrics": {
+        "pluginExtractionMs": {
+          "median": 2629.10000000149,
+          "p95": 2629.10000000149,
+          "min": 2629.10000000149,
+          "max": 2629.10000000149,
+          "mean": 2629.10000000149,
+          "stdev": 0
+        },
+        "pluginScopeResolutionMs": {
+          "median": 0.2000000011175871,
+          "p95": 0.2000000011175871,
+          "min": 0.2000000011175871,
+          "max": 0.2000000011175871,
+          "mean": 0.2000000011175871,
+          "stdev": 0
+        },
+        "pluginTraversalMs": {
+          "median": 1172.199999999255,
+          "p95": 1172.199999999255,
+          "min": 1172.199999999255,
+          "max": 1172.199999999255,
+          "mean": 1172.199999999255,
+          "stdev": 0
+        },
+        "pluginSnapshotAssemblyMs": {
+          "median": 1456.7000000011176,
+          "p95": 1456.7000000011176,
+          "min": 1456.7000000011176,
+          "max": 1456.7000000011176,
+          "mean": 1456.7000000011176,
+          "stdev": 0
+        },
+        "pluginRevisionMs": {
+          "median": 1456.300000000745,
+          "p95": 1456.300000000745,
+          "min": 1456.300000000745,
+          "max": 1456.300000000745,
+          "mean": 1456.300000000745,
+          "stdev": 0
+        },
+        "pluginSerializationMs": {
+          "median": 166.30000000074506,
+          "p95": 166.30000000074506,
+          "min": 166.30000000074506,
+          "max": 166.30000000074506,
+          "mean": 166.30000000074506,
+          "stdev": 0
+        },
+        "pluginTotalMs": {
+          "median": 2795.7000000011176,
+          "p95": 2795.7000000011176,
+          "min": 2795.7000000011176,
+          "max": 2795.7000000011176,
+          "mean": 2795.7000000011176,
+          "stdev": 0
+        },
+        "websocketRoundTripMs": {
+          "median": 3722.0545090000014,
+          "p95": 3722.0545090000014,
+          "min": 3722.0545090000014,
+          "max": 3722.0545090000014,
+          "mean": 3722.0545090000014,
+          "stdev": 0
+        },
+        "serverParseMs": {
+          "median": 26.688490000000456,
+          "p95": 26.688490000000456,
+          "min": 26.688490000000456,
+          "max": 26.688490000000456,
+          "mean": 26.688490000000456,
+          "stdev": 0
+        },
+        "serverValidationMs": {
+          "median": 0.429322999996657,
+          "p95": 0.429322999996657,
+          "min": 0.429322999996657,
+          "max": 0.429322999996657,
+          "mean": 0.429322999996657,
+          "stdev": 0
+        },
+        "adapterMs": {
+          "median": 21.73224299999856,
+          "p95": 21.73224299999856,
+          "min": 21.73224299999856,
+          "max": 21.73224299999856,
+          "mean": 21.73224299999856,
+          "stdev": 0
+        },
+        "normalizationMs": {
+          "median": 51.651325999999244,
+          "p95": 51.651325999999244,
+          "min": 51.651325999999244,
+          "max": 51.651325999999244,
+          "mean": 51.651325999999244,
+          "stdev": 0
+        },
+        "freshnessMs": {
+          "median": 3365.7948410000026,
+          "p95": 3365.7948410000026,
+          "min": 3365.7948410000026,
+          "max": 3365.7948410000026,
+          "mean": 3365.7948410000026,
+          "stdev": 0
+        },
+        "totalScenarioMs": {
+          "median": 7246.513565000001,
+          "p95": 7246.513565000001,
+          "min": 7246.513565000001,
+          "max": 7246.513565000001,
+          "mean": 7246.513565000001,
+          "stdev": 0
+        },
+        "jsonBytes": {
+          "median": 16775207,
+          "p95": 16775207,
+          "min": 16775207,
+          "max": 16775207,
+          "mean": 16775207,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": 23945592,
+          "p95": 23945592,
+          "min": 23945592,
+          "max": 23945592,
+          "mean": 23945592,
+          "stdev": 0
+        },
+        "mainThreadTimerDriftMs": {
+          "median": 2816.0999999996275,
+          "p95": 2816.0999999996275,
+          "min": 2816.0999999996275,
+          "max": 2816.0999999996275,
+          "mean": 2816.0999999996275,
+          "stdev": 0
+        },
+        "mainThreadRafDelayMs": {
+          "median": 2801.800000000745,
+          "p95": 2801.800000000745,
+          "min": 2801.800000000745,
+          "max": 2801.800000000745,
+          "mean": 2801.800000000745,
+          "stdev": 0
+        },
+        "longTaskCount": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        }
+      },
+      "notes": []
+    },
+    {
+      "fixture": "hard-limit",
+      "scenario": {
+        "name": "pages-visible",
+        "category": "pages",
+        "description": "Visible page only.",
+        "scope": {
+          "kind": "pages",
+          "pageIds": [
+            "asax997cnJVdk_DkJ14f"
+          ]
+        }
+      },
+      "seed": 424242,
+      "iterations": 1,
+      "warmup": 0,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 10,
+        "elements": 1848,
+        "nodes": 1700,
+        "edges": 140,
+        "groups": 8,
+        "hiddenLayers": 2,
+        "metadataKeysApprox": 17000,
+        "labelBytesApprox": 13926400
+      },
+      "counts": {
+        "pagesVisited": 1,
+        "layersVisited": 6,
+        "elementsInspected": 924,
+        "elementsIncluded": 924,
+        "contextOnlyElements": 0,
+        "externalReferences": 0,
+        "diagnostics": 2
+      },
+      "hardLimitOutcome": "soft-limit",
+      "freshnessOutcome": "fresh",
+      "graphModelFindings": 0,
+      "uiPreservation": {
+        "activePagePreserved": true,
+        "selectionPreserved": true,
+        "zoomPreserved": true,
+        "scrollPreserved": true,
+        "noDialogsOpen": true,
+        "noEditing": true
+      },
+      "metrics": {
+        "pluginExtractionMs": {
+          "median": 1431.5,
+          "p95": 1431.5,
+          "min": 1431.5,
+          "max": 1431.5,
+          "mean": 1431.5,
+          "stdev": 0
+        },
+        "pluginScopeResolutionMs": {
+          "median": 0.09999999962747097,
+          "p95": 0.09999999962747097,
+          "min": 0.09999999962747097,
+          "max": 0.09999999962747097,
+          "mean": 0.09999999962747097,
+          "stdev": 0
+        },
+        "pluginTraversalMs": {
+          "median": 80.90000000037253,
+          "p95": 80.90000000037253,
+          "min": 80.90000000037253,
+          "max": 80.90000000037253,
+          "mean": 80.90000000037253,
+          "stdev": 0
+        },
+        "pluginSnapshotAssemblyMs": {
+          "median": 1350.5,
+          "p95": 1350.5,
+          "min": 1350.5,
+          "max": 1350.5,
+          "mean": 1350.5,
+          "stdev": 0
+        },
+        "pluginRevisionMs": {
+          "median": 1350.300000000745,
+          "p95": 1350.300000000745,
+          "min": 1350.300000000745,
+          "max": 1350.300000000745,
+          "mean": 1350.300000000745,
+          "stdev": 0
+        },
+        "pluginSerializationMs": {
+          "median": 69.59999999962747,
+          "p95": 69.59999999962747,
+          "min": 69.59999999962747,
+          "max": 69.59999999962747,
+          "mean": 69.59999999962747,
+          "stdev": 0
+        },
+        "pluginTotalMs": {
+          "median": 1501.0999999996275,
+          "p95": 1501.0999999996275,
+          "min": 1501.0999999996275,
+          "max": 1501.0999999996275,
+          "mean": 1501.0999999996275,
+          "stdev": 0
+        },
+        "websocketRoundTripMs": {
+          "median": 2217.6881869999997,
+          "p95": 2217.6881869999997,
+          "min": 2217.6881869999997,
+          "max": 2217.6881869999997,
+          "mean": 2217.6881869999997,
+          "stdev": 0
+        },
+        "serverParseMs": {
+          "median": 13.982761999999639,
+          "p95": 13.982761999999639,
+          "min": 13.982761999999639,
+          "max": 13.982761999999639,
+          "mean": 13.982761999999639,
+          "stdev": 0
+        },
+        "serverValidationMs": {
+          "median": 0.3217530000038096,
+          "p95": 0.3217530000038096,
+          "min": 0.3217530000038096,
+          "max": 0.3217530000038096,
+          "mean": 0.3217530000038096,
+          "stdev": 0
+        },
+        "adapterMs": {
+          "median": 20.100942999997642,
+          "p95": 20.100942999997642,
+          "min": 20.100942999997642,
+          "max": 20.100942999997642,
+          "mean": 20.100942999997642,
+          "stdev": 0
+        },
+        "normalizationMs": {
+          "median": 43.32857199999853,
+          "p95": 43.32857199999853,
+          "min": 43.32857199999853,
+          "max": 43.32857199999853,
+          "mean": 43.32857199999853,
+          "stdev": 0
+        },
+        "freshnessMs": {
+          "median": 1969.371984999998,
+          "p95": 1969.371984999998,
+          "min": 1969.371984999998,
+          "max": 1969.371984999998,
+          "mean": 1969.371984999998,
+          "stdev": 0
+        },
+        "totalScenarioMs": {
+          "median": 4325.951033000005,
+          "p95": 4325.951033000005,
+          "min": 4325.951033000005,
+          "max": 4325.951033000005,
+          "mean": 4325.951033000005,
+          "stdev": 0
+        },
+        "jsonBytes": {
+          "median": 14539296,
+          "p95": 14539296,
+          "min": 14539296,
+          "max": 14539296,
+          "mean": 14539296,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": -10247168,
+          "p95": -10247168,
+          "min": -10247168,
+          "max": -10247168,
+          "mean": -10247168,
+          "stdev": 0
+        },
+        "mainThreadTimerDriftMs": {
+          "median": 1501.800000000745,
+          "p95": 1501.800000000745,
+          "min": 1501.800000000745,
+          "max": 1501.800000000745,
+          "mean": 1501.800000000745,
+          "stdev": 0
+        },
+        "mainThreadRafDelayMs": {
+          "median": 1501.699999999255,
+          "p95": 1501.699999999255,
+          "min": 1501.699999999255,
+          "max": 1501.699999999255,
+          "mean": 1501.699999999255,
+          "stdev": 0
+        },
+        "longTaskCount": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        }
+      },
+      "notes": [],
+      "documentBaselineBytes": 16775207,
+      "payloadReductionPercent": 13.328664141074384
+    },
+    {
+      "fixture": "hard-limit",
+      "scenario": {
+        "name": "layers-small",
+        "category": "layers",
+        "description": "One small visible layer.",
+        "scope": {
+          "kind": "layers",
+          "pageId": "asax997cnJVdk_DkJ14f",
+          "layerIds": [
+            "m7-layer-0"
+          ]
+        }
+      },
+      "seed": 424242,
+      "iterations": 1,
+      "warmup": 0,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 10,
+        "elements": 1848,
+        "nodes": 1700,
+        "edges": 140,
+        "groups": 8,
+        "hiddenLayers": 2,
+        "metadataKeysApprox": 17000,
+        "labelBytesApprox": 13926400
+      },
+      "counts": {
+        "pagesVisited": 1,
+        "layersVisited": 1,
+        "elementsInspected": 188,
+        "elementsIncluded": 188,
+        "contextOnlyElements": 0,
+        "externalReferences": 196,
+        "diagnostics": 101
+      },
+      "hardLimitOutcome": "within-limit",
+      "freshnessOutcome": "fresh",
+      "graphModelFindings": 0,
+      "uiPreservation": {
+        "activePagePreserved": true,
+        "selectionPreserved": true,
+        "zoomPreserved": true,
+        "scrollPreserved": true,
+        "noDialogsOpen": true,
+        "noEditing": true
+      },
+      "metrics": {
+        "pluginExtractionMs": {
+          "median": 274.5,
+          "p95": 274.5,
+          "min": 274.5,
+          "max": 274.5,
+          "mean": 274.5,
+          "stdev": 0
+        },
+        "pluginScopeResolutionMs": {
+          "median": 0.09999999962747097,
+          "p95": 0.09999999962747097,
+          "min": 0.09999999962747097,
+          "max": 0.09999999962747097,
+          "mean": 0.09999999962747097,
+          "stdev": 0
+        },
+        "pluginTraversalMs": {
+          "median": 17,
+          "p95": 17,
+          "min": 17,
+          "max": 17,
+          "mean": 17,
+          "stdev": 0
+        },
+        "pluginSnapshotAssemblyMs": {
+          "median": 257.40000000037253,
+          "p95": 257.40000000037253,
+          "min": 257.40000000037253,
+          "max": 257.40000000037253,
+          "mean": 257.40000000037253,
+          "stdev": 0
+        },
+        "pluginRevisionMs": {
+          "median": 257.19999999925494,
+          "p95": 257.19999999925494,
+          "min": 257.19999999925494,
+          "max": 257.19999999925494,
+          "mean": 257.19999999925494,
+          "stdev": 0
+        },
+        "pluginSerializationMs": {
+          "median": 11.400000000372529,
+          "p95": 11.400000000372529,
+          "min": 11.400000000372529,
+          "max": 11.400000000372529,
+          "mean": 11.400000000372529,
+          "stdev": 0
+        },
+        "pluginTotalMs": {
+          "median": 285.90000000037253,
+          "p95": 285.90000000037253,
+          "min": 285.90000000037253,
+          "max": 285.90000000037253,
+          "mean": 285.90000000037253,
+          "stdev": 0
+        },
+        "websocketRoundTripMs": {
+          "median": 413.0701459999982,
+          "p95": 413.0701459999982,
+          "min": 413.0701459999982,
+          "max": 413.0701459999982,
+          "mean": 413.0701459999982,
+          "stdev": 0
+        },
+        "serverParseMs": {
+          "median": 2.8601369999960298,
+          "p95": 2.8601369999960298,
+          "min": 2.8601369999960298,
+          "max": 2.8601369999960298,
+          "mean": 2.8601369999960298,
+          "stdev": 0
+        },
+        "serverValidationMs": {
+          "median": 0.19386200000008103,
+          "p95": 0.19386200000008103,
+          "min": 0.19386200000008103,
+          "max": 0.19386200000008103,
+          "mean": 0.19386200000008103,
+          "stdev": 0
+        },
+        "adapterMs": {
+          "median": 3.602788000003784,
+          "p95": 3.602788000003784,
+          "min": 3.602788000003784,
+          "max": 3.602788000003784,
+          "mean": 3.602788000003784,
+          "stdev": 0
+        },
+        "normalizationMs": {
+          "median": 6.137283000003663,
+          "p95": 6.137283000003663,
+          "min": 6.137283000003663,
+          "max": 6.137283000003663,
+          "mean": 6.137283000003663,
+          "stdev": 0
+        },
+        "freshnessMs": {
+          "median": 426.0319390000004,
+          "p95": 426.0319390000004,
+          "min": 426.0319390000004,
+          "max": 426.0319390000004,
+          "mean": 426.0319390000004,
+          "stdev": 0
+        },
+        "totalScenarioMs": {
+          "median": 864.7655169999998,
+          "p95": 864.7655169999998,
+          "min": 864.7655169999998,
+          "max": 864.7655169999998,
+          "mean": 864.7655169999998,
+          "stdev": 0
+        },
+        "jsonBytes": {
+          "median": 2973456,
+          "p95": 2973456,
+          "min": 2973456,
+          "max": 2973456,
+          "mean": 2973456,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": 30119384,
+          "p95": 30119384,
+          "min": 30119384,
+          "max": 30119384,
+          "mean": 30119384,
+          "stdev": 0
+        },
+        "mainThreadTimerDriftMs": {
+          "median": 286.40000000037253,
+          "p95": 286.40000000037253,
+          "min": 286.40000000037253,
+          "max": 286.40000000037253,
+          "mean": 286.40000000037253,
+          "stdev": 0
+        },
+        "mainThreadRafDelayMs": {
+          "median": 286.19999999925494,
+          "p95": 286.19999999925494,
+          "min": 286.19999999925494,
+          "max": 286.19999999925494,
+          "mean": 286.19999999925494,
+          "stdev": 0
+        },
+        "longTaskCount": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        }
+      },
+      "notes": [],
+      "documentBaselineBytes": 16775207,
+      "payloadReductionPercent": 82.27469860729587
+    },
+    {
+      "fixture": "hard-limit",
+      "scenario": {
+        "name": "selection-multiple",
+        "category": "selection",
+        "description": "Several selected cells.",
+        "scope": {
+          "kind": "selection",
+          "pageId": "asax997cnJVdk_DkJ14f"
+        },
+        "selectionIds": [
+          "m7-p0-l0-v0",
+          "m7-p0-l0-v1",
+          "m7-p0-e0"
+        ]
+      },
+      "seed": 424242,
+      "iterations": 1,
+      "warmup": 0,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 10,
+        "elements": 1848,
+        "nodes": 1700,
+        "edges": 140,
+        "groups": 8,
+        "hiddenLayers": 2,
+        "metadataKeysApprox": 17000,
+        "labelBytesApprox": 13926400
+      },
+      "counts": {
+        "pagesVisited": 1,
+        "layersVisited": 6,
+        "elementsInspected": 3,
+        "elementsIncluded": 3,
+        "contextOnlyElements": 0,
+        "externalReferences": 4,
+        "diagnostics": 5
+      },
+      "hardLimitOutcome": "within-limit",
+      "freshnessOutcome": "fresh",
+      "graphModelFindings": 0,
+      "uiPreservation": {
+        "activePagePreserved": true,
+        "selectionPreserved": true,
+        "zoomPreserved": true,
+        "scrollPreserved": true,
+        "noDialogsOpen": true,
+        "noEditing": true
+      },
+      "metrics": {
+        "pluginExtractionMs": {
+          "median": 8.699999999254942,
+          "p95": 8.699999999254942,
+          "min": 8.699999999254942,
+          "max": 8.699999999254942,
+          "mean": 8.699999999254942,
+          "stdev": 0
+        },
+        "pluginScopeResolutionMs": {
+          "median": 0.19999999925494194,
+          "p95": 0.19999999925494194,
+          "min": 0.19999999925494194,
+          "max": 0.19999999925494194,
+          "mean": 0.19999999925494194,
+          "stdev": 0
+        },
+        "pluginTraversalMs": {
+          "median": 5.100000001490116,
+          "p95": 5.100000001490116,
+          "min": 5.100000001490116,
+          "max": 5.100000001490116,
+          "mean": 5.100000001490116,
+          "stdev": 0
+        },
+        "pluginSnapshotAssemblyMs": {
+          "median": 3.399999998509884,
+          "p95": 3.399999998509884,
+          "min": 3.399999998509884,
+          "max": 3.399999998509884,
+          "mean": 3.399999998509884,
+          "stdev": 0
+        },
+        "pluginRevisionMs": {
+          "median": 3.299999998882413,
+          "p95": 3.299999998882413,
+          "min": 3.299999998882413,
+          "max": 3.299999998882413,
+          "mean": 3.299999998882413,
+          "stdev": 0
+        },
+        "pluginSerializationMs": {
+          "median": 0.30000000074505806,
+          "p95": 0.30000000074505806,
+          "min": 0.30000000074505806,
+          "max": 0.30000000074505806,
+          "mean": 0.30000000074505806,
+          "stdev": 0
+        },
+        "pluginTotalMs": {
+          "median": 9,
+          "p95": 9,
+          "min": 9,
+          "max": 9,
+          "mean": 9,
+          "stdev": 0
+        },
+        "websocketRoundTripMs": {
+          "median": 447.394263999995,
+          "p95": 447.394263999995,
+          "min": 447.394263999995,
+          "max": 447.394263999995,
+          "mean": 447.394263999995,
+          "stdev": 0
+        },
+        "serverParseMs": {
+          "median": 0.07431799999903888,
+          "p95": 0.07431799999903888,
+          "min": 0.07431799999903888,
+          "max": 0.07431799999903888,
+          "mean": 0.07431799999903888,
+          "stdev": 0
+        },
+        "serverValidationMs": {
+          "median": 4.183301999997639,
+          "p95": 4.183301999997639,
+          "min": 4.183301999997639,
+          "max": 4.183301999997639,
+          "mean": 4.183301999997639,
+          "stdev": 0
+        },
+        "adapterMs": {
+          "median": 0.12048400000639958,
+          "p95": 0.12048400000639958,
+          "min": 0.12048400000639958,
+          "max": 0.12048400000639958,
+          "mean": 0.12048400000639958,
+          "stdev": 0
+        },
+        "normalizationMs": {
+          "median": 0.2639359999957378,
+          "p95": 0.2639359999957378,
+          "min": 0.2639359999957378,
+          "max": 0.2639359999957378,
+          "mean": 0.2639359999957378,
+          "stdev": 0
+        },
+        "freshnessMs": {
+          "median": 396.83453599999484,
+          "p95": 396.83453599999484,
+          "min": 396.83453599999484,
+          "max": 396.83453599999484,
+          "mean": 396.83453599999484,
+          "stdev": 0
+        },
+        "totalScenarioMs": {
+          "median": 868.4983359999969,
+          "p95": 868.4983359999969,
+          "min": 868.4983359999969,
+          "max": 868.4983359999969,
+          "mean": 868.4983359999969,
+          "stdev": 0
+        },
+        "jsonBytes": {
+          "median": 38557,
+          "p95": 38557,
+          "min": 38557,
+          "max": 38557,
+          "mean": 38557,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": 1817112,
+          "p95": 1817112,
+          "min": 1817112,
+          "max": 1817112,
+          "mean": 1817112,
+          "stdev": 0
+        },
+        "mainThreadTimerDriftMs": {
+          "median": 9.199999999254942,
+          "p95": 9.199999999254942,
+          "min": 9.199999999254942,
+          "max": 9.199999999254942,
+          "mean": 9.199999999254942,
+          "stdev": 0
+        },
+        "mainThreadRafDelayMs": {
+          "median": 11.799999998882413,
+          "p95": 11.799999998882413,
+          "min": 11.799999998882413,
+          "max": 11.799999998882413,
+          "mean": 11.799999998882413,
+          "stdev": 0
+        },
+        "longTaskCount": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        }
+      },
+      "notes": [
+        "Selection scope is UI-bound and requires controlled selection setup."
+      ],
+      "documentBaselineBytes": 16775207,
+      "payloadReductionPercent": 99.77015484816373
+    }
+  ]
+}

@@ -227,7 +227,13 @@ export function bootstrapPlugin(opts: BootstrapOptions): BootstrapHandle {
     CYBERDRAW_RUNTIME_SNAPSHOT_EVENT,
     buildToolHandler(
       CYBERDRAW_RUNTIME_SNAPSHOT_EVENT,
-      new Set(["target_document", "scope", "limits", "includeRaw"]),
+      new Set([
+        "target_document",
+        "scope",
+        "limits",
+        "includeRaw",
+        "measureMainThreadImpact",
+      ]),
       extract_runtime_snapshot,
     ),
   );

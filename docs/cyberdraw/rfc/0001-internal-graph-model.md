@@ -225,6 +225,14 @@ scope-first and hierarchical M7 strategy and does not accept chunking,
 streaming, persistence, semantic diff, mutation planning or incremental
 analysis as product behavior.
 
+M7 real-environment benchmark evidence is recorded in
+`docs/cyberdraw/milestones/M7-real-environment-snapshot-benchmarks.md`. It
+confirms the scope-first strategy inside real draw.io `30.3.12`, including
+visible/background pages, layers, selection, freshness, UI preservation,
+main-thread drift approximation and hard-limit behavior. ADR 0004 accepts
+hierarchical scoped snapshots as the next strategy while deferring chunking,
+streaming and incremental analysis.
+
 ## Data Model Proposal
 
 Use normalized entities keyed by internal ID, plus explicit references. Prefer

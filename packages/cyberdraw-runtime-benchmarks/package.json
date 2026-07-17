@@ -7,7 +7,8 @@
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "bin": {
-    "cyberdraw-runtime-benchmark": "build/cli.js"
+    "cyberdraw-runtime-benchmark": "build/cli.js",
+    "cyberdraw-runtime-real-benchmark": "build/real-cli.js"
   },
   "exports": {
     ".": {
@@ -19,6 +20,8 @@
     "build": "rimraf build && tsc",
     "benchmark": "node build/cli.js",
     "benchmark:smoke": "node build/cli.js --fixture small --scenario document --iterations 3 --warmup 1",
+    "benchmark:real": "node build/real-cli.js",
+    "benchmark:real:smoke": "node build/real-cli.js --fixture small --scenario document --iterations 1 --warmup 0",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --testMatch '**/build/**/*.test.js'",
     "lint": "tsc --noEmit",
     "clean": "rimraf build coverage"
