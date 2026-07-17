@@ -3,8 +3,7 @@ export const CYBERDRAW_RUNTIME_SNAPSHOT_SCHEMA_VERSION =
   "cyberdraw.runtime-snapshot.v1";
 export const CYBERDRAW_RUNTIME_SNAPSHOT_CAPABILITY =
   "cyberdraw.runtimeSnapshot.v1";
-export const CYBERDRAW_RUNTIME_SNAPSHOT_EVENT =
-  "cyberdraw.runtimeSnapshot.v1";
+export const CYBERDRAW_RUNTIME_SNAPSHOT_EVENT = "cyberdraw.runtimeSnapshot.v1";
 export const CYBERDRAW_DOCUMENT_STATE_CONTROL = "document-state";
 export const CYBERDRAW_SYNC_DOCUMENT_STATE_CONTROL = "sync-document-state";
 export const CYBERDRAW_CONTENT_REVISION_PREFIX = "cyberdraw-content-v1";
@@ -113,10 +112,7 @@ export type RuntimeSnapshotScopeValidationResult =
   | { readonly ok: true; readonly scope: RuntimeSnapshotScope }
   | {
       readonly ok: false;
-      readonly code:
-        | "scope_invalid"
-        | "scope_empty"
-        | "scope_too_many_ids";
+      readonly code: "scope_invalid" | "scope_empty" | "scope_too_many_ids";
       readonly error: string;
     };
 
@@ -181,6 +177,8 @@ export type RuntimeSnapshotExternalReference = {
   readonly elementId: string;
   readonly referenceType: "parent" | "source" | "target" | "edge" | "layer";
   readonly referencedId: string;
+  readonly referencedPageId?: string;
+  readonly referencedLayerId?: string;
 };
 
 export type RuntimeSnapshotScopeMetadata = {
@@ -213,6 +211,7 @@ export type RuntimeSnapshotRevisionSignals = {
   readonly resolvedScope?: RuntimeSnapshotScope;
   readonly complete: boolean;
   readonly contentRevision: string;
+  readonly documentRevision?: string;
   readonly selectionRevision?: string;
   readonly semanticRevision?: string;
 };
@@ -306,8 +305,7 @@ export type RuntimeSnapshotValidationResult =
   | { readonly ok: true; readonly snapshot: RuntimeSnapshot }
   | { readonly ok: false; readonly error: string };
 
-const CONTENT_REVISION_PATTERN =
-  /^cyberdraw-content-v1:fnv1a64:[0-9a-f]{16}$/;
+const CONTENT_REVISION_PATTERN = /^cyberdraw-content-v1:fnv1a64:[0-9a-f]{16}$/;
 const MAX_VALIDATION_PAGES = 1_000;
 const MAX_VALIDATION_ITEMS_PER_PAGE = 100_000;
 const MAX_VALIDATION_DIAGNOSTICS = 100_000;
@@ -432,7 +430,10 @@ export function normalizeRuntimeSnapshotLimits(
     hardSnapshotBytes,
   );
   return {
-    maxPages: boundedInteger(requested.maxPages, MIN_RUNTIME_SNAPSHOT_LIMITS.maxPages),
+    maxPages: boundedInteger(
+      requested.maxPages,
+      MIN_RUNTIME_SNAPSHOT_LIMITS.maxPages,
+    ),
     maxLayersPerPage: boundedInteger(
       requested.maxLayersPerPage,
       MIN_RUNTIME_SNAPSHOT_LIMITS.maxLayersPerPage,
@@ -520,16 +521,28 @@ export function validateRuntimeSnapshot(
     return { ok: false, error: "Runtime snapshot response is not an object" };
   }
   if (value.schemaVersion !== CYBERDRAW_RUNTIME_SNAPSHOT_SCHEMA_VERSION) {
-    return { ok: false, error: "Runtime snapshot schema version is unsupported" };
+    return {
+      ok: false,
+      error: "Runtime snapshot schema version is unsupported",
+    };
   }
   if (value.contractVersion !== CYBERDRAW_RUNTIME_CONTRACT_VERSION) {
-    return { ok: false, error: "Runtime snapshot contract version is unsupported" };
+    return {
+      ok: false,
+      error: "Runtime snapshot contract version is unsupported",
+    };
   }
   if (!isPlainRecord(value.document)) {
-    return { ok: false, error: "Runtime snapshot document metadata is missing" };
+    return {
+      ok: false,
+      error: "Runtime snapshot document metadata is missing",
+    };
   }
   if (!isPlainRecord(value.document.revisionSignals)) {
-    return { ok: false, error: "Runtime snapshot revision signals are missing" };
+    return {
+      ok: false,
+      error: "Runtime snapshot revision signals are missing",
+    };
   }
   if (!isPlainRecord(value.scope)) {
     return { ok: false, error: "Runtime snapshot scope metadata is missing" };
@@ -556,9 +569,20 @@ export function validateRuntimeSnapshot(
   }
   if (
     typeof value.document.revisionSignals.contentRevision !== "string" ||
-    !CONTENT_REVISION_PATTERN.test(value.document.revisionSignals.contentRevision)
+    !CONTENT_REVISION_PATTERN.test(
+      value.document.revisionSignals.contentRevision,
+    )
   ) {
     return { ok: false, error: "Runtime snapshot content revision is invalid" };
+  }
+  if (
+    value.document.revisionSignals.documentRevision !== undefined &&
+    (typeof value.document.revisionSignals.documentRevision !== "string" ||
+      !CONTENT_REVISION_PATTERN.test(
+        value.document.revisionSignals.documentRevision,
+      ))
+  ) {
+    return { ok: false, error: "Runtime snapshot document revision is invalid" };
   }
   if (!Array.isArray(value.pages)) {
     return { ok: false, error: "Runtime snapshot pages are missing" };
@@ -567,16 +591,25 @@ export function validateRuntimeSnapshot(
     return { ok: false, error: "Runtime snapshot diagnostics are missing" };
   }
   if (value.diagnostics.length > MAX_VALIDATION_DIAGNOSTICS) {
-    return { ok: false, error: "Runtime snapshot diagnostics exceed validation limit" };
+    return {
+      ok: false,
+      error: "Runtime snapshot diagnostics exceed validation limit",
+    };
   }
   if (!isPlainRecord(value.limits) || !isPlainRecord(value.payload)) {
-    return { ok: false, error: "Runtime snapshot limits or payload metadata are missing" };
+    return {
+      ok: false,
+      error: "Runtime snapshot limits or payload metadata are missing",
+    };
   }
   const limitsResult = validateSnapshotLimits(value.limits);
   if (!limitsResult.ok) {
     return limitsResult;
   }
-  if (value.pages.length > Math.min(limitsResult.limits.maxPages, MAX_VALIDATION_PAGES)) {
+  if (
+    value.pages.length >
+    Math.min(limitsResult.limits.maxPages, MAX_VALIDATION_PAGES)
+  ) {
     return { ok: false, error: "Runtime snapshot pages exceed declared limit" };
   }
   for (const page of value.pages) {
@@ -585,7 +618,10 @@ export function validateRuntimeSnapshot(
       return pageResult;
     }
   }
-  const payloadResult = validatePayloadMetadata(value.payload, limitsResult.limits);
+  const payloadResult = validatePayloadMetadata(
+    value.payload,
+    limitsResult.limits,
+  );
   if (!payloadResult.ok) {
     return payloadResult;
   }
@@ -597,7 +633,10 @@ export function validateRuntimeSnapshot(
     return { ok: false, error: "Runtime snapshot completeness is invalid" };
   }
   if (value.truncated !== (value.completeness.status !== "complete")) {
-    return { ok: false, error: "Runtime snapshot truncation state is inconsistent" };
+    return {
+      ok: false,
+      error: "Runtime snapshot truncation state is inconsistent",
+    };
   }
   return { ok: true, snapshot: value as RuntimeSnapshot };
 }
@@ -623,7 +662,8 @@ export function validateRuntimeSnapshotResponseForRequest(
   if (snapshot.scope.resolvedScope.kind !== requestedScope.kind) {
     return {
       ok: false,
-      error: "Runtime snapshot response resolved scope kind does not match request",
+      error:
+        "Runtime snapshot response resolved scope kind does not match request",
     };
   }
   return validation;
@@ -656,7 +696,7 @@ function stringifyCanonical(value: unknown, seen: WeakSet<object>): string {
   }
   if (isPlainRecord(value)) {
     if (seen.has(value)) {
-      return "\"[Circular]\"";
+      return '"[Circular]"';
     }
     seen.add(value);
     const entries = Object.entries(value)
@@ -699,7 +739,9 @@ type ValidationFailure = { readonly ok: false; readonly error: string };
 
 function validateSnapshotLimits(
   value: Record<string, unknown>,
-): ValidationFailure | { readonly ok: true; readonly limits: RuntimeSnapshotLimits } {
+):
+  | ValidationFailure
+  | { readonly ok: true; readonly limits: RuntimeSnapshotLimits } {
   const limits: {
     -readonly [Key in keyof RuntimeSnapshotLimits]?: RuntimeSnapshotLimits[Key];
   } = {};
@@ -717,7 +759,10 @@ function validateSnapshotLimits(
     limits[key] = item;
   }
   if (limits.softSnapshotBytes! > limits.hardSnapshotBytes!) {
-    return { ok: false, error: "Runtime snapshot soft limit exceeds hard limit" };
+    return {
+      ok: false,
+      error: "Runtime snapshot soft limit exceeds hard limit",
+    };
   }
   return { ok: true, limits: limits as RuntimeSnapshotLimits };
 }
@@ -741,10 +786,15 @@ function validatePayloadMetadata(
       !Number.isInteger(measuredJsonBytes) ||
       measuredJsonBytes < 0)
   ) {
-    return { ok: false, error: "Runtime snapshot measured payload size is invalid" };
+    return {
+      ok: false,
+      error: "Runtime snapshot measured payload size is invalid",
+    };
   }
   const observedBytes =
-    typeof measuredJsonBytes === "number" ? measuredJsonBytes : approximateJsonBytes;
+    typeof measuredJsonBytes === "number"
+      ? measuredJsonBytes
+      : approximateJsonBytes;
   if (observedBytes > limits.hardSnapshotBytes) {
     return { ok: false, error: "Runtime snapshot payload exceeds hard limit" };
   }
@@ -752,7 +802,10 @@ function validatePayloadMetadata(
     value.softLimitBytes !== limits.softSnapshotBytes ||
     value.hardLimitBytes !== limits.hardSnapshotBytes
   ) {
-    return { ok: false, error: "Runtime snapshot payload limits are inconsistent" };
+    return {
+      ok: false,
+      error: "Runtime snapshot payload limits are inconsistent",
+    };
   }
   return { ok: true };
 }
@@ -765,13 +818,21 @@ function validateSnapshotPage(
     return { ok: false, error: "Runtime snapshot page is malformed" };
   }
   if (!Array.isArray(value.layers) || !Array.isArray(value.elements)) {
-    return { ok: false, error: "Runtime snapshot page collections are missing" };
+    return {
+      ok: false,
+      error: "Runtime snapshot page collections are missing",
+    };
   }
   if (
-    value.layers.length > Math.min(limits.maxLayersPerPage, MAX_VALIDATION_ITEMS_PER_PAGE) ||
-    value.elements.length > Math.min(limits.maxElementsPerPage, MAX_VALIDATION_ITEMS_PER_PAGE)
+    value.layers.length >
+      Math.min(limits.maxLayersPerPage, MAX_VALIDATION_ITEMS_PER_PAGE) ||
+    value.elements.length >
+      Math.min(limits.maxElementsPerPage, MAX_VALIDATION_ITEMS_PER_PAGE)
   ) {
-    return { ok: false, error: "Runtime snapshot page exceeds declared limits" };
+    return {
+      ok: false,
+      error: "Runtime snapshot page exceeds declared limits",
+    };
   }
   for (const layer of value.layers) {
     if (!isPlainRecord(layer)) {
@@ -810,7 +871,10 @@ function normalizeCapabilityScopes(value: unknown): RuntimeSnapshotScopeKind[] {
   );
   const seen = new Set<RuntimeSnapshotScopeKind>();
   for (const item of source) {
-    if (typeof item !== "string" || !allowed.has(item as RuntimeSnapshotScopeKind)) {
+    if (
+      typeof item !== "string" ||
+      !allowed.has(item as RuntimeSnapshotScopeKind)
+    ) {
       continue;
     }
     seen.add(item as RuntimeSnapshotScopeKind);
@@ -830,12 +894,13 @@ function normalizeIdArray(
   value: unknown,
   options: { readonly allowEmptyIds?: boolean } = {},
 ): RuntimeSnapshotScopeValidationResult extends infer _Unused
-  ? { readonly ok: true; readonly ids: readonly string[] }
-    | {
-        readonly ok: false;
-        readonly code: "scope_invalid" | "scope_empty" | "scope_too_many_ids";
-        readonly error: string;
-      }
+  ?
+      | { readonly ok: true; readonly ids: readonly string[] }
+      | {
+          readonly ok: false;
+          readonly code: "scope_invalid" | "scope_empty" | "scope_too_many_ids";
+          readonly error: string;
+        }
   : never {
   if (!Array.isArray(value)) {
     return {
@@ -851,8 +916,11 @@ function normalizeIdArray(
       error: "Runtime snapshot scope has too many ids",
     };
   }
-  const ids = [...new Set(value.map(normalizeId).filter((id): id is string => id !== undefined))]
-    .sort(compareCodeUnits);
+  const ids = [
+    ...new Set(
+      value.map(normalizeId).filter((id): id is string => id !== undefined),
+    ),
+  ].sort(compareCodeUnits);
   if (ids.length === 0 && options.allowEmptyIds !== true) {
     return {
       ok: false,
@@ -865,7 +933,9 @@ function normalizeIdArray(
 
 function validateSnapshotScopeMetadata(
   value: Record<string, unknown>,
-): ValidationFailure | { readonly ok: true; readonly scope: RuntimeSnapshotScopeMetadata } {
+):
+  | ValidationFailure
+  | { readonly ok: true; readonly scope: RuntimeSnapshotScopeMetadata } {
   const requested = normalizeRuntimeSnapshotScope(value.requestedScope);
   const resolved = normalizeRuntimeSnapshotScope(value.resolvedScope, {
     allowEmptyIds: true,
@@ -883,16 +953,31 @@ function validateSnapshotScopeMetadata(
     };
   }
   if (!Array.isArray(value.includedPages)) {
-    return { ok: false, error: "Runtime snapshot included pages metadata is invalid" };
+    return {
+      ok: false,
+      error: "Runtime snapshot included pages metadata is invalid",
+    };
   }
   if (!Array.isArray(value.includedLayers)) {
-    return { ok: false, error: "Runtime snapshot included layers metadata is invalid" };
+    return {
+      ok: false,
+      error: "Runtime snapshot included layers metadata is invalid",
+    };
   }
   if (!Array.isArray(value.externalReferences)) {
-    return { ok: false, error: "Runtime snapshot external references metadata is invalid" };
+    return {
+      ok: false,
+      error: "Runtime snapshot external references metadata is invalid",
+    };
   }
-  if (!Array.isArray(value.missingPageIds) || !Array.isArray(value.missingLayerIds)) {
-    return { ok: false, error: "Runtime snapshot missing scope metadata is invalid" };
+  if (
+    !Array.isArray(value.missingPageIds) ||
+    !Array.isArray(value.missingLayerIds)
+  ) {
+    return {
+      ok: false,
+      error: "Runtime snapshot missing scope metadata is invalid",
+    };
   }
   if (
     typeof value.includedElementCount !== "number" ||
@@ -919,7 +1004,8 @@ function validateSnapshotScopeMetadata(
       includedPages: value.includedPages.filter(
         (id): id is string => typeof id === "string" && id.length > 0,
       ),
-      includedLayers: value.includedLayers as RuntimeSnapshotScopeMetadata["includedLayers"],
+      includedLayers:
+        value.includedLayers as RuntimeSnapshotScopeMetadata["includedLayers"],
       includedElementCount: value.includedElementCount,
       contextElementCount: value.contextElementCount,
       externalReferences:

@@ -26,6 +26,7 @@ export type RuntimeSnapshotInput = {
     readonly runtimeVersion?: unknown;
     readonly revisionSignals?: {
       readonly contentRevision?: unknown;
+      readonly documentRevision?: unknown;
       readonly semanticRevision?: unknown;
     };
   };
@@ -48,6 +49,8 @@ export type RuntimeSnapshotExternalReferenceInput = {
   readonly elementId?: unknown;
   readonly referenceType?: unknown;
   readonly referencedId?: unknown;
+  readonly referencedPageId?: unknown;
+  readonly referencedLayerId?: unknown;
 };
 
 export type RuntimeSnapshotPageInput = {
@@ -125,42 +128,45 @@ export function toCanonicalRuntimeSnapshotInput(
       ...RUNTIME_SOURCE,
       ...(documentId ? { documentId } : {}),
     },
-    pages: (input.pages ?? []).map((page, fallbackIndex): CanonicalPageInput => {
-      const pageExternalId = safeString(page.id, limits.maxStringLength);
-      const pageIndex = Number.isInteger(page.index) && Number(page.index) >= 0
-        ? Number(page.index)
-        : fallbackIndex;
-      const layerIds = new Set(
-        (page.layers ?? [])
-          .map((layer) => safeString(layer.id, limits.maxStringLength))
-          .filter((id): id is string => id !== undefined),
-      );
-      const pageSource: SourceRef = {
-        ...RUNTIME_SOURCE,
-        ...(documentId ? { documentId } : {}),
-        ...(pageExternalId ? { pageId: pageExternalId } : {}),
-        pageIndex,
-      };
-      return {
-        pageExternalId,
-        index: pageIndex,
-        name: page.name,
-        source: pageSource,
-        layers: (page.layers ?? []).map((layer) =>
-          toCanonicalLayer(layer, pageSource),
-        ),
-        elements: (page.elements ?? []).map((element) =>
-          toCanonicalElement(
-            element,
-            layerIds,
-            pageSource,
-            limits,
-            partialSnapshot,
-            externalReferences,
+    pages: (input.pages ?? []).map(
+      (page, fallbackIndex): CanonicalPageInput => {
+        const pageExternalId = safeString(page.id, limits.maxStringLength);
+        const pageIndex =
+          Number.isInteger(page.index) && Number(page.index) >= 0
+            ? Number(page.index)
+            : fallbackIndex;
+        const layerIds = new Set(
+          (page.layers ?? [])
+            .map((layer) => safeString(layer.id, limits.maxStringLength))
+            .filter((id): id is string => id !== undefined),
+        );
+        const pageSource: SourceRef = {
+          ...RUNTIME_SOURCE,
+          ...(documentId ? { documentId } : {}),
+          ...(pageExternalId ? { pageId: pageExternalId } : {}),
+          pageIndex,
+        };
+        return {
+          pageExternalId,
+          index: pageIndex,
+          name: page.name,
+          source: pageSource,
+          layers: (page.layers ?? []).map((layer) =>
+            toCanonicalLayer(layer, pageSource),
           ),
-        ),
-      };
-    }),
+          elements: (page.elements ?? []).map((element) =>
+            toCanonicalElement(
+              element,
+              layerIds,
+              pageSource,
+              limits,
+              partialSnapshot,
+              externalReferences,
+            ),
+          ),
+        };
+      },
+    ),
   };
 }
 
@@ -187,13 +193,16 @@ function toCanonicalElement(
 ): CanonicalElementInput {
   const externalId = safeString(element.id, limits.maxStringLength);
   const parentExternalId = safeString(element.parentId, limits.maxStringLength);
-  const explicitLayerExternalId = safeString(element.layerId, limits.maxStringLength);
+  const explicitLayerExternalId = safeString(
+    element.layerId,
+    limits.maxStringLength,
+  );
   const parentPointsToLayer =
     parentExternalId !== undefined && layerIds.has(parentExternalId);
-  const layerExternalId =
-    partialSnapshot
-      ? undefined
-      : explicitLayerExternalId ?? (parentPointsToLayer ? parentExternalId : undefined);
+  const layerExternalId = partialSnapshot
+    ? undefined
+    : (explicitLayerExternalId ??
+      (parentPointsToLayer ? parentExternalId : undefined));
   const containmentParentExternalId = parentPointsToLayer
     ? undefined
     : parentExternalId;
@@ -216,7 +225,8 @@ function toCanonicalElement(
     kind: detectKind(element),
     layerExternalId,
     parentExternalId:
-      partialSnapshot || externalReferenceOmitted(element, "parent", externalReferences)
+      partialSnapshot ||
+      externalReferenceOmitted(element, "parent", externalReferences)
         ? undefined
         : containmentParentExternalId,
     sourceExternalId,
@@ -232,8 +242,9 @@ function toCanonicalElement(
         relativeGeometry: element.relativeGeometry,
         raw: element.raw,
         runtimeSnapshotPartial: partialSnapshot ? true : undefined,
-        runtimeSnapshotContextOnly:
-          readRawFlag(element.raw, "contextOnly") ? true : undefined,
+        runtimeSnapshotContextOnly: readRawFlag(element.raw, "contextOnly")
+          ? true
+          : undefined,
         runtimeSnapshotExternalReferencesOmitted:
           externalReferences.size > 0 ? true : undefined,
       },
@@ -265,10 +276,18 @@ function buildExternalReferenceSet(
   for (const reference of input.scope?.externalReferences ?? []) {
     const pageId = safeString(reference.pageId, limits.maxStringLength);
     const elementId = safeString(reference.elementId, limits.maxStringLength);
-    const referencedId = safeString(reference.referencedId, limits.maxStringLength);
-    const referenceType = safeString(reference.referenceType, limits.maxStringLength);
+    const referencedId = safeString(
+      reference.referencedId,
+      limits.maxStringLength,
+    );
+    const referenceType = safeString(
+      reference.referenceType,
+      limits.maxStringLength,
+    );
     if (pageId && elementId && referencedId && referenceType) {
-      references.add(`${pageId}\u0000${elementId}\u0000${referenceType}\u0000${referencedId}`);
+      references.add(
+        `${pageId}\u0000${elementId}\u0000${referenceType}\u0000${referencedId}`,
+      );
     }
   }
   return references;
@@ -364,7 +383,9 @@ function normalizeGeometry(
   limits: ReturnType<typeof applyLimits>,
 ): Geometry | undefined {
   const source =
-    element.geometry && typeof element.geometry === "object" && !Array.isArray(element.geometry)
+    element.geometry &&
+    typeof element.geometry === "object" &&
+    !Array.isArray(element.geometry)
       ? (element.geometry as Record<string, unknown>)
       : {};
   const points = Array.isArray(element.waypoints)
@@ -378,14 +399,24 @@ function normalizeGeometry(
           const y = finiteNumber((point as Record<string, unknown>).y);
           return x !== undefined && y !== undefined ? { x, y } : undefined;
         })
-        .filter((point): point is { x: number; y: number } => point !== undefined)
+        .filter(
+          (point): point is { x: number; y: number } => point !== undefined,
+        )
     : [];
 
   const geometry: Geometry = {
-    ...(finiteNumber(source.x) !== undefined ? { x: finiteNumber(source.x) } : {}),
-    ...(finiteNumber(source.y) !== undefined ? { y: finiteNumber(source.y) } : {}),
-    ...(finiteNumber(source.width) !== undefined ? { width: finiteNumber(source.width) } : {}),
-    ...(finiteNumber(source.height) !== undefined ? { height: finiteNumber(source.height) } : {}),
+    ...(finiteNumber(source.x) !== undefined
+      ? { x: finiteNumber(source.x) }
+      : {}),
+    ...(finiteNumber(source.y) !== undefined
+      ? { y: finiteNumber(source.y) }
+      : {}),
+    ...(finiteNumber(source.width) !== undefined
+      ? { width: finiteNumber(source.width) }
+      : {}),
+    ...(finiteNumber(source.height) !== undefined
+      ? { height: finiteNumber(source.height) }
+      : {}),
     ...(typeof element.relativeGeometry === "boolean"
       ? { relative: element.relativeGeometry }
       : typeof source.relative === "boolean"
@@ -421,5 +452,7 @@ function normalizeMetadata(
 }
 
 function finiteNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
 }

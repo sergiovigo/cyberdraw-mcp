@@ -118,10 +118,11 @@ baseline. It is not an implementation plan for M0 itself.
   strategy; chunking, streaming and incremental analysis remain deferred.
 - M8 update:
   `docs/cyberdraw/milestones/M8-hierarchical-snapshot-planner.md` implements
-  that accepted strategy as private internal planner/executor code, but remains
-  PARTIAL until real draw.io evidence demonstrates multi-step expansion with a
-  resolvable external reference. It adds no public MCP tool, persistence,
-  chunking, streaming or stable identity.
+  that accepted strategy as private internal planner/executor code.
+  `docs/cyberdraw/milestones/M8.1-real-external-reference-expansion.md` closes
+  the remaining M8 gap with real draw.io evidence for multi-step expansion from
+  a resolvable external terminal reference. It adds no public MCP tool,
+  persistence, chunking, streaming or stable identity.
 - Effort: M.
 - Suggested milestone: Architecture Intelligence Foundation runtime integration
   hardening and compatibility evidence.

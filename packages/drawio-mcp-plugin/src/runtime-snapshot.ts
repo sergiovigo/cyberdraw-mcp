@@ -87,6 +87,7 @@ export function extractRuntimeSnapshotSync(
   const pageInputs = pageCandidates.slice(0, limits.maxPages);
   const extractedPages: RuntimeSnapshotPage[] = [];
   const externalReferences: RuntimeSnapshotExternalReference[] = [];
+  const pageRevisionAnchors: JsonValue[] = [];
   const budget = createPayloadBudget(limits, diagnostics);
 
   if (pageCandidates.length > pageInputs.length) {
@@ -103,10 +104,14 @@ export function extractRuntimeSnapshotSync(
     const { pageInfo } = pageInputs[index];
     let execution: ReturnType<typeof prepare_target_page_execution> | undefined;
     try {
-      execution = prepare_target_page_execution(ui, { id: pageInfo.id }, {
-        prefer_background: true,
-        sync_live_current_page_state: true,
-      });
+      execution = prepare_target_page_execution(
+        ui,
+        { id: pageInfo.id },
+        {
+          prefer_background: true,
+          sync_live_current_page_state: true,
+        },
+      );
       const extracted = extractPage(
         execution.ui,
         pageInfo,
@@ -116,6 +121,7 @@ export function extractRuntimeSnapshotSync(
         options,
         scopePlan,
         externalReferences,
+        pageRevisionAnchors,
         budget,
       );
       if (extracted) {
@@ -202,6 +208,13 @@ export function extractRuntimeSnapshotSync(
     selectionRevision,
   };
   let contentRevision = computeContentRevision(revisionBase as JsonValue);
+  const documentRevision = computeContentRevision({
+    algorithm: "cyberdraw-page-anchor-v1",
+    contractVersion: CYBERDRAW_RUNTIME_CONTRACT_VERSION,
+    schemaVersion: CYBERDRAW_RUNTIME_SNAPSHOT_SCHEMA_VERSION,
+    document: revisionBase.document,
+    anchors: pageRevisionAnchors,
+  } as JsonValue);
   const revisionMs = now() - revisionStarted;
   const snapshotAssemblyMs = now() - assemblyStarted;
   const extractionMs = now() - started;
@@ -223,6 +236,7 @@ export function extractRuntimeSnapshotSync(
         resolvedScope: cloneScope(scopeMetadata.resolvedScope),
         complete: completeness.status === "complete",
         contentRevision,
+        documentRevision,
         selectionRevision,
       },
     },
@@ -239,7 +253,9 @@ export function extractRuntimeSnapshotSync(
     },
   };
   const serializationStarted = now();
-  const approximateJsonBytes = stableStringify(snapshotWithoutPerformance).length;
+  const approximateJsonBytes = stableStringify(
+    snapshotWithoutPerformance,
+  ).length;
   const serializationMs = now() - serializationStarted;
   const mutableSnapshot = snapshotWithoutPerformance as {
     document: {
@@ -303,13 +319,11 @@ export function createMainThreadImpactProbe(): MainThreadImpactProbe {
   let finishTimerId: ReturnType<typeof setTimeout> | undefined;
   let animationFrameId: number | undefined;
   let resolveFinish:
-    | ((
-        value: {
-          readonly mainThreadTimerDriftMs: number;
-          readonly mainThreadRafDelayMs?: number;
-          readonly longTaskCount?: number;
-        },
-      ) => void)
+    | ((value: {
+        readonly mainThreadTimerDriftMs: number;
+        readonly mainThreadRafDelayMs?: number;
+        readonly longTaskCount?: number;
+      }) => void)
     | undefined;
 
   initialTimerId = setTimeout(() => {
@@ -330,9 +344,11 @@ export function createMainThreadImpactProbe(): MainThreadImpactProbe {
   if (typeof PerformanceObserverCtor === "function") {
     try {
       longTaskCount = 0;
-      const createdObserver = new PerformanceObserverCtor((list: PerformanceObserverEntryList) => {
-        longTaskCount = (longTaskCount ?? 0) + list.getEntries().length;
-      });
+      const createdObserver = new PerformanceObserverCtor(
+        (list: PerformanceObserverEntryList) => {
+          longTaskCount = (longTaskCount ?? 0) + list.getEntries().length;
+        },
+      );
       createdObserver.observe({ entryTypes: ["longtask"] });
       observer = createdObserver;
     } catch {
@@ -351,10 +367,7 @@ export function createMainThreadImpactProbe(): MainThreadImpactProbe {
       finishTimerId = undefined;
     }
     const cancelFrame = runtimeWindow?.cancelAnimationFrame;
-    if (
-      animationFrameId !== undefined &&
-      typeof cancelFrame === "function"
-    ) {
+    if (animationFrameId !== undefined && typeof cancelFrame === "function") {
       cancelFrame.call(runtimeWindow, animationFrameId);
       animationFrameId = undefined;
     }
@@ -370,7 +383,9 @@ export function createMainThreadImpactProbe(): MainThreadImpactProbe {
         (timerFiredAt ?? completed) - started,
       ),
       mainThreadRafDelayMs:
-        rafFiredAt === undefined ? undefined : Math.max(0, rafFiredAt - started),
+        rafFiredAt === undefined
+          ? undefined
+          : Math.max(0, rafFiredAt - started),
       longTaskCount,
     };
   };
@@ -424,12 +439,16 @@ function extractPage(
   options: RuntimeSnapshotOptions,
   scopePlan: ScopePlan,
   externalReferences: RuntimeSnapshotExternalReference[],
+  pageRevisionAnchors: JsonValue[],
   budget: PayloadBudget,
 ): RuntimeSnapshotPage | undefined {
   const graph = ui?.editor?.graph;
   const model = graph?.getModel?.();
   const root = model?.getRoot?.();
   const layerFilter = scopePlan.layersByPage.get(pageInfo.id);
+  pageRevisionAnchors.push(
+    pageRevisionAnchor(graph, model, root, pageInfo.id, limits),
+  );
   const layers = extractLayers(
     model,
     root,
@@ -494,7 +513,8 @@ function extractLayers(
     diagnostics,
     pageId,
   );
-  const count = typeof model?.getChildCount === "function" ? model.getChildCount(root) : 0;
+  const count =
+    typeof model?.getChildCount === "function" ? model.getChildCount(root) : 0;
   const included = Math.min(count, limits.maxLayersPerPage);
   if (count > included) {
     diagnostics.push({
@@ -514,17 +534,27 @@ function extractLayers(
       continue;
     }
     const hasLockedApi = typeof layer?.isConnectable === "function";
-    reportMissingApi(
-      hasLockedApi,
-      "mxCell.isConnectable",
-      diagnostics,
-      pageId,
-    );
+    reportMissingApi(hasLockedApi, "mxCell.isConnectable", diagnostics, pageId);
     layers.push(
       safeRecord({
-        id: safeString(layer?.getId?.() ?? layer?.id, limits.maxMetadataStringLength, diagnostics, pageId) ?? `layer-${index}`,
-        name: safeString(layer?.getValue?.() ?? layer?.value ?? `Layer ${index}`, limits.maxMetadataStringLength, diagnostics, pageId) ?? `Layer ${index}`,
-        visible: typeof layer?.isVisible === "function" ? Boolean(layer.isVisible()) : undefined,
+        id:
+          safeString(
+            layer?.getId?.() ?? layer?.id,
+            limits.maxMetadataStringLength,
+            diagnostics,
+            pageId,
+          ) ?? `layer-${index}`,
+        name:
+          safeString(
+            layer?.getValue?.() ?? layer?.value ?? `Layer ${index}`,
+            limits.maxMetadataStringLength,
+            diagnostics,
+            pageId,
+          ) ?? `Layer ${index}`,
+        visible:
+          typeof layer?.isVisible === "function"
+            ? Boolean(layer.isVisible())
+            : undefined,
         locked: hasLockedApi ? !Boolean(layer.isConnectable()) : undefined,
         pageId,
         index,
@@ -582,7 +612,7 @@ function extractElements(
     }
     elements.push(element);
   }
-  recordExternalReferences(scopePlan, elements, externalReferences);
+  recordExternalReferences(graph, scopePlan, elements, externalReferences);
   return elements;
 }
 
@@ -597,27 +627,47 @@ function extractElement(
   contextOnly: boolean,
 ): RuntimeSnapshotElement {
   const style = parseStyle(cell?.style, limits, diagnostics, pageId, cell?.id);
-  const geometry = extractGeometry(cell?.geometry, limits, diagnostics, pageId, cell?.id);
-  const customAttributes = extractCustomAttributes(cell?.value, limits, diagnostics, pageId, cell?.id);
-  const label = extractLabel(cell?.value, style?.properties, limits, diagnostics, pageId, cell?.id);
+  const geometry = extractGeometry(
+    cell?.geometry,
+    limits,
+    diagnostics,
+    pageId,
+    cell?.id,
+  );
+  const customAttributes = extractCustomAttributes(
+    cell?.value,
+    limits,
+    diagnostics,
+    pageId,
+    cell?.id,
+  );
+  const label = extractLabel(
+    cell?.value,
+    style?.properties,
+    limits,
+    diagnostics,
+    pageId,
+    cell?.id,
+  );
   const layer = safeCellId(getLayerForCell(graph, cell));
-  const raw = options.includeRaw === false
-    ? undefined
-    : sanitizeJson(
-        {
-          mxObjectId: cell?.mxObjectId,
-          vertex: cell?.vertex,
-          edge: cell?.edge,
-          connectable: cell?.connectable,
-        visible: cell?.visible,
-        collapsed: cell?.collapsed,
-        contextOnly: contextOnly || undefined,
-      },
-        limits,
-        diagnostics,
-        pageId,
-        cell?.id,
-      );
+  const raw =
+    options.includeRaw === false
+      ? undefined
+      : sanitizeJson(
+          {
+            mxObjectId: cell?.mxObjectId,
+            vertex: cell?.vertex,
+            edge: cell?.edge,
+            connectable: cell?.connectable,
+            visible: cell?.visible,
+            collapsed: cell?.collapsed,
+            contextOnly: contextOnly || undefined,
+          },
+          limits,
+          diagnostics,
+          pageId,
+          cell?.id,
+        );
 
   return safeRecord({
     id: safeCellId(cell) ?? "",
@@ -631,7 +681,10 @@ function extractElement(
     style,
     geometry,
     waypoints: Array.isArray(cell?.geometry?.points)
-      ? cell.geometry.points.slice(0, limits.maxArrayItems).map((point: any) => pointRecord(point)).filter(Boolean)
+      ? cell.geometry.points
+          .slice(0, limits.maxArrayItems)
+          .map((point: any) => pointRecord(point))
+          .filter(Boolean)
       : undefined,
     relativeGeometry:
       typeof cell?.geometry?.relative === "boolean"
@@ -639,7 +692,15 @@ function extractElement(
         : undefined,
     tags: get_cell_tags(graph, cell)
       .slice(0, limits.maxArrayItems)
-      .map((tag) => safeString(tag, limits.maxMetadataStringLength, diagnostics, pageId, cell?.id))
+      .map((tag) =>
+        safeString(
+          tag,
+          limits.maxMetadataStringLength,
+          diagnostics,
+          pageId,
+          cell?.id,
+        ),
+      )
       .filter((tag): tag is string => tag !== undefined),
     customAttributes,
     raw,
@@ -671,13 +732,90 @@ function collectElementCells(
         cells.push(cell);
       }
     }
-    const count = typeof model?.getChildCount === "function" ? model.getChildCount(cell) : 0;
+    const count =
+      typeof model?.getChildCount === "function"
+        ? model.getChildCount(cell)
+        : 0;
     for (let index = 0; index < count; index += 1) {
       visit(model.getChildAt(cell, index));
     }
   };
   visit(root);
   return { cells, observed };
+}
+
+function pageRevisionAnchor(
+  graph: any,
+  model: any,
+  root: any,
+  pageId: string,
+  limits: RuntimeSnapshotLimits,
+): JsonValue {
+  const cells: JsonValue[] = [];
+  const seen = new Set<any>();
+  let observed = 0;
+  const visit = (cell: any) => {
+    if (!cell || seen.has(cell)) {
+      return;
+    }
+    seen.add(cell);
+    if (!isRoot(cell, root)) {
+      observed += 1;
+      if (cells.length < limits.maxElementsPerPage + limits.maxLayersPerPage) {
+        const parent = model?.getParent?.(cell);
+        const layer = isLayer(model, root, cell)
+          ? cell
+          : getLayerForCell(graph, cell);
+        cells.push(
+          safeRecord({
+            id: safeCellId(cell),
+            parentId: safeCellId(parent),
+            layerId: safeCellId(layer),
+            sourceId: safeCellId(cell?.source),
+            targetId: safeCellId(cell?.target),
+            vertex: cell?.vertex === true || cell?.vertex === 1,
+            edge: cell?.edge === true || cell?.edge === 1,
+            style: typeof cell?.style === "string" ? cell.style : undefined,
+            value: anchorValue(cell?.value, limits.maxMetadataStringLength),
+          }) as JsonValue,
+        );
+      }
+    }
+    const count =
+      typeof model?.getChildCount === "function"
+        ? model.getChildCount(cell)
+        : 0;
+    for (let index = 0; index < count; index += 1) {
+      visit(model.getChildAt(cell, index));
+    }
+  };
+  visit(root);
+  return safeRecord({
+    pageId,
+    observed,
+    cells: cells.sort((left, right) =>
+      stableStringify(left).localeCompare(stableStringify(right)),
+    ),
+  }) as JsonValue;
+}
+
+function anchorValue(value: unknown, maxLength: number): string | undefined {
+  if (typeof value === "string") {
+    return value.slice(0, maxLength);
+  }
+  if (
+    value !== null &&
+    typeof value === "object" &&
+    "textContent" in value &&
+    typeof (value as { readonly textContent?: unknown }).textContent ===
+      "string"
+  ) {
+    return (value as { readonly textContent: string }).textContent.slice(
+      0,
+      maxLength,
+    );
+  }
+  return undefined;
 }
 
 function extractGeometry(
@@ -696,7 +834,8 @@ function extractGeometry(
       y: finiteNumber(geometry.y),
       width: finiteNumber(geometry.width),
       height: finiteNumber(geometry.height),
-      relative: typeof geometry.relative === "boolean" ? geometry.relative : undefined,
+      relative:
+        typeof geometry.relative === "boolean" ? geometry.relative : undefined,
       sourcePoint: pointRecord(geometry.sourcePoint),
       targetPoint: pointRecord(geometry.targetPoint),
       offset: pointRecord(geometry.offset),
@@ -736,21 +875,45 @@ function extractLabel(
   elementId: string | undefined,
 ): RuntimeSnapshotElement["label"] {
   if (typeof value === "string") {
-    const text = safeString(value, limits.maxLabelLength, diagnostics, pageId, elementId);
+    const text = safeString(
+      value,
+      limits.maxLabelLength,
+      diagnostics,
+      pageId,
+      elementId,
+    );
     if (text === undefined) {
       return undefined;
     }
-    const isHtml = styleProperties?.html === "1" || /<\/?[a-z][\s\S]*>/i.test(text);
+    const isHtml =
+      styleProperties?.html === "1" || /<\/?[a-z][\s\S]*>/i.test(text);
     return isHtml
-      ? safeRecord({ format: "html", text: stripHtml(text), html: text }) as RuntimeSnapshotElement["label"]
-      : safeRecord({ format: "plain", text }) as RuntimeSnapshotElement["label"];
+      ? (safeRecord({
+          format: "html",
+          text: stripHtml(text),
+          html: text,
+        }) as RuntimeSnapshotElement["label"])
+      : (safeRecord({
+          format: "plain",
+          text,
+        }) as RuntimeSnapshotElement["label"]);
   }
 
   if (value && typeof value === "object" && value.attributes) {
-    const attrs = namedNodeMapToRecord(value.attributes, limits, diagnostics, pageId, elementId);
+    const attrs = namedNodeMapToRecord(
+      value.attributes,
+      limits,
+      diagnostics,
+      pageId,
+      elementId,
+    );
     const label = attrs.label;
     if (typeof label === "string") {
-      return safeRecord({ format: styleProperties?.html === "1" ? "html" : "plain", text: stripHtml(label), html: styleProperties?.html === "1" ? label : undefined }) as RuntimeSnapshotElement["label"];
+      return safeRecord({
+        format: styleProperties?.html === "1" ? "html" : "plain",
+        text: stripHtml(label),
+        html: styleProperties?.html === "1" ? label : undefined,
+      }) as RuntimeSnapshotElement["label"];
     }
     return safeRecord({ format: "unknown" }) as RuntimeSnapshotElement["label"];
   }
@@ -768,7 +931,13 @@ function extractCustomAttributes(
   if (!value || typeof value !== "object" || !value.attributes) {
     return undefined;
   }
-  const attrs = namedNodeMapToRecord(value.attributes, limits, diagnostics, pageId, elementId);
+  const attrs = namedNodeMapToRecord(
+    value.attributes,
+    limits,
+    diagnostics,
+    pageId,
+    elementId,
+  );
   delete (attrs as Record<string, JsonValue>).label;
   return Object.keys(attrs).length > 0 ? attrs : undefined;
 }
@@ -799,7 +968,13 @@ function namedNodeMapToRecord(
     if (!name || DANGEROUS_KEYS.has(name)) {
       continue;
     }
-    const value = safeString(attr.value, limits.maxMetadataStringLength, diagnostics, pageId, elementId);
+    const value = safeString(
+      attr.value,
+      limits.maxMetadataStringLength,
+      diagnostics,
+      pageId,
+      elementId,
+    );
     if (value !== undefined) {
       result[name] = value;
     }
@@ -814,7 +989,13 @@ function parseStyle(
   pageId: string,
   elementId: string | undefined,
 ): RuntimeSnapshotElement["style"] | undefined {
-  const raw = safeString(rawStyle, limits.maxStyleLength, diagnostics, pageId, elementId);
+  const raw = safeString(
+    rawStyle,
+    limits.maxStyleLength,
+    diagnostics,
+    pageId,
+    elementId,
+  );
   if (!raw) {
     return undefined;
   }
@@ -881,7 +1062,9 @@ function safeCellId(cell: any): string | undefined {
 
 function getCurrentPageId(ui: any): string | null {
   try {
-    return ui?.currentPage ? serialize_page_info(ui, ui.currentPage, 0).id : null;
+    return ui?.currentPage
+      ? serialize_page_info(ui, ui.currentPage, 0).id
+      : null;
   } catch {
     return null;
   }
@@ -891,7 +1074,9 @@ function getSelectionIds(graph: any): string[] {
   try {
     const cells = graph?.getSelectionCells?.() ?? [];
     return Array.isArray(cells)
-      ? cells.map((cell) => safeCellId(cell)).filter((id): id is string => id !== undefined)
+      ? cells
+          .map((cell) => safeCellId(cell))
+          .filter((id): id is string => id !== undefined)
       : [];
   } catch {
     return [];
@@ -937,7 +1122,10 @@ function applyLimits(
 ): RuntimeSnapshotLimits {
   const legacyMaxSnapshotBytes =
     overrides && "maxSnapshotBytes" in overrides
-      ? Number((overrides as { readonly maxSnapshotBytes?: unknown }).maxSnapshotBytes)
+      ? Number(
+          (overrides as { readonly maxSnapshotBytes?: unknown })
+            .maxSnapshotBytes,
+        )
       : undefined;
   const hasLegacyMaxSnapshotBytes = Number.isFinite(legacyMaxSnapshotBytes);
   return normalizeRuntimeSnapshotLimits({
@@ -945,7 +1133,9 @@ function applyLimits(
     ...(hasLegacyMaxSnapshotBytes
       ? {
           hardSnapshotBytes: legacyMaxSnapshotBytes as number,
-          softSnapshotBytes: Math.floor((legacyMaxSnapshotBytes as number) * 0.75),
+          softSnapshotBytes: Math.floor(
+            (legacyMaxSnapshotBytes as number) * 0.75,
+          ),
         }
       : {}),
   });
@@ -1020,7 +1210,15 @@ function sanitizeJson(
     return value
       .slice(0, limits.maxArrayItems)
       .map((entry) =>
-        sanitizeJson(entry, limits, diagnostics, pageId, elementId, depth + 1, seen),
+        sanitizeJson(
+          entry,
+          limits,
+          diagnostics,
+          pageId,
+          elementId,
+          depth + 1,
+          seen,
+        ),
       )
       .filter((entry): entry is JsonValue => entry !== undefined);
   }
@@ -1083,7 +1281,8 @@ function safeEntries(
   } catch {
     diagnostics?.push({
       code: "raw_limit_reached",
-      message: "Runtime snapshot omitted raw object entries that could not be enumerated safely.",
+      message:
+        "Runtime snapshot omitted raw object entries that could not be enumerated safely.",
       pageId,
       elementId,
     });
@@ -1212,9 +1411,14 @@ function planScope(
   graph: any,
   diagnostics: RuntimeSnapshotDiagnostic[],
 ): ScopePlan {
-  const pagesById = new Map(allPages.map((candidate) => [candidate.pageInfo.id, candidate]));
+  const pagesById = new Map(
+    allPages.map((candidate) => [candidate.pageInfo.id, candidate]),
+  );
   const missingPageIds: string[] = [];
-  const missingLayerIds: Array<{ pageId: string; layerIds: readonly string[] }> = [];
+  const missingLayerIds: Array<{
+    pageId: string;
+    layerIds: readonly string[];
+  }> = [];
   const layersByPage = new Map<string, ReadonlySet<string>>();
   const contextElementIds = new Set<string>();
   let pageCandidates: readonly PageCandidate[] = allPages;
@@ -1249,9 +1453,13 @@ function planScope(
         message: "Runtime snapshot requested a page that does not exist.",
         pageId: requestedScope.pageId,
       });
-      resolvedScope = { kind: "layers", pageId: requestedScope.pageId, layerIds: [] };
+      resolvedScope = {
+        kind: "layers",
+        pageId: requestedScope.pageId,
+        layerIds: [],
+      };
     } else {
-      const requestedLayerIds = new Set(requestedScope.layerIds);
+      const requestedLayerIds = new Set<string>(requestedScope.layerIds);
       layersByPage.set(requestedScope.pageId, requestedLayerIds);
       resolvedScope = requestedScope;
     }
@@ -1259,12 +1467,15 @@ function planScope(
 
   if (requestedScope.kind === "selection") {
     const selectionPageId = requestedScope.pageId ?? currentPageId ?? undefined;
-    const candidate = selectionPageId ? pagesById.get(selectionPageId) : undefined;
+    const candidate = selectionPageId
+      ? pagesById.get(selectionPageId)
+      : undefined;
     pageCandidates = candidate ? [candidate] : [];
     if (!selectionPageId || !candidate) {
       diagnostics.push({
         code: "page_not_found",
-        message: "Runtime snapshot selection scope could not resolve the visible page.",
+        message:
+          "Runtime snapshot selection scope could not resolve the visible page.",
         pageId: selectionPageId,
       });
       resolvedScope = selectionPageId
@@ -1275,9 +1486,10 @@ function planScope(
     }
   }
 
-  const selectionIds = requestedScope.kind === "selection"
-    ? new Set(getSelectionIds(graph))
-    : new Set<string>();
+  const selectionIds =
+    requestedScope.kind === "selection"
+      ? new Set(getSelectionIds(graph))
+      : new Set<string>();
   if (requestedScope.kind === "selection" && selectionIds.size === 0) {
     diagnostics.push({
       code: "selection_empty",
@@ -1304,7 +1516,10 @@ function shouldIncludeCell(
   graph: any,
   pageId: string,
 ): boolean {
-  if (scopePlan.requestedScope.kind === "document" || scopePlan.requestedScope.kind === "pages") {
+  if (
+    scopePlan.requestedScope.kind === "document" ||
+    scopePlan.requestedScope.kind === "pages"
+  ) {
     return true;
   }
   const id = safeCellId(cell);
@@ -1357,14 +1572,20 @@ function recordMissingLayers(
   if (missing.length === 0) {
     return;
   }
-  (scopePlan.missingLayerIds as Array<{ pageId: string; layerIds: readonly string[] }>).push({
+  (
+    scopePlan.missingLayerIds as Array<{
+      pageId: string;
+      layerIds: readonly string[];
+    }>
+  ).push({
     pageId,
     layerIds: missing,
   });
   for (const layerId of missing) {
     diagnostics.push({
       code: "layer_not_found",
-      message: "Runtime snapshot requested a layer that does not exist on the resolved page.",
+      message:
+        "Runtime snapshot requested a layer that does not exist on the resolved page.",
       pageId,
       layerId,
     });
@@ -1372,6 +1593,7 @@ function recordMissingLayers(
 }
 
 function recordExternalReferences(
+  graph: any,
   scopePlan: ScopePlan,
   elements: readonly RuntimeSnapshotElement[],
   externalReferences: RuntimeSnapshotExternalReference[],
@@ -1384,7 +1606,9 @@ function recordExternalReferences(
   }
   const included = new Set(elements.map((element) => element.id));
   for (const element of elements) {
-    const references: Array<["parent" | "source" | "target", string | undefined]> = [
+    const references: Array<
+      ["parent" | "source" | "target", string | undefined]
+    > = [
       ["parent", element.parentId],
       ["source", element.sourceId],
       ["target", element.targetId],
@@ -1393,13 +1617,40 @@ function recordExternalReferences(
       if (!referencedId || included.has(referencedId)) {
         continue;
       }
+      const target = resolveReferencedCellLocation(
+        graph,
+        referencedId,
+        element.pageId,
+      );
       externalReferences.push({
         pageId: element.pageId,
         elementId: element.id,
         referenceType,
         referencedId,
+        referencedPageId: target?.pageId,
+        referencedLayerId: target?.layerId,
       });
     }
+  }
+}
+
+function resolveReferencedCellLocation(
+  graph: any,
+  referencedId: string,
+  fallbackPageId: string,
+): { readonly pageId: string; readonly layerId?: string } | undefined {
+  try {
+    const model = graph?.getModel?.();
+    const cell = model?.getCell?.(referencedId);
+    if (!cell) {
+      return undefined;
+    }
+    return {
+      pageId: fallbackPageId,
+      layerId: safeCellId(getLayerForCell(graph, cell)),
+    };
+  } catch {
+    return undefined;
   }
 }
 
@@ -1412,13 +1663,16 @@ function buildScopeMetadata(
 ): RuntimeSnapshotScopeMetadata {
   const contextElementCount = pages.reduce(
     (sum, page) =>
-      sum + page.elements.filter((element) => element.raw?.contextOnly === true).length,
+      sum +
+      page.elements.filter((element) => element.raw?.contextOnly === true)
+        .length,
     0,
   );
   for (const reference of externalReferences.slice(0, 100)) {
     diagnostics.push({
       code: "external_reference_omitted",
-      message: "Runtime snapshot omitted a referenced element outside the requested scope.",
+      message:
+        "Runtime snapshot omitted a referenced element outside the requested scope.",
       pageId: reference.pageId,
       elementId: reference.elementId,
       referenceType: reference.referenceType,
@@ -1428,7 +1682,8 @@ function buildScopeMetadata(
   if (contextElementCount > 0) {
     diagnostics.push({
       code: "context_element_included",
-      message: "Runtime snapshot included minimal ancestor context for scoped extraction.",
+      message:
+        "Runtime snapshot included minimal ancestor context for scoped extraction.",
       observed: contextElementCount,
     });
   }
@@ -1522,6 +1777,8 @@ function cloneScopeMetadata(
       elementId: reference.elementId,
       referenceType: reference.referenceType,
       referencedId: reference.referencedId,
+      referencedPageId: reference.referencedPageId,
+      referencedLayerId: reference.referencedLayerId,
     })),
     missingPageIds: [...scope.missingPageIds],
     missingLayerIds: scope.missingLayerIds.map((entry) => ({
@@ -1537,13 +1794,25 @@ function cloneScopeMetadata(
 function completenessFromDiagnostics(
   diagnostics: readonly RuntimeSnapshotDiagnostic[],
 ): RuntimeSnapshot["completeness"] {
-  if (diagnostics.some((diagnostic) => diagnostic.code === "snapshot_hard_limit_reached")) {
+  if (
+    diagnostics.some(
+      (diagnostic) => diagnostic.code === "snapshot_hard_limit_reached",
+    )
+  ) {
     return { status: "partial", reason: "hard-limit" };
   }
-  if (diagnostics.some((diagnostic) => diagnostic.code === "snapshot_soft_limit_reached")) {
+  if (
+    diagnostics.some(
+      (diagnostic) => diagnostic.code === "snapshot_soft_limit_reached",
+    )
+  ) {
     return { status: "partial", reason: "soft-limit" };
   }
-  if (diagnostics.some((diagnostic) => diagnostic.code === "page_extraction_failed")) {
+  if (
+    diagnostics.some(
+      (diagnostic) => diagnostic.code === "page_extraction_failed",
+    )
+  ) {
     return { status: "partial", reason: "page-error" };
   }
   if (
@@ -1627,7 +1896,9 @@ function safeRecord<T extends Record<string, unknown>>(input: T): T {
 }
 
 function finiteNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
 }
 
 function stripHtml(value: string): string {
@@ -1639,11 +1910,14 @@ function stringOrUndefined(value: unknown): string | undefined {
 }
 
 function safeErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message.slice(0, 500) : "Unknown runtime snapshot extraction error";
+  return error instanceof Error
+    ? error.message.slice(0, 500)
+    : "Unknown runtime snapshot extraction error";
 }
 
 function now(): number {
-  return typeof performance !== "undefined" && typeof performance.now === "function"
+  return typeof performance !== "undefined" &&
+    typeof performance.now === "function"
     ? performance.now()
     : Date.now();
 }

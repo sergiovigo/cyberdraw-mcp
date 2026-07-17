@@ -8,6 +8,7 @@ import { create_request_queue } from "./request_queue.js";
 import type { BusListener, Context } from "./types.js";
 import {
   createRuntimeCapabilities,
+  runtimeSnapshotScopeKey,
   type RuntimeSnapshot,
   type RuntimeSnapshotScope,
 } from "cyberdraw-runtime-contract";
@@ -68,7 +69,9 @@ describe("cyberdraw hierarchical snapshot executor", () => {
       "edge",
     ]);
     expect(result.metrics.stepsExecuted).toBe(1);
-    expect(result.metrics.scopesUsed).toEqual(["document"]);
+    expect(result.metrics.scopesUsed).toEqual([
+      runtimeSnapshotScopeKey({ kind: "document" }),
+    ]);
   });
 
   it("stops safely on stale snapshot revision", async () => {
@@ -106,7 +109,96 @@ describe("cyberdraw hierarchical snapshot executor", () => {
     expect(result.graph).toBeUndefined();
   });
 
-  it("expands from selection to a resolvable external layer", async () => {
+  it("stops cross-scope expansion when document revision changes between steps", async () => {
+    const { context, listeners, sent } = createInteractiveContext();
+    const stableDocumentRevision =
+      "cyberdraw-content-v1:fnv1a64:1000000000000001";
+    const changedDocumentRevision =
+      "cyberdraw-content-v1:fnv1a64:1000000000000002";
+    const execution = executeHierarchicalSnapshotPlan(
+      context,
+      {
+        kind: "inspect-layers",
+        layers: [{ pageId: "p1", layerIds: ["l1"] }],
+      },
+      {
+        inventorySnapshot: runtimeSnapshot({
+          scope: { kind: "layers", pageId: "p1", layerIds: ["l1"] },
+          includeSecondPage: true,
+          documentRevision: stableDocumentRevision,
+        }),
+      },
+    );
+    await flushMicrotasks();
+
+    const focus = runtimeSnapshot({
+      scope: { kind: "layers", pageId: "p1", layerIds: ["l1"] },
+      includeSecondPage: true,
+      documentRevision: stableDocumentRevision,
+    });
+    reply(listeners, "request-1", {
+      ...focus,
+      scope: {
+        ...focus.scope,
+        requiresScopeExpansion: true,
+        externalReferences: [
+          {
+            pageId: "p1",
+            elementId: "edge",
+            referenceType: "target",
+            referencedId: "b",
+            referencedPageId: "p2",
+            referencedLayerId: "l2",
+          },
+        ],
+      },
+    });
+    await flushMicrotasks();
+    expect(sent[1]).toMatchObject({
+      scope: { kind: "layers", pageId: "p2", layerIds: ["l2"] },
+    });
+
+    reply(
+      listeners,
+      "request-2",
+      runtimeSnapshot({
+        scope: { kind: "layers", pageId: "p2", layerIds: ["l2"] },
+        includeSecondPage: true,
+        revision: "cyberdraw-content-v1:fnv1a64:0000000000000002",
+        documentRevision: changedDocumentRevision,
+      }),
+    );
+
+    const result = await execution;
+    expect(result.stopReason).toBe("stale-snapshot");
+    expect(result.graph).toBeUndefined();
+    expect(result.metrics.stepsExecuted).toBe(1);
+    expect(result.metrics.scopesUsed).toEqual([
+      runtimeSnapshotScopeKey({
+        kind: "layers",
+        pageId: "p1",
+        layerIds: ["l1"],
+      }),
+    ]);
+    expect(result.plan.steps[1]).toMatchObject({
+      ordinal: 2,
+      reason: "external-context-required",
+      requestedScope: { kind: "layers", pageId: "p2", layerIds: ["l2"] },
+    });
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "incomplete-inventory",
+          detail: expect.objectContaining({
+            freshnessStatus: "stale",
+            freshnessReason: "content-changed",
+          }),
+        }),
+      ]),
+    );
+  });
+
+  it("derives a target layer from a resolvable external terminal reference", async () => {
     const { context, listeners, sent } = createInteractiveContext();
     const execution = executeHierarchicalSnapshotPlan(
       context,
@@ -135,8 +227,10 @@ describe("cyberdraw hierarchical snapshot executor", () => {
           {
             pageId: "p1",
             elementId: "edge",
-            referenceType: "layer",
-            referencedId: "l2",
+            referenceType: "target",
+            referencedId: "b",
+            referencedPageId: "p2",
+            referencedLayerId: "l2",
           },
         ],
       },
@@ -159,8 +253,126 @@ describe("cyberdraw hierarchical snapshot executor", () => {
       "selection",
       "layers",
     ]);
+    expect(result.plan.steps[1]).toMatchObject({
+      id: "step-02-expansion-layers-p2-l2",
+      ordinal: 2,
+      reason: "external-context-required",
+      prerequisites: ["step-01-selection-p1"],
+    });
     expect(result.stopReason).toBe("intent-satisfied");
     expect(result.metrics.stepsExecuted).toBe(2);
+    expect(result.metrics.scopesUsed).toEqual([
+      runtimeSnapshotScopeKey({ kind: "selection", pageId: "p1" }),
+      runtimeSnapshotScopeKey({
+        kind: "layers",
+        pageId: "p2",
+        layerIds: ["l2"],
+      }),
+    ]);
+  });
+
+  it("derives a target page from legacy page-id external references", async () => {
+    const { context, listeners, sent } = createInteractiveContext();
+    const execution = executeHierarchicalSnapshotPlan(
+      context,
+      { kind: "inspect-selection" },
+      {
+        inventorySnapshot: runtimeSnapshot({
+          scope: { kind: "selection", pageId: "p1" },
+          includeSecondPage: true,
+        }),
+      },
+    );
+    await flushMicrotasks();
+
+    const selection = runtimeSnapshot({
+      scope: { kind: "selection", pageId: "p1" },
+      includeSecondPage: true,
+    });
+    reply(listeners, "request-1", {
+      ...selection,
+      scope: {
+        ...selection.scope,
+        requiresScopeExpansion: true,
+        externalReferences: [
+          {
+            pageId: "p1",
+            elementId: "edge",
+            referenceType: "target",
+            referencedId: "p2",
+          },
+        ],
+      },
+    });
+    await flushMicrotasks();
+
+    expect(sent[1]).toMatchObject({
+      scope: { kind: "pages", pageIds: ["p2"] },
+    });
+    reply(
+      listeners,
+      "request-2",
+      runtimeSnapshot({
+        scope: { kind: "pages", pageIds: ["p2"] },
+        includeSecondPage: true,
+      }),
+    );
+
+    const result = await execution;
+    expect(result.metrics.stepsExecuted).toBe(2);
+    expect(result.plan.steps[1]?.requestedScope).toEqual({
+      kind: "pages",
+      pageIds: ["p2"],
+    });
+  });
+
+  it("does not invent expansion for previous peers without location hints", async () => {
+    const { context, listeners, sent } = createInteractiveContext();
+    const execution = executeHierarchicalSnapshotPlan(
+      context,
+      { kind: "inspect-selection" },
+      {
+        inventorySnapshot: runtimeSnapshot({
+          scope: { kind: "selection", pageId: "p1" },
+          includeSecondPage: true,
+        }),
+      },
+    );
+    await flushMicrotasks();
+
+    const selection = runtimeSnapshot({
+      scope: { kind: "selection", pageId: "p1" },
+      includeSecondPage: true,
+    });
+    reply(listeners, "request-1", {
+      ...selection,
+      scope: {
+        ...selection.scope,
+        requiresScopeExpansion: true,
+        externalReferences: [
+          {
+            pageId: "p1",
+            elementId: "edge",
+            referenceType: "target",
+            referencedId: "b",
+          },
+        ],
+      },
+    });
+
+    const result = await execution;
+    expect(sent).toHaveLength(1);
+    expect(result.plan.steps).toHaveLength(1);
+    expect(result.stopReason).toBe("intent-satisfied");
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "missing-target",
+          targetId: "b",
+          detail: { referenceType: "target" },
+        }),
+      ]),
+    );
   });
 
   it("expands from layers, deduplicates cycles, and records unresolved references", async () => {
@@ -216,6 +428,51 @@ describe("cyberdraw hierarchical snapshot executor", () => {
     );
   });
 
+  it("does not expand auxiliary parent references", async () => {
+    const { context, listeners, sent } = createInteractiveContext();
+    const execution = executeHierarchicalSnapshotPlan(
+      context,
+      { kind: "inspect-selection" },
+      {
+        inventorySnapshot: runtimeSnapshot({
+          scope: { kind: "selection", pageId: "p1" },
+          includeSecondPage: true,
+        }),
+      },
+    );
+    await flushMicrotasks();
+
+    const selection = runtimeSnapshot({
+      scope: { kind: "selection", pageId: "p1" },
+      includeSecondPage: true,
+    });
+    reply(listeners, "request-1", {
+      ...selection,
+      scope: {
+        ...selection.scope,
+        requiresScopeExpansion: true,
+        externalReferences: [
+          {
+            pageId: "p1",
+            elementId: "edge",
+            referenceType: "parent",
+            referencedId: "b",
+            referencedPageId: "p2",
+            referencedLayerId: "l2",
+          },
+        ],
+      },
+    });
+
+    const result = await execution;
+    expect(sent).toHaveLength(1);
+    expect(result.plan.steps).toHaveLength(1);
+    expect(result.stopReason).toBe("intent-satisfied");
+    expect(
+      result.diagnostics.map((diagnostic) => diagnostic.code),
+    ).not.toContain("missing-target");
+  });
+
   it("bounds expansion by max depth, max steps, and hard-limit risk", async () => {
     const depth = await runSingleExpansion({
       limits: { maxExpansionDepth: 0 },
@@ -258,7 +515,7 @@ describe("cyberdraw hierarchical snapshot executor", () => {
     expect(result.stopReason).toBe("execution-error");
   });
 
-  it("covers soft-limit, timeout, and validation-failed stop reasons", async () => {
+  it("covers soft-limit and timeout stop reasons", async () => {
     const soft = await runSingleRequest(
       runtimeSnapshot({
         scope: { kind: "pages", pageIds: ["p1"] },
@@ -275,11 +532,9 @@ describe("cyberdraw hierarchical snapshot executor", () => {
         }),
       },
     );
-    const validation = await runExpansionWithSecondRevision();
 
     expect(soft.stopReason).toBe("soft-limit-advisory");
     expect(timeout.stopReason).toBe("timeout");
-    expect(validation.stopReason).toBe("validation-failed");
   });
 
   it("does not expose a public MCP hierarchical snapshot tool", async () => {
@@ -362,51 +617,6 @@ async function runSingleRequest(snapshot: RuntimeSnapshot) {
   return execution;
 }
 
-async function runExpansionWithSecondRevision() {
-  const { context, listeners } = createInteractiveContext();
-  const execution = executeHierarchicalSnapshotPlan(
-    context,
-    { kind: "inspect-selection" },
-    {
-      inventorySnapshot: runtimeSnapshot({
-        scope: { kind: "selection", pageId: "p1" },
-        includeSecondPage: true,
-      }),
-    },
-  );
-  await flushMicrotasks();
-  const selection = runtimeSnapshot({
-    scope: { kind: "selection", pageId: "p1" },
-    includeSecondPage: true,
-  });
-  reply(listeners, "request-1", {
-    ...selection,
-    scope: {
-      ...selection.scope,
-      requiresScopeExpansion: true,
-      externalReferences: [
-        {
-          pageId: "p1",
-          elementId: "edge",
-          referenceType: "layer",
-          referencedId: "l2",
-        },
-      ],
-    },
-  });
-  await flushMicrotasks();
-  reply(
-    listeners,
-    "request-2",
-    runtimeSnapshot({
-      scope: { kind: "layers", pageId: "p2", layerIds: ["l2"] },
-      includeSecondPage: true,
-      revision: "cyberdraw-content-v1:fnv1a64:0000000000000002",
-    }),
-  );
-  return execution;
-}
-
 function createInteractiveContext() {
   const listeners = new Map<string, BusListener<Record<string, unknown>>>();
   const sent: unknown[] = [];
@@ -483,6 +693,7 @@ function createTestContext(options: {
 function runtimeSnapshot(options: {
   readonly scope: RuntimeSnapshotScope;
   readonly revision?: string;
+  readonly documentRevision?: string;
   readonly includeSecondPage?: boolean;
   readonly measuredJsonBytes?: number;
   readonly partialReason?: "soft-limit" | "hard-limit";
@@ -572,6 +783,7 @@ function runtimeSnapshot(options: {
         complete: true,
         contentRevision:
           options.revision ?? "cyberdraw-content-v1:fnv1a64:0000000000000001",
+        documentRevision: options.documentRevision,
       },
     },
     scope: {
