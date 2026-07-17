@@ -15,7 +15,10 @@ import {
   inventoryFromRuntimeSnapshot,
 } from "../cyberdraw-hierarchical-snapshot.js";
 import { requestCyberdrawRuntimeSnapshot } from "../cyberdraw-runtime-snapshot.js";
-import type { RuntimeSnapshot } from "cyberdraw-runtime-contract";
+import {
+  runtimeSnapshotScopeKey,
+  type RuntimeSnapshot,
+} from "cyberdraw-runtime-contract";
 
 describe("real environment/hierarchical snapshot planner", () => {
   let context: RealEnvironmentContext;
@@ -237,6 +240,207 @@ describe("real environment/hierarchical snapshot planner", () => {
       logCountBefore,
     );
   }, 180000);
+
+  it("executes real external-reference expansion into a second layer snapshot", async () => {
+    await resetDiagram(context);
+    context.browserMessages.length = 0;
+    const logCountBefore = context.logger.entries.length;
+
+    const { payload: pagePayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string };
+    }>(context, "get-current-page", {});
+    expectToolSuccess(pagePayload);
+    const page = unwrapToolPayload<{ id: string }>(pagePayload);
+
+    const { payload: focusLayerPayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string; name: string };
+    }>(context, "create-layer", { name: "m8-1-focus" });
+    expectToolSuccess(focusLayerPayload);
+    const focusLayer = unwrapToolPayload<{ id: string; name: string }>(
+      focusLayerPayload,
+    );
+
+    const { payload: contextLayerPayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string; name: string };
+    }>(context, "create-layer", { name: "m8-1-context" });
+    expectToolSuccess(contextLayerPayload);
+    const contextLayer = unwrapToolPayload<{ id: string; name: string }>(
+      contextLayerPayload,
+    );
+
+    const { payload: sourcePayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string };
+    }>(context, "add-rectangle", {
+      target_page: { id: page.id },
+      x: 90,
+      y: 120,
+      width: 130,
+      height: 70,
+      text: "m8-1-source",
+    });
+    expectToolSuccess(sourcePayload);
+    const source = unwrapToolPayload<{ id: string }>(sourcePayload);
+
+    const { payload: targetPayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string };
+    }>(context, "add-rectangle", {
+      target_page: { id: page.id },
+      x: 360,
+      y: 120,
+      width: 130,
+      height: 70,
+      text: "m8-1-target",
+    });
+    expectToolSuccess(targetPayload);
+    const target = unwrapToolPayload<{ id: string }>(targetPayload);
+
+    await callToolJson(context, "move-cell-to-layer", {
+      target_page: { id: page.id },
+      cell_id: source.id,
+      target_layer_id: focusLayer.id,
+    });
+    await callToolJson(context, "move-cell-to-layer", {
+      target_page: { id: page.id },
+      cell_id: target.id,
+      target_layer_id: contextLayer.id,
+    });
+
+    const { payload: edgePayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string };
+    }>(context, "add-edge", {
+      target_page: { id: page.id },
+      source_id: source.id,
+      target_id: target.id,
+      parent_id: focusLayer.id,
+      text: "m8-1-edge",
+    });
+    expectToolSuccess(edgePayload);
+    const edge = unwrapToolPayload<{ id: string }>(edgePayload);
+    await callToolJson(context, "move-cell-to-layer", {
+      target_page: { id: page.id },
+      cell_id: edge.id,
+      target_layer_id: focusLayer.id,
+    });
+
+    await selectCell(context.page, source.id);
+    const beforeState = await readEditorState(context);
+    const executionLogStart = context.logger.entries.length;
+
+    const result = await executeHierarchicalSnapshotPlan(
+      context.app.context,
+      {
+        kind: "inspect-layers",
+        layers: [{ pageId: page.id, layerIds: [focusLayer.id] }],
+      },
+      {
+        limits: { maxPlanSteps: 4, maxExpansionDepth: 2 },
+        runtimeLimits: { hardSnapshotBytes: 2 * 1024 * 1024 },
+      },
+    );
+
+    const firstStep = result.plan.steps[0];
+    const secondStep = result.plan.steps[1];
+    const externalContextDiagnostic = result.diagnostics.find(
+      (diagnostic) => diagnostic.code === "external-context-required",
+    );
+    const edgeElement = result.graph?.elements.find(
+      (element) => element.drawioId === edge.id && element.kind === "edge",
+    );
+    const sourceElement = result.graph?.elements.find(
+      (element) => element.drawioId === source.id,
+    );
+    const targetElement = result.graph?.elements.find(
+      (element) => element.drawioId === target.id,
+    );
+    const executedLogMessages = context.logger.entries
+      .slice(executionLogStart)
+      .map((entry) => entry.message);
+
+    expect(firstStep?.requestedScope).toEqual({
+      kind: "layers",
+      pageId: page.id,
+      layerIds: [focusLayer.id],
+    });
+    expect(secondStep).toMatchObject({
+      ordinal: 2,
+      reason: "external-context-required",
+      requestedScope: {
+        kind: "layers",
+        pageId: page.id,
+        layerIds: [contextLayer.id],
+      },
+    });
+    expect(secondStep?.id).toBe(
+      `step-02-expansion-${sanitizeStepScopeKey(
+        `layers:${page.id}:${contextLayer.id}`,
+      )}`,
+    );
+    expect(externalContextDiagnostic?.detail).toMatchObject({
+      externalReferences: 3,
+      references: expect.arrayContaining([
+        {
+          pageId: page.id,
+          elementId: edge.id,
+          referenceType: "target",
+          referencedId: target.id,
+          referencedPageId: page.id,
+          referencedLayerId: contextLayer.id,
+        },
+      ]),
+    });
+    expect(result.metrics.stepsExecuted).toBeGreaterThanOrEqual(2);
+    expect(result.metrics.scopesUsed).toEqual([
+      runtimeSnapshotScopeKey({
+        kind: "layers",
+        pageId: page.id,
+        layerIds: [focusLayer.id],
+      }),
+      runtimeSnapshotScopeKey({
+        kind: "layers",
+        pageId: page.id,
+        layerIds: [contextLayer.id],
+      }),
+    ]);
+    expect(result.metrics.revisionsObserved?.length).toBeGreaterThanOrEqual(2);
+    expect(result.metrics.mergeDiagnostics).toBeGreaterThan(0);
+    expect(result.stopReason).toBe("intent-satisfied");
+    expect(result.coverage.document).toBe(false);
+    expect(result.coverage.layerTargets).toEqual([
+      { pageId: page.id, layerIds: [focusLayer.id] },
+      { pageId: page.id, layerIds: [contextLayer.id] },
+    ]);
+    expect(result.graph?.elements.map((element) => element.drawioId)).toEqual(
+      expect.arrayContaining([source.id, target.id, edge.id]),
+    );
+    expect(edgeElement?.kind).toBe("edge");
+    if (edgeElement?.kind !== "edge") {
+      throw new Error("expected expanded graph edge");
+    }
+    expect(edgeElement.sourceId).toBe(sourceElement?.internalId);
+    expect(edgeElement.targetId).toBe(targetElement?.internalId);
+    expect(result.graph?.findings).toEqual([]);
+    expect(
+      result.plan.steps.some((step) => step.requestedScope.kind === "document"),
+    ).toBe(false);
+    expect(
+      executedLogMessages.some((message) => message.includes("scope=document")),
+    ).toBe(false);
+
+    const afterState = await readEditorState(context);
+    expect(afterState).toEqual(beforeState);
+    await expectNoBrowserErrors(context, "hierarchical-snapshot-expansion");
+    await expectNoServerErrors(
+      context,
+      "hierarchical-snapshot-expansion",
+      logCountBefore,
+    );
+  }, 180000);
 });
 
 async function readEditorState(context: RealEnvironmentContext) {
@@ -261,4 +465,8 @@ async function clearSelection(context: RealEnvironmentContext) {
     const graph = (window as any).ui?.editor?.graph;
     graph?.clearSelection?.();
   });
+}
+
+function sanitizeStepScopeKey(value: string) {
+  return value.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "");
 }

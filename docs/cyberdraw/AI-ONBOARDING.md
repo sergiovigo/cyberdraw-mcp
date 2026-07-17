@@ -41,28 +41,31 @@ diagramming work.
     or ADR 0004 follow-up strategy.
 14. `docs/cyberdraw/milestones/M8-hierarchical-snapshot-planner.md` before
     building internal analysis flows on scoped runtime snapshots.
+15. `docs/cyberdraw/milestones/M8.1-real-external-reference-expansion.md` when
+    changing hierarchical external-reference expansion or its real-environment
+    evidence.
 
 Read `AGENTS.md` before modifying anything. It contains repository-wide logging,
 navigation and command-output discipline.
 
 ## Repository Layout
 
-| Path | Meaning |
-| --- | --- |
-| `packages/drawio-mcp-server/` | Node MCP server, stdio/HTTP transports, WebSocket bridge, tool schemas, editor routes |
-| `packages/drawio-mcp-plugin/` | Browser plugin loaded into draw.io; executes tool handlers |
-| `packages/drawio-mcp-extension/` | WXT browser extension, popup/options UI and content scripts |
-| `packages/drawio-mcp-compat/` | Shared draw.io version compatibility helpers |
-| `packages/cyberdraw-graph-model/` | Private pure read-only graph model spike package; core consumes experimental `CanonicalDiagramInput`, legacy draw.io/MCP read shapes stay in an adapter |
-| `packages/cyberdraw-runtime-contract/` | Private runtime snapshot contract constants, types, validation and revision helpers shared by server and plugin |
-| `packages/cyberdraw-runtime-benchmarks/` | Private manual M6 synthetic and M7 real-environment benchmark harnesses for runtime snapshot scaling evidence |
-| `packages/drawio-mcp-dev-proxy/` | Local HTTPS/WSS development proxy |
-| `docs/cyberdraw/` | Official CyberDraw fork documentation |
-| `docs/cyberdraw/adr/` | Architecture decision records |
-| `docs/cyberdraw/rfc/` | Draft requests for comments; proposals only until accepted by ADR or milestone plan |
-| `docs/cyberdraw/diagrams/` | Supporting Mermaid diagrams for CyberDraw architecture proposals |
-| `docs/superpowers/` | Historical planning/spec documents inherited from earlier work |
-| `THIRD_PARTY_NOTICES.md` | Third-party notice tracking |
+| Path                                     | Meaning                                                                                                                                                 |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/drawio-mcp-server/`            | Node MCP server, stdio/HTTP transports, WebSocket bridge, tool schemas, editor routes                                                                   |
+| `packages/drawio-mcp-plugin/`            | Browser plugin loaded into draw.io; executes tool handlers                                                                                              |
+| `packages/drawio-mcp-extension/`         | WXT browser extension, popup/options UI and content scripts                                                                                             |
+| `packages/drawio-mcp-compat/`            | Shared draw.io version compatibility helpers                                                                                                            |
+| `packages/cyberdraw-graph-model/`        | Private pure read-only graph model spike package; core consumes experimental `CanonicalDiagramInput`, legacy draw.io/MCP read shapes stay in an adapter |
+| `packages/cyberdraw-runtime-contract/`   | Private runtime snapshot contract constants, types, validation and revision helpers shared by server and plugin                                         |
+| `packages/cyberdraw-runtime-benchmarks/` | Private manual M6 synthetic and M7 real-environment benchmark harnesses for runtime snapshot scaling evidence                                           |
+| `packages/drawio-mcp-dev-proxy/`         | Local HTTPS/WSS development proxy                                                                                                                       |
+| `docs/cyberdraw/`                        | Official CyberDraw fork documentation                                                                                                                   |
+| `docs/cyberdraw/adr/`                    | Architecture decision records                                                                                                                           |
+| `docs/cyberdraw/rfc/`                    | Draft requests for comments; proposals only until accepted by ADR or milestone plan                                                                     |
+| `docs/cyberdraw/diagrams/`               | Supporting Mermaid diagrams for CyberDraw architecture proposals                                                                                        |
+| `docs/superpowers/`                      | Historical planning/spec documents inherited from earlier work                                                                                          |
+| `THIRD_PARTY_NOTICES.md`                 | Third-party notice tracking                                                                                                                             |
 
 ## Rules to Follow
 
@@ -157,6 +160,8 @@ direct shell commands and package scripts.
   `docs/cyberdraw/milestones/M7-real-environment-snapshot-benchmarks.md`
 - Hierarchical snapshot planner milestone:
   `docs/cyberdraw/milestones/M8-hierarchical-snapshot-planner.md`
+- Real external-reference expansion evidence:
+  `docs/cyberdraw/milestones/M8.1-real-external-reference-expansion.md`
 - Planner and executor implementation:
   `packages/cyberdraw-graph-model/src/hierarchical-snapshot-planner.ts`,
   `packages/cyberdraw-graph-model/src/scoped-snapshot-merge.ts` and

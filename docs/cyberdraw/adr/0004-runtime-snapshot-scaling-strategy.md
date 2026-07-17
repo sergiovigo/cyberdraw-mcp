@@ -73,6 +73,14 @@ analysis planning, and fails with clear hard-limit guidance when a requested
 scope is too broad. M7 does not implement productive chunking, streaming,
 persistence or incremental analysis.
 
+M8.1 keeps that strategy private and adds a bounded freshness anchor for real
+external-reference expansion: scoped snapshots may include an optional
+`documentRevision` generated before page/layer filtering. When two scoped
+snapshots both provide that anchor, the hierarchical executor treats a mismatch
+as `stale-snapshot` and does not merge the stale result. Peers that omit the
+anchor remain compatible, but document identity alone is not treated as temporal
+consistency proof.
+
 Chunking may be reconsidered only if real-environment evidence shows that a
 single necessary page or layer commonly exceeds the hard limit and cannot be
 handled by narrower analysis. Incremental analysis should wait for a stable
@@ -85,9 +93,10 @@ for larger diagrams, and use selection only for UI-bound focused analysis.
 M8 implementation update: M8 adds a private pure planner in
 `cyberdraw-graph-model` and a private server executor in `drawio-mcp-server`.
 The implementation follows this ADR without adding public MCP tools, public
-schemas, persistence, chunking, streaming or incremental analysis. The milestone
-is PARTIAL until real draw.io evidence demonstrates multi-step expansion with a
-resolvable external reference.
+schemas, persistence, chunking, streaming or incremental analysis. M8.1 adds
+real draw.io evidence that a scoped external terminal reference can derive and
+execute a second layer snapshot, merge both snapshots and build the internal
+graph result without using document scope.
 
 ## Consequences
 
@@ -130,9 +139,10 @@ same private event family or a new private event after a separate ADR.
 - What identity strategy is sufficient for future incremental analysis?
 - Should hard-limit diagnostics include a recommended narrower scope?
 
-M8 resolves the implementation direction for the second question only partially:
-internal callers now have planner/executor code, but a dedicated cheap inventory
-extractor remains future work.
+M8 resolves the implementation direction for the second question for same-page
+cross-layer expansion: internal callers now have planner/executor code and real
+evidence for external-reference-derived second scopes. A dedicated cheap
+inventory extractor remains a future option for broader cross-page analysis.
 
 ## M7 Evidence
 

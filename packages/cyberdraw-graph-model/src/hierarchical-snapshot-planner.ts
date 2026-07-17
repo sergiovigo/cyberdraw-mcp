@@ -209,6 +209,8 @@ export type SnapshotPlanExecutionResult = {
     readonly elementsIncluded?: number;
     readonly contextElements?: number;
     readonly externalReferences?: number;
+    readonly revisionsObserved?: readonly string[];
+    readonly mergeDiagnostics?: number;
     readonly replans: number;
     readonly diagnosticsCount: number;
   };

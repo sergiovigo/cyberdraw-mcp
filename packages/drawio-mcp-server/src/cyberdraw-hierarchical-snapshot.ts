@@ -72,6 +72,7 @@ export async function executeHierarchicalSnapshotPlan(
   let elementsIncluded = 0;
   let contextElements = 0;
   let externalReferences = 0;
+  const revisionsObserved: string[] = [];
   let stopReason = plan.stopReason;
 
   for (let index = 0; index < executionSteps.length; index += 1) {
@@ -122,6 +123,9 @@ export async function executeHierarchicalSnapshotPlan(
     }
     collectMeasuredMetrics(measured, scopesUsed);
     snapshots.push(measured.snapshot);
+    revisionsObserved.push(
+      measured.snapshot.document.revisionSignals.contentRevision,
+    );
     measuredBytes +=
       measured.snapshot.payload.measuredJsonBytes ??
       measured.snapshot.payload.approximateJsonBytes;
@@ -144,6 +148,23 @@ export async function executeHierarchicalSnapshotPlan(
         scope: step.requestedScope,
         detail: {
           externalReferences: measured.snapshot.scope.externalReferences.length,
+          references: measured.snapshot.scope.externalReferences
+            .slice(0, 10)
+            .map((reference) => {
+              const detail: Record<string, string> = {
+                pageId: reference.pageId,
+                elementId: reference.elementId,
+                referenceType: reference.referenceType,
+                referencedId: reference.referencedId,
+              };
+              if (reference.referencedPageId) {
+                detail.referencedPageId = reference.referencedPageId;
+              }
+              if (reference.referencedLayerId) {
+                detail.referencedLayerId = reference.referencedLayerId;
+              }
+              return detail;
+            }),
         },
       });
       const expansion = deriveExpansionScopes({
@@ -186,8 +207,25 @@ export async function executeHierarchicalSnapshotPlan(
     }
   }
 
-  const merge = mergeScopedSnapshotResults(snapshots);
   const executedPlan: SnapshotPlan = { ...plan, steps: executionSteps };
+  if (stopReason === "stale-snapshot") {
+    return executionResult(executedPlan, {
+      stopReason,
+      diagnostics,
+      inventoryDurationMs,
+      planningDurationMs,
+      executionDurationMs: performance.now() - executionStarted,
+      scopesUsed,
+      measuredBytes,
+      elementsIncluded,
+      contextElements,
+      externalReferences,
+      revisionsObserved,
+      mergeDiagnostics: 0,
+    });
+  }
+
+  const merge = mergeScopedSnapshotResults(snapshots);
   if (!merge.ok) {
     stopReason =
       merge.code === "stale-snapshot-rejected"
@@ -204,6 +242,8 @@ export async function executeHierarchicalSnapshotPlan(
       elementsIncluded,
       contextElements,
       externalReferences,
+      revisionsObserved,
+      mergeDiagnostics: merge.diagnostics.length,
     });
   }
 
@@ -231,6 +271,8 @@ export async function executeHierarchicalSnapshotPlan(
     elementsIncluded,
     contextElements,
     externalReferences,
+    revisionsObserved,
+    mergeDiagnostics: merge.diagnostics.length,
     graph,
   });
 }
@@ -254,6 +296,17 @@ function compareSnapshotCompatibility(
   }
   if (expectedDocumentId !== currentDocumentId) {
     return { status: "stale" as const, reason: "document-changed" as const };
+  }
+  const expectedDocumentRevision =
+    expected.document.revisionSignals.documentRevision;
+  const currentDocumentRevision =
+    current.document.revisionSignals.documentRevision;
+  if (
+    expectedDocumentRevision !== undefined &&
+    currentDocumentRevision !== undefined &&
+    expectedDocumentRevision !== currentDocumentRevision
+  ) {
+    return { status: "stale" as const, reason: "content-changed" as const };
   }
   if (
     runtimeSnapshotScopeKey(expected.scope.resolvedScope) ===
@@ -420,7 +473,9 @@ function collectMeasuredMetrics(
   measured: MeasuredRuntimeSnapshot,
   scopesUsed: string[],
 ) {
-  scopesUsed.push(measured.snapshot.scope.resolvedScope.kind);
+  scopesUsed.push(
+    runtimeSnapshotScopeKey(measured.snapshot.scope.resolvedScope),
+  );
 }
 
 function deriveExpansionScopes(input: {
@@ -461,12 +516,13 @@ function deriveExpansionScopes(input: {
   }
 
   for (const reference of input.snapshot.scope.externalReferences) {
-    const candidate =
-      reference.referenceType === "layer"
-        ? layerById.get(reference.referencedId)
-        : pagesById.has(reference.referencedId)
-          ? { pageId: reference.referencedId, layerId: undefined }
-          : undefined;
+    if (!referenceTypeCanExpand(reference.referenceType)) {
+      continue;
+    }
+    const candidate = resolveExpansionTarget(reference, {
+      pagesById,
+      layerById,
+    });
     if (!candidate) {
       diagnostics.push({
         code: "missing-target",
@@ -507,6 +563,39 @@ function deriveExpansionScopes(input: {
   }
 
   return { scopes, diagnostics };
+}
+
+function referenceTypeCanExpand(referenceType: string): boolean {
+  return (
+    referenceType === "source" ||
+    referenceType === "target" ||
+    referenceType === "layer"
+  );
+}
+
+function resolveExpansionTarget(
+  reference: RuntimeSnapshot["scope"]["externalReferences"][number],
+  indexes: {
+    readonly pagesById: ReadonlyMap<string, unknown>;
+    readonly layerById: ReadonlyMap<
+      string,
+      { readonly pageId: string; readonly layerId: string }
+    >;
+  },
+): { readonly pageId: string; readonly layerId?: string } | undefined {
+  if (reference.referencedPageId) {
+    return {
+      pageId: reference.referencedPageId,
+      layerId: reference.referencedLayerId,
+    };
+  }
+  if (reference.referenceType === "layer") {
+    return indexes.layerById.get(reference.referencedId);
+  }
+  if (indexes.pagesById.has(reference.referencedId)) {
+    return { pageId: reference.referencedId };
+  }
+  return undefined;
 }
 
 function expansionScopeHardLimitRisk(
@@ -609,6 +698,8 @@ function executionResult(
     readonly elementsIncluded: number;
     readonly contextElements: number;
     readonly externalReferences: number;
+    readonly revisionsObserved: readonly string[];
+    readonly mergeDiagnostics: number;
     readonly graph?: SnapshotPlanExecutionResult["graph"];
   },
 ): SnapshotPlanExecutionResult {
@@ -664,6 +755,8 @@ function executionResult(
       elementsIncluded: state.elementsIncluded,
       contextElements: state.contextElements,
       externalReferences: state.externalReferences,
+      revisionsObserved: state.revisionsObserved,
+      mergeDiagnostics: state.mergeDiagnostics,
       replans: 0,
       diagnosticsCount: state.diagnostics.length,
     },

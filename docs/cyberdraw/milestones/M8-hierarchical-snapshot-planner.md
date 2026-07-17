@@ -2,18 +2,18 @@
 
 ## Status
 
-PARTIAL internal milestone evidence.
+COMPLETE internal milestone evidence.
 
 M8 remains private and does not add a public MCP tool, public schema,
 persistence, chunking, streaming, semantic diff, mutation planning or
 cybersecurity-specific rules.
 
-The planner, executor, partial/stale separation, bounded expansion logic and
-unit coverage are implemented. M8 is PARTIAL because real draw.io evidence does
-not yet demonstrate a multi-step expansion with a resolvable external reference:
-the current runtime metadata records omitted element references, but there is no
-cheap element inventory that can safely map those references to a narrower page
-or layer scope.
+The planner, executor, partial/stale separation, bounded expansion logic, unit
+coverage and real draw.io external-reference expansion evidence are implemented.
+M8.1 closes the previous PARTIAL gap by demonstrating that a real layer-scope
+snapshot can expose a resolvable external terminal reference, derive a second
+layer scope, execute that second snapshot and merge the graph result without
+using document scope.
 
 ## Objective
 
@@ -162,19 +162,30 @@ labels, XML, raw snapshots or full metadata.
 M8 records when scoped snapshots require context expansion through existing scope
 metadata such as `requiresScopeExpansion` and external references. Expansion is
 bounded by max steps and max depth. It may widen to existing scope families, but
-does not implement arbitrary chunking or element-level fragmentation.
+does not implement arbitrary chunking or element-level fragmentation. M8.1 adds
+private best-effort target location metadata to runtime external references so
+the executor can derive page or layer scope from an omitted terminal without
+requesting document scope. Expansion is limited to `source`, `target` and
+legacy `layer` references that resolve to a concrete page or layer target;
+auxiliary `parent` references do not create expansion steps.
 
 ## Merge
 
 `mergeScopedSnapshotResults(results)` is pure and deterministic. It:
 
 - rejects incompatible documents;
-- rejects incompatible content revisions;
+- rejects incompatible content revisions for the same scope;
+- rejects cross-scope snapshots when both provide a shared document/page anchor
+  revision and that revision differs;
+- accepts document-compatible cross-scope scoped content revisions only when no
+  shared anchor contradicts them;
 - can reject stale partial snapshots;
-- deduplicates pages, layers and elements by provisional draw.io ID plus scope
-  context;
+- deduplicates pages, layers and elements by provisional draw.io ID plus
+  page/layer scope context;
 - preserves `contextOnly` raw flags;
-- preserves external references;
+- preserves unresolved external references;
+- classifies external references as resolved when a later scope materializes one
+  exact referenced page/layer/element target;
 - applies canonical ordering;
 - does not claim stable identity across snapshots.
 
@@ -183,7 +194,12 @@ does not implement arbitrary chunking or element-level fragmentation.
 The executor uses strict M4/M5 freshness comparison when requested/resolved
 scopes match. For cross-scope inventory-to-step checks, it validates document
 identity and completeness without comparing scoped content revisions as if they
-were equivalent. M8 does not implement rebase or automatic replanning.
+were equivalent. When both snapshots expose the private `documentRevision`
+anchor emitted before scope filtering, the anchor must match; otherwise
+execution stops with `stale-snapshot`, the stale result is not merged, and M8
+does not implement rebase or automatic replanning. Older peers that omit the
+anchor remain compatible, but document identity alone is not claimed as
+cross-scope temporal proof.
 
 ## Analyze-Structure
 
@@ -245,11 +261,14 @@ from real snapshot inventory, stale plan handling and UI preservation. They
 verify graph construction, positive measured payloads, active-page preservation,
 browser error checks and server error checks.
 
-The remaining real-environment gap is multi-step expansion. Unit tests cover
-selection/layer expansion, resolvable and unresolvable references, duplicate
-scopes, cycles, maximum depth, maximum steps and hard-limit avoidance, but real
-draw.io snapshots do not yet expose enough compact inventory to resolve omitted
-element references into page/layer scopes safely.
+M8.1 adds dedicated real draw.io evidence for multi-step expansion:
+`packages/drawio-mcp-server/src/real-environment/hierarchical-snapshot.test.ts`
+creates one page with focus/context layers, a focus-layer edge whose target is
+on the context layer, starts with the focus layer scope, observes the external
+target reference, derives a context layer scope, executes the second real
+snapshot request, merges both snapshots and verifies the final graph contains
+the source, target and edge relation. The test asserts UI preservation, no
+document scope and clean browser/server error logs.
 
 This does not replace M7 benchmarks and does not make the full benchmark matrix
 mandatory in CI.
@@ -262,8 +281,8 @@ mandatory in CI.
 - Background page execution relies on existing snapshot extraction behavior.
 - Expansion is conservative, does not add chunking and can only add page/layer
   scopes when external references are resolvable from compact inventory.
-- Real multi-step expansion remains pending until M9 or a follow-up inventory
-  milestone adds safe element-to-scope inventory.
+- Cross-page terminal location remains limited by what the current runtime can
+  resolve cheaply; M8.1 proves the required same-page cross-layer expansion.
 - Stable identity remains unresolved.
 
 ## Rollback
@@ -290,11 +309,11 @@ No public API migration is required.
 
 ## Exit Criteria
 
-M8 remains PARTIAL until planner, executor, inventory, estimation, stopping,
+M8 is complete when planner, executor, inventory, estimation, stopping,
 deterministic merge, graph-model integration, stale handling, private-only
 surface, documentation and validation pass and real draw.io evidence includes a
-multi-step expansion with resolvable context. The current implementation meets
-the code-level criteria but not that final real-environment evidence criterion.
+multi-step expansion with resolvable context. M8.1 supplies that final
+real-environment evidence.
 
 ## Recommendation For M9
 
@@ -305,7 +324,7 @@ M9 should be the first internal structural analysis vertical over M8 output:
 - cross-layer edge analysis;
 - bounded connected-component summary.
 
-M9 should first evaluate a cheap dedicated inventory extractor before expanding
-analysis breadth. That inventory should be able to map omitted element
-references to page/layer membership without full document traversal so that
-hierarchical expansion can be proven in real draw.io diagrams.
+M9 should first evaluate whether the M8.1 private external-reference location
+metadata is sufficient for the first structural analysis vertical or whether a
+cheap dedicated inventory extractor is still needed for broader cross-page
+analysis.

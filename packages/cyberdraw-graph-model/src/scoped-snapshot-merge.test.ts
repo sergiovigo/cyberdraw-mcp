@@ -42,6 +42,8 @@ describe("scoped snapshot merge", () => {
       {
         ...snapshot("layers", [{ id: "p1", index: 0, elements: ["edge"] }]),
         scope: {
+          requestedScope: { kind: "layers", pageId: "p1", layerIds: ["l1"] },
+          resolvedScope: { kind: "layers", pageId: "p1", layerIds: ["l1"] },
           externalReferences: [
             {
               pageId: "p1",
@@ -74,6 +76,301 @@ describe("scoped snapshot merge", () => {
         "context-only-preserved",
         "external-reference-preserved",
       ]),
+    );
+  });
+
+  it("resolves external references when expansion materializes the referenced element", () => {
+    const result = mergeScopedSnapshotResults([
+      {
+        ...snapshot("layers", [
+          { id: "p1", index: 0, elements: ["a", "edge"] },
+        ]),
+        scope: {
+          requestedScope: { kind: "layers", pageId: "p1", layerIds: ["focus"] },
+          resolvedScope: { kind: "layers", pageId: "p1", layerIds: ["focus"] },
+          externalReferences: [
+            {
+              pageId: "p1",
+              elementId: "edge",
+              referenceType: "target",
+              referencedId: "b",
+              referencedPageId: "p1",
+              referencedLayerId: "context",
+            },
+          ],
+          contextElementCount: 0,
+          requiresScopeExpansion: true,
+          conclusive: false,
+        },
+        pages: [
+          {
+            id: "p1",
+            index: 0,
+            layers: [{ id: "focus", index: 0, pageId: "p1" }],
+            elements: [
+              { id: "a", pageId: "p1", layerId: "focus", type: "vertex" },
+              {
+                id: "edge",
+                pageId: "p1",
+                layerId: "focus",
+                type: "edge",
+                sourceId: "a",
+                targetId: "b",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        ...snapshot("layers", [{ id: "p1", index: 0, elements: ["b"] }]),
+        document: {
+          id: "doc-1",
+          revisionSignals: {
+            contentRevision: "rev-2",
+          },
+        },
+        scope: {
+          requestedScope: {
+            kind: "layers",
+            pageId: "p1",
+            layerIds: ["context"],
+          },
+          resolvedScope: {
+            kind: "layers",
+            pageId: "p1",
+            layerIds: ["context"],
+          },
+          externalReferences: [],
+          contextElementCount: 0,
+          requiresScopeExpansion: false,
+          conclusive: true,
+        },
+        pages: [
+          {
+            id: "p1",
+            index: 0,
+            layers: [{ id: "context", index: 1, pageId: "p1" }],
+            elements: [
+              { id: "b", pageId: "p1", layerId: "context", type: "vertex" },
+            ],
+          },
+        ],
+      },
+    ]);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error("expected merge success");
+    }
+    expect(result.snapshot.scope?.externalReferences).toHaveLength(0);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      "external-reference-resolved",
+    );
+    expect(
+      result.snapshot.pages?.[0]?.elements?.map((element) => element.id),
+    ).toEqual(["a", "b", "edge"]);
+  });
+
+  it("resolves duplicate element ids only with exact page and layer context", () => {
+    const result = mergeScopedSnapshotResults([
+      {
+        ...snapshot("layers", [{ id: "p1", index: 0, elements: ["dup", "edge"] }]),
+        scope: {
+          requestedScope: { kind: "layers", pageId: "p1", layerIds: ["focus"] },
+          resolvedScope: { kind: "layers", pageId: "p1", layerIds: ["focus"] },
+          externalReferences: [
+            {
+              pageId: "p1",
+              elementId: "edge",
+              referenceType: "target",
+              referencedId: "dup",
+              referencedPageId: "p2",
+              referencedLayerId: "l2",
+            },
+          ],
+        },
+      },
+      {
+        ...snapshot("layers", [{ id: "p2", index: 1, elements: ["dup"] }]),
+        document: {
+          id: "doc-1",
+          revisionSignals: {
+            contentRevision: "rev-2",
+          },
+        },
+        pages: [
+          {
+            id: "p2",
+            index: 1,
+            layers: [{ id: "l2", index: 0, pageId: "p2" }],
+            elements: [{ id: "dup", pageId: "p2", layerId: "l2" }],
+          },
+        ],
+        scope: {
+          requestedScope: { kind: "layers", pageId: "p2", layerIds: ["l2"] },
+          resolvedScope: { kind: "layers", pageId: "p2", layerIds: ["l2"] },
+          externalReferences: [],
+        },
+      },
+    ]);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error("expected merge success");
+    }
+    expect(result.snapshot.scope?.externalReferences).toHaveLength(0);
+  });
+
+  it("preserves ambiguous external references when layer context is missing", () => {
+    const result = mergeScopedSnapshotResults([
+      {
+        ...snapshot("layers", [{ id: "p1", index: 0, elements: ["edge"] }]),
+        scope: {
+          requestedScope: { kind: "layers", pageId: "p1", layerIds: ["focus"] },
+          resolvedScope: { kind: "layers", pageId: "p1", layerIds: ["focus"] },
+          externalReferences: [
+            {
+              pageId: "p1",
+              elementId: "edge",
+              referenceType: "target",
+              referencedId: "dup",
+              referencedPageId: "p1",
+            },
+          ],
+        },
+        pages: [
+          {
+            id: "p1",
+            index: 0,
+            layers: [
+              { id: "focus", index: 0, pageId: "p1" },
+              { id: "context", index: 1, pageId: "p1" },
+            ],
+            elements: [
+              { id: "edge", pageId: "p1", layerId: "focus", type: "edge" },
+              { id: "dup", pageId: "p1", layerId: "focus", type: "vertex" },
+            ],
+          },
+        ],
+      },
+      {
+        ...snapshot("layers", [{ id: "p1", index: 0, elements: ["dup"] }]),
+        document: {
+          id: "doc-1",
+          revisionSignals: {
+            contentRevision: "rev-2",
+          },
+        },
+        pages: [
+          {
+            id: "p1",
+            index: 0,
+            layers: [{ id: "context", index: 1, pageId: "p1" }],
+            elements: [
+              { id: "dup", pageId: "p1", layerId: "context", type: "vertex" },
+            ],
+          },
+        ],
+        scope: {
+          requestedScope: {
+            kind: "layers",
+            pageId: "p1",
+            layerIds: ["context"],
+          },
+          resolvedScope: {
+            kind: "layers",
+            pageId: "p1",
+            layerIds: ["context"],
+          },
+          externalReferences: [],
+        },
+      },
+    ]);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error("expected merge success");
+    }
+    expect(result.snapshot.scope?.externalReferences).toHaveLength(1);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).not.toContain(
+      "external-reference-resolved",
+    );
+  });
+
+  it("resolves duplicate same-page ids when target layer is explicit", () => {
+    const result = mergeScopedSnapshotResults([
+      {
+        ...snapshot("layers", [{ id: "p1", index: 0, elements: ["edge"] }]),
+        scope: {
+          requestedScope: { kind: "layers", pageId: "p1", layerIds: ["focus"] },
+          resolvedScope: { kind: "layers", pageId: "p1", layerIds: ["focus"] },
+          externalReferences: [
+            {
+              pageId: "p1",
+              elementId: "edge",
+              referenceType: "target",
+              referencedId: "dup",
+              referencedPageId: "p1",
+              referencedLayerId: "context",
+            },
+          ],
+        },
+        pages: [
+          {
+            id: "p1",
+            index: 0,
+            layers: [
+              { id: "focus", index: 0, pageId: "p1" },
+              { id: "context", index: 1, pageId: "p1" },
+            ],
+            elements: [
+              { id: "edge", pageId: "p1", layerId: "focus", type: "edge" },
+              { id: "dup", pageId: "p1", layerId: "focus", type: "vertex" },
+            ],
+          },
+        ],
+      },
+      {
+        ...snapshot("layers", [{ id: "p1", index: 0, elements: ["dup"] }]),
+        document: {
+          id: "doc-1",
+          revisionSignals: {
+            contentRevision: "rev-2",
+          },
+        },
+        pages: [
+          {
+            id: "p1",
+            index: 0,
+            layers: [{ id: "context", index: 1, pageId: "p1" }],
+            elements: [
+              { id: "dup", pageId: "p1", layerId: "context", type: "vertex" },
+            ],
+          },
+        ],
+        scope: {
+          requestedScope: {
+            kind: "layers",
+            pageId: "p1",
+            layerIds: ["context"],
+          },
+          resolvedScope: {
+            kind: "layers",
+            pageId: "p1",
+            layerIds: ["context"],
+          },
+          externalReferences: [],
+        },
+      },
+    ]);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error("expected merge success");
+    }
+    expect(result.snapshot.scope?.externalReferences).toHaveLength(0);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      "external-reference-resolved",
     );
   });
 
@@ -110,6 +407,97 @@ describe("scoped snapshot merge", () => {
     expect(document).toMatchObject({
       ok: false,
       code: "document-incompatible",
+    });
+  });
+
+  it("accepts different scope revisions when document identity is compatible", () => {
+    const result = mergeScopedSnapshotResults([
+      {
+        ...snapshot("layers", [{ id: "p1", index: 0, elements: ["a"] }]),
+        document: {
+          id: "doc-1",
+          revisionSignals: {
+            contentRevision: "rev-1",
+          },
+        },
+        scope: {
+          requestedScope: { kind: "layers", pageId: "p1", layerIds: ["focus"] },
+          resolvedScope: { kind: "layers", pageId: "p1", layerIds: ["focus"] },
+          externalReferences: [],
+        },
+      },
+      {
+        ...snapshot("layers", [{ id: "p1", index: 0, elements: ["b"] }]),
+        document: {
+          id: "doc-1",
+          revisionSignals: {
+            contentRevision: "rev-2",
+          },
+        },
+        scope: {
+          requestedScope: {
+            kind: "layers",
+            pageId: "p1",
+            layerIds: ["context"],
+          },
+          resolvedScope: {
+            kind: "layers",
+            pageId: "p1",
+            layerIds: ["context"],
+          },
+          externalReferences: [],
+        },
+      },
+    ]);
+
+    expect(result).toMatchObject({ ok: true });
+  });
+
+  it("rejects different scope revisions when shared document revision changes", () => {
+    const result = mergeScopedSnapshotResults([
+      {
+        ...snapshot("layers", [{ id: "p1", index: 0, elements: ["a"] }]),
+        document: {
+          id: "doc-1",
+          revisionSignals: {
+            contentRevision: "rev-1",
+            documentRevision: "doc-rev-1",
+          },
+        },
+        scope: {
+          requestedScope: { kind: "layers", pageId: "p1", layerIds: ["focus"] },
+          resolvedScope: { kind: "layers", pageId: "p1", layerIds: ["focus"] },
+          externalReferences: [],
+        },
+      },
+      {
+        ...snapshot("layers", [{ id: "p1", index: 0, elements: ["b"] }]),
+        document: {
+          id: "doc-1",
+          revisionSignals: {
+            contentRevision: "rev-2",
+            documentRevision: "doc-rev-2",
+          },
+        },
+        scope: {
+          requestedScope: {
+            kind: "layers",
+            pageId: "p1",
+            layerIds: ["context"],
+          },
+          resolvedScope: {
+            kind: "layers",
+            pageId: "p1",
+            layerIds: ["context"],
+          },
+          externalReferences: [],
+        },
+      },
+    ]);
+
+    expect(result).toMatchObject({
+      ok: false,
+      code: "revision-incompatible",
     });
   });
 

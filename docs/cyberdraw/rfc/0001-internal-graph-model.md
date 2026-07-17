@@ -138,33 +138,33 @@ Cases that do not justify the model:
 The server requests snapshots from the plugin, builds the internal model in Node
 and runs all queries and analysis server-side.
 
-| Dimension | Analysis |
-| --- | --- |
-| Coupling | Keeps semantic code out of the plugin but couples the server to the snapshot shape. |
-| Upstream compatibility | Lower plugin churn; easier upstream sync than plugin-heavy designs. |
-| Performance | Browser work is limited to snapshot extraction; server can index and query cheaply for repeated reads. Large snapshots still cross WebSocket. |
-| Testability | Strong server-side unit tests; browser fixtures still needed for snapshot extraction. |
-| Deployment | No new runtime beyond server package if kept in-process. |
-| Serialization | Natural place to emit JSON snapshots, hashes and analysis results. |
-| Complexity | Simpler deployment, but server must understand enough draw.io semantics to normalize cells. |
-| Duplicate state risk | Moderate; server model can become stale after browser edits. |
-| Browser impact | Low after snapshot generation. |
+| Dimension              | Analysis                                                                                                                                      |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Coupling               | Keeps semantic code out of the plugin but couples the server to the snapshot shape.                                                           |
+| Upstream compatibility | Lower plugin churn; easier upstream sync than plugin-heavy designs.                                                                           |
+| Performance            | Browser work is limited to snapshot extraction; server can index and query cheaply for repeated reads. Large snapshots still cross WebSocket. |
+| Testability            | Strong server-side unit tests; browser fixtures still needed for snapshot extraction.                                                         |
+| Deployment             | No new runtime beyond server package if kept in-process.                                                                                      |
+| Serialization          | Natural place to emit JSON snapshots, hashes and analysis results.                                                                            |
+| Complexity             | Simpler deployment, but server must understand enough draw.io semantics to normalize cells.                                                   |
+| Duplicate state risk   | Moderate; server model can become stale after browser edits.                                                                                  |
+| Browser impact         | Low after snapshot generation.                                                                                                                |
 
 ### Alternative B: Shared Model Between Server and Plugin
 
 The model code is compiled into both server and browser plugin packages.
 
-| Dimension | Analysis |
-| --- | --- |
-| Coupling | Highest coupling; model APIs must fit both Node and browser constraints. |
-| Upstream compatibility | More plugin changes increase sync and draw.io version risk. |
-| Performance | Plugin can normalize close to the runtime and avoid shipping raw details; server can still query a compact model. |
-| Testability | Shared tests are possible, but browser-specific behavior still needs integration coverage. |
-| Deployment | Plugin bundle size and browser compatibility become model constraints. |
-| Serialization | Shared schema reduces mismatch, but both sides need migration discipline. |
-| Complexity | Higher build and compatibility complexity. |
-| Duplicate state risk | High if plugin and server both cache models. |
-| Browser impact | Higher CPU and memory use in draw.io tabs. |
+| Dimension              | Analysis                                                                                                          |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Coupling               | Highest coupling; model APIs must fit both Node and browser constraints.                                          |
+| Upstream compatibility | More plugin changes increase sync and draw.io version risk.                                                       |
+| Performance            | Plugin can normalize close to the runtime and avoid shipping raw details; server can still query a compact model. |
+| Testability            | Shared tests are possible, but browser-specific behavior still needs integration coverage.                        |
+| Deployment             | Plugin bundle size and browser compatibility become model constraints.                                            |
+| Serialization          | Shared schema reduces mismatch, but both sides need migration discipline.                                         |
+| Complexity             | Higher build and compatibility complexity.                                                                        |
+| Duplicate state risk   | High if plugin and server both cache models.                                                                      |
+| Browser impact         | Higher CPU and memory use in draw.io tabs.                                                                        |
 
 ### Alternative C: Independent Internal Graph Package
 
@@ -172,17 +172,17 @@ Create a new monorepo package for pure model types, normalization helpers,
 validation and query indexes. The server consumes it first; the plugin may later
 consume only narrow snapshot helpers if justified.
 
-| Dimension | Analysis |
-| --- | --- |
-| Coupling | Lowest long-term coupling if the package depends on plain data, not draw.io runtime objects. |
-| Upstream compatibility | Keeps server/plugin changes narrow; package can evolve behind documented interfaces. |
-| Performance | Server can index and analyze; plugin can remain mostly a snapshot provider. |
-| Testability | Best unit-test surface for model invariants, malformed graphs and schema examples. |
-| Deployment | Adds a package in a future implementation; no deployment change if bundled through workspace builds. |
-| Serialization | Clear home for versioned JSON and schemas. |
-| Complexity | Adds package ownership and API design overhead. |
-| Duplicate state risk | Manageable if the package models immutable snapshots and explicit change plans. |
-| Browser impact | Low initially; optional later use must be bundle-size gated. |
+| Dimension              | Analysis                                                                                             |
+| ---------------------- | ---------------------------------------------------------------------------------------------------- |
+| Coupling               | Lowest long-term coupling if the package depends on plain data, not draw.io runtime objects.         |
+| Upstream compatibility | Keeps server/plugin changes narrow; package can evolve behind documented interfaces.                 |
+| Performance            | Server can index and analyze; plugin can remain mostly a snapshot provider.                          |
+| Testability            | Best unit-test surface for model invariants, malformed graphs and schema examples.                   |
+| Deployment             | Adds a package in a future implementation; no deployment change if bundled through workspace builds. |
+| Serialization          | Clear home for versioned JSON and schemas.                                                           |
+| Complexity             | Adds package ownership and API design overhead.                                                      |
+| Duplicate state risk   | Manageable if the package models immutable snapshots and explicit change plans.                      |
+| Browser impact         | Low initially; optional later use must be bundle-size gated.                                         |
 
 Recommendation: Alternative C should be the preferred design direction for a
 future implementation, with server-first adoption and plugin participation kept
@@ -237,7 +237,10 @@ M8 hierarchical planner evidence is recorded in
 `docs/cyberdraw/milestones/M8-hierarchical-snapshot-planner.md`. It implements
 private planner/executor code over existing runtime scopes and feeds the
 internal graph model without accepting this RFC as a public schema or stable
-API. The RFC remains Draft.
+API. M8.1 evidence is recorded in
+`docs/cyberdraw/milestones/M8.1-real-external-reference-expansion.md`; it
+demonstrates real draw.io multi-step expansion from a resolvable scoped
+external terminal reference. The RFC remains Draft.
 
 ## Data Model Proposal
 
@@ -421,11 +424,11 @@ snapshots unless the builder can prove they match the canonical references.
 
 Three ID strategies were considered:
 
-| Strategy | Benefits | Problems |
-| --- | --- | --- |
-| Reuse only draw.io IDs | Simple and preserves user-visible references. | Cannot handle duplicates, missing IDs, cross-import conflicts or tombstones cleanly. |
-| Create only internal IDs | Clean graph invariants and imports. | Loses compatibility with existing MCP tools that address draw.io IDs. |
-| Maintain both | Preserves draw.io interoperability while allowing internal repair. | More fields and mapping logic. |
+| Strategy                 | Benefits                                                           | Problems                                                                             |
+| ------------------------ | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| Reuse only draw.io IDs   | Simple and preserves user-visible references.                      | Cannot handle duplicates, missing IDs, cross-import conflicts or tombstones cleanly. |
+| Create only internal IDs | Clean graph invariants and imports.                                | Loses compatibility with existing MCP tools that address draw.io IDs.                |
+| Maintain both            | Preserves draw.io interoperability while allowing internal repair. | More fields and mapping logic.                                                       |
 
 Recommendation: maintain both. `drawioId` should preserve the observed mxCell ID
 when present and valid. Internal ID generation remains an open design point. A
@@ -612,20 +615,20 @@ before mutating and refresh again afterward.
 
 These are model/library operations, not MCP tools:
 
-| Operation | Scope |
-| --- | --- |
-| `getElement(id)` | Model lookup by internal or mapped draw.io ID. |
-| `incoming(id)` / `outgoing(id)` | Edge adjacency indexes. |
-| `neighbors(id)` | Combined graph neighborhood. |
-| `paths(source, target, options)` | Bounded traversal with max depth and page/layer filters. |
-| `connectedComponents(pageId?)` | Component analysis over nodes and edges. |
-| `filterByMetadata(predicate)` | Semantic metadata filtering. |
-| `orphans()` | Nodes with no parent/layer or edges with no terminals, depending on rule mode. |
-| `brokenReferences()` | Missing source/target/parent/layer references. |
-| `crossLayerEdges()` | Edges crossing layers or future zones. |
-| `compareSnapshots(a, b)` | Structural comparison. |
-| `semanticDiff(a, b)` | Domain-aware diff using labels, metadata and shape references. |
-| `validate(ruleset)` | Rule engine entrypoint producing findings. |
+| Operation                        | Scope                                                                          |
+| -------------------------------- | ------------------------------------------------------------------------------ |
+| `getElement(id)`                 | Model lookup by internal or mapped draw.io ID.                                 |
+| `incoming(id)` / `outgoing(id)`  | Edge adjacency indexes.                                                        |
+| `neighbors(id)`                  | Combined graph neighborhood.                                                   |
+| `paths(source, target, options)` | Bounded traversal with max depth and page/layer filters.                       |
+| `connectedComponents(pageId?)`   | Component analysis over nodes and edges.                                       |
+| `filterByMetadata(predicate)`    | Semantic metadata filtering.                                                   |
+| `orphans()`                      | Nodes with no parent/layer or edges with no terminals, depending on rule mode. |
+| `brokenReferences()`             | Missing source/target/parent/layer references.                                 |
+| `crossLayerEdges()`              | Edges crossing layers or future zones.                                         |
+| `compareSnapshots(a, b)`         | Structural comparison.                                                         |
+| `semanticDiff(a, b)`             | Domain-aware diff using labels, metadata and shape references.                 |
+| `validate(ruleset)`              | Rule engine entrypoint producing findings.                                     |
 
 An analysis service may orchestrate these operations and produce findings. A
 future MCP tool would be a separate transport-facing wrapper with schemas,
@@ -649,14 +652,14 @@ Initial query semantics should be explicit:
 
 Options:
 
-| Approach | Fit |
-| --- | --- |
-| Optional fields on core entities | Simple for universal facts, poor for many domains. |
-| Free metadata | Flexible, hard to validate. |
-| Typed extensions | Good balance of validation and isolation. |
-| Profiles/namespaces | Best for versioned domain semantics. |
-| ECS components | Powerful but likely too abstract for first version. |
-| Domain plugins | Future option after core model stabilizes. |
+| Approach                         | Fit                                                 |
+| -------------------------------- | --------------------------------------------------- |
+| Optional fields on core entities | Simple for universal facts, poor for many domains.  |
+| Free metadata                    | Flexible, hard to validate.                         |
+| Typed extensions                 | Good balance of validation and isolation.           |
+| Profiles/namespaces              | Best for versioned domain semantics.                |
+| ECS components                   | Powerful but likely too abstract for first version. |
+| Domain plugins                   | Future option after core model stabilizes.          |
 
 Recommendation: core entities stay generic and support namespaced typed
 extensions under `metadata.extensions` only for observed or deliberately enriched
@@ -864,15 +867,15 @@ Code not to touch initially:
 
 ## Open Decisions
 
-| Decision | Alternatives | Recommendation | Confidence | Evidence pending |
-| --- | --- | --- | --- | --- |
-| Model location | Server-only; shared server/plugin; independent package | Independent package, server-first | Medium | Prototype package size, build impact and snapshot adapter complexity |
-| First persistence mode | In-memory; sidecar; embedded metadata; database | In-memory plus JSON debug serialization | High | Privacy policy for findings and sidecar merge behavior |
-| ID strategy | draw.io only; internal only; both | Maintain both, but keep internal ID derivation open | Medium | Fixtures with duplicate IDs, moves across pages, cloned documents and imports |
-| Snapshot source | `list-paged-model`; new plugin snapshot handler; XML export parse | New bounded snapshot handler based on existing extraction ideas | Medium | M3 validates visible/background behavior; large payload and cross-version evidence remain pending |
-| Schema technology | TypeScript only; Zod; JSON Schema; both Zod and JSON Schema | Start with TS/Zod internally, publish JSON Schema when stable | Medium | Consumer needs outside TypeScript |
-| Change application | Direct XML; existing MCP operations; hybrid | Existing MCP operations by default | High | Coverage of operations needed by first vertical use case |
-| Domain extension mechanism | Optional fields; free metadata; typed extensions; ECS; plugins | Namespaced typed extensions | Medium | Validation ergonomics and examples from two domains |
-| Feature flag | Always shadow; opt-in flag; config flag only for behavior change | No flag for tests, flag before user-visible behavior | Medium | Implementation plan and runtime cost evidence |
-| Finding persistence | Never; sidecar; embedded; external store | Defer; no default persistence | High | Security/privacy review |
-| Incremental snapshots | Full snapshot; page snapshot; delta stream | Full/page snapshot first | Medium | Large diagram performance data |
+| Decision                   | Alternatives                                                      | Recommendation                                                  | Confidence | Evidence pending                                                                                  |
+| -------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------- |
+| Model location             | Server-only; shared server/plugin; independent package            | Independent package, server-first                               | Medium     | Prototype package size, build impact and snapshot adapter complexity                              |
+| First persistence mode     | In-memory; sidecar; embedded metadata; database                   | In-memory plus JSON debug serialization                         | High       | Privacy policy for findings and sidecar merge behavior                                            |
+| ID strategy                | draw.io only; internal only; both                                 | Maintain both, but keep internal ID derivation open             | Medium     | Fixtures with duplicate IDs, moves across pages, cloned documents and imports                     |
+| Snapshot source            | `list-paged-model`; new plugin snapshot handler; XML export parse | New bounded snapshot handler based on existing extraction ideas | Medium     | M3 validates visible/background behavior; large payload and cross-version evidence remain pending |
+| Schema technology          | TypeScript only; Zod; JSON Schema; both Zod and JSON Schema       | Start with TS/Zod internally, publish JSON Schema when stable   | Medium     | Consumer needs outside TypeScript                                                                 |
+| Change application         | Direct XML; existing MCP operations; hybrid                       | Existing MCP operations by default                              | High       | Coverage of operations needed by first vertical use case                                          |
+| Domain extension mechanism | Optional fields; free metadata; typed extensions; ECS; plugins    | Namespaced typed extensions                                     | Medium     | Validation ergonomics and examples from two domains                                               |
+| Feature flag               | Always shadow; opt-in flag; config flag only for behavior change  | No flag for tests, flag before user-visible behavior            | Medium     | Implementation plan and runtime cost evidence                                                     |
+| Finding persistence        | Never; sidecar; embedded; external store                          | Defer; no default persistence                                   | High       | Security/privacy review                                                                           |
+| Incremental snapshots      | Full snapshot; page snapshot; delta stream                        | Full/page snapshot first                                        | Medium     | Large diagram performance data                                                                    |

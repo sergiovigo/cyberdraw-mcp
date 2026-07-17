@@ -8,6 +8,7 @@ export type ScopedSnapshotMergeDiagnosticCode =
   | "stale-snapshot-rejected"
   | "context-only-preserved"
   | "external-reference-preserved"
+  | "external-reference-resolved"
   | "canonical-order-applied";
 
 export type ScopedSnapshotMergeDiagnostic = {
@@ -39,15 +40,20 @@ type MergeInput = RuntimeSnapshotInput & {
     readonly revisionSignals?: {
       readonly documentId?: unknown;
       readonly contentRevision?: unknown;
+      readonly documentRevision?: unknown;
       readonly complete?: unknown;
     };
   };
   readonly scope?: RuntimeSnapshotInput["scope"] & {
+    readonly requestedScope?: unknown;
+    readonly resolvedScope?: unknown;
     readonly externalReferences?: readonly {
       readonly pageId?: unknown;
       readonly elementId?: unknown;
       readonly referenceType?: unknown;
       readonly referencedId?: unknown;
+      readonly referencedPageId?: unknown;
+      readonly referencedLayerId?: unknown;
     }[];
   };
   readonly pages?: readonly {
@@ -60,6 +66,7 @@ type MergeInput = RuntimeSnapshotInput & {
     readonly elements?: readonly {
       readonly id?: unknown;
       readonly pageId?: unknown;
+      readonly layerId?: unknown;
       readonly raw?: unknown;
     }[];
   }[];
@@ -81,7 +88,7 @@ export function mergeScopedSnapshotResults(
   const documentId = snapshotDocumentId(first);
   const revision = snapshotRevision(first);
   const pages = new Map<string, MutablePage>();
-  const externalReferences = new Map<string, unknown>();
+  const externalReferences = new Map<string, ExternalReferenceInput>();
   const staleIndexes = new Set(options.staleSnapshotIndexes ?? []);
 
   for (const [index, snapshot] of (
@@ -95,7 +102,20 @@ export function mergeScopedSnapshotResults(
       diagnostics.push({ code: "document-incompatible", severity: "error" });
       return { ok: false, code: "document-incompatible", diagnostics };
     }
-    if (snapshotRevision(snapshot) !== revision) {
+    const baselineDocumentRevision = snapshotDocumentRevision(first);
+    const candidateDocumentRevision = snapshotDocumentRevision(snapshot);
+    if (
+      baselineDocumentRevision !== undefined &&
+      candidateDocumentRevision !== undefined &&
+      baselineDocumentRevision !== candidateDocumentRevision
+    ) {
+      diagnostics.push({ code: "revision-incompatible", severity: "error" });
+      return { ok: false, code: "revision-incompatible", diagnostics };
+    }
+    if (
+      !crossScopeRevisionCompatible(first, snapshot) &&
+      snapshotRevision(snapshot) !== revision
+    ) {
       diagnostics.push({ code: "revision-incompatible", severity: "error" });
       return { ok: false, code: "revision-incompatible", diagnostics };
     }
@@ -173,13 +193,27 @@ export function mergeScopedSnapshotResults(
   }
 
   diagnostics.push({ code: "canonical-order-applied", severity: "debug" });
+  const unresolvedExternalReferences = [...externalReferences.values()].filter(
+    (reference) => {
+      const resolved = referenceResolved(reference, pages);
+      if (resolved) {
+        diagnostics.push({
+          code: "external-reference-resolved",
+          severity: "debug",
+          pageId: stringValue(reference.pageId),
+          elementId: stringValue(reference.elementId),
+        });
+      }
+      return !resolved;
+    },
+  );
   return {
     ok: true,
     snapshot: {
       ...first,
       scope: {
         ...first.scope,
-        externalReferences: [...externalReferences.values()] as never,
+        externalReferences: unresolvedExternalReferences as never,
       },
       pages: [...pages.values()].sort(byPageOrder) as never,
       diagnostics: snapshots.flatMap((snapshot) => snapshot.diagnostics ?? []),
@@ -194,9 +228,14 @@ type MutablePage = NonNullable<MergeInput["pages"]>[number] & {
   elements: readonly {
     readonly id?: unknown;
     readonly pageId?: unknown;
+    readonly layerId?: unknown;
     readonly raw?: unknown;
   }[];
 };
+
+type ExternalReferenceInput = NonNullable<
+  NonNullable<MergeInput["scope"]>["externalReferences"]
+>[number];
 
 function snapshotDocumentId(snapshot: MergeInput): string | undefined {
   return (
@@ -207,6 +246,67 @@ function snapshotDocumentId(snapshot: MergeInput): string | undefined {
 
 function snapshotRevision(snapshot: MergeInput): string | undefined {
   return stringValue(snapshot.document?.revisionSignals?.contentRevision);
+}
+
+function snapshotDocumentRevision(snapshot: MergeInput): string | undefined {
+  return stringValue(snapshot.document?.revisionSignals?.documentRevision);
+}
+
+function crossScopeRevisionCompatible(
+  baseline: MergeInput,
+  candidate: MergeInput,
+): boolean {
+  const baselineScope = scopeIdentity(baseline);
+  const candidateScope = scopeIdentity(candidate);
+  return (
+    baselineScope !== undefined &&
+    candidateScope !== undefined &&
+    baselineScope !== candidateScope
+  );
+}
+
+function scopeIdentity(snapshot: MergeInput): string | undefined {
+  const scope = snapshot.scope?.resolvedScope ?? snapshot.scope?.requestedScope;
+  if (scope === undefined) {
+    return undefined;
+  }
+  return stableScopeString(scope);
+}
+
+function stableScopeString(value: unknown): string | undefined {
+  if (value === null) {
+    return "null";
+  }
+  if (typeof value === "string") {
+    return JSON.stringify(value);
+  }
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? JSON.stringify(value) : "null";
+  }
+  if (typeof value === "boolean") {
+    return value ? "true" : "false";
+  }
+  if (Array.isArray(value)) {
+    const items = value
+      .map((item) => stableScopeString(item))
+      .filter((item): item is string => item !== undefined);
+    return `[${items.join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value)
+      .map(([key, item]) => {
+        const stable = stableScopeString(item);
+        return stable === undefined ? undefined : ([key, stable] as const);
+      })
+      .filter(
+        (entry): entry is readonly [string, string] => entry !== undefined,
+      )
+      .sort(([left], [right]) => left.localeCompare(right));
+    return `{${entries
+      .map(([key, item]) => `${JSON.stringify(key)}:${item}`)
+      .join(",")}}`;
+  }
+  return undefined;
 }
 
 function stringValue(value: unknown): string | undefined {
@@ -227,11 +327,50 @@ function referenceKey(reference: {
   ].join("\u0000");
 }
 
+function referenceResolved(
+  reference: ExternalReferenceInput,
+  pages: ReadonlyMap<string, MutablePage>,
+): boolean {
+  const referencedId = stringValue(reference.referencedId);
+  if (!referencedId) {
+    return false;
+  }
+  const pageId =
+    stringValue(reference.referencedPageId) ?? stringValue(reference.pageId);
+  if (!pageId) {
+    return false;
+  }
+  const page = pages.get(pageId);
+  const referencedLayerId = stringValue(reference.referencedLayerId);
+  const matches =
+    page?.elements?.filter((element) => {
+      if (stringValue(element.id) !== referencedId) {
+        return false;
+      }
+      if (
+        referencedLayerId !== undefined &&
+        stringValue(element.layerId) !== referencedLayerId
+      ) {
+        return false;
+      }
+      return true;
+    }) ?? [];
+  return matches.length === 1;
+}
+
 function elementKey(
   pageId: string,
-  element: { readonly id?: unknown; readonly pageId?: unknown },
+  element: {
+    readonly id?: unknown;
+    readonly pageId?: unknown;
+    readonly layerId?: unknown;
+  },
 ): string {
-  return `${stringValue(element.pageId) ?? pageId}\u0000${stringValue(element.id) ?? ""}`;
+  return [
+    stringValue(element.pageId) ?? pageId,
+    stringValue(element.layerId) ?? "",
+    stringValue(element.id) ?? "",
+  ].join("\u0000");
 }
 
 function hasContextOnlyFlag(value: unknown): boolean {
