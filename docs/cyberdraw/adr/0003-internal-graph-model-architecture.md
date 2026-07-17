@@ -164,6 +164,13 @@ selection scopes with response-side validation and no silent downgrade. This is
 implementation evidence for bounded runtime extraction; it still does not
 accept a public schema, public MCP tool, stable identity or mutation model.
 
+M6 benchmark update:
+`docs/cyberdraw/milestones/M6-runtime-snapshot-benchmarks.md` adds a private
+manual benchmark harness and synthetic evidence for document, pages, layers and
+selection scopes. Draft ADR 0004 proposes keeping scoped full snapshots as the
+primary M7 strategy and deferring chunking, streaming and incremental analysis
+until real-environment and identity evidence justify them.
+
 This ADR explicitly does not accept:
 
 - the current provisional identity strategy as definitive;

@@ -8,6 +8,8 @@
   "scripts": {
     "audit:dependencies": "corepack pnpm@11.13.0 --pm-on-fail=ignore audit --audit-level=moderate",
     "build": "pnpm -r build",
+    "benchmark:cyberdraw": "pnpm --filter cyberdraw-runtime-benchmarks... run build && pnpm --filter cyberdraw-runtime-benchmarks run benchmark",
+    "benchmark:cyberdraw:smoke": "pnpm --filter cyberdraw-runtime-benchmarks... run build && pnpm --filter cyberdraw-runtime-benchmarks run benchmark:smoke",
     "dev": "pnpm -r dev",
     "clean": "pnpm -r clean",
     "test": "pnpm -r test",

@@ -219,6 +219,12 @@ document, pages, layers and selection scopes to reduce runtime extraction and
 payload size while preserving the RFC's non-goals: no public API, no public MCP
 tool, no persisted model and no stable identity guarantee.
 
+M6 runtime snapshot benchmark evidence is recorded in
+`docs/cyberdraw/milestones/M6-runtime-snapshot-benchmarks.md`. It supports a
+scope-first and hierarchical M7 strategy and does not accept chunking,
+streaming, persistence, semantic diff, mutation planning or incremental
+analysis as product behavior.
+
 ## Data Model Proposal
 
 Use normalized entities keyed by internal ID, plus explicit references. Prefer
