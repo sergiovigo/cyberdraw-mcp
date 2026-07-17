@@ -52,6 +52,34 @@ importers:
         specifier: 'catalog:'
         version: 5.9.3
 
+  packages/cyberdraw-runtime-benchmarks:
+    dependencies:
+      cyberdraw-graph-model:
+        specifier: workspace:*
+        version: link:../cyberdraw-graph-model
+      cyberdraw-runtime-contract:
+        specifier: workspace:*
+        version: link:../cyberdraw-runtime-contract
+    devDependencies:
+      '@jest/globals':
+        specifier: 30.2.0
+        version: 30.2.0
+      '@types/jest':
+        specifier: 30.0.0
+        version: 30.0.0
+      '@types/node':
+        specifier: 25.0.3
+        version: 25.0.3
+      jest:
+        specifier: 30.2.0
+        version: 30.2.0(@types/node@25.0.3)(node-notifier@10.0.1)
+      rimraf:
+        specifier: 6.1.3
+        version: 6.1.3
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+
   packages/cyberdraw-runtime-contract:
     devDependencies:
       '@jest/globals':
@@ -315,11 +343,6 @@ packages:
   '@babel/helpers@7.29.7':
     resolution: {integrity: sha512-1k2lAGRMfHTcwuNYcCNUmaUffmQv8KWMfh2iJUUeRlwlwH4FdNG7mfPI10NPfLHJFThE4Tyr4mv7kTNZOiPuBg==}
     engines: {node: '>=6.9.0'}
-
-  '@babel/parser@7.29.2':
-    resolution: {integrity: sha512-4GgRzy/+fsBa72/RZVJmGKPmZu9Byn8o4MoLpmNe1m8ZfYnz5emHLQz3U4gLud6Zwl0RZIcgiLD7Uq7ySFuDLA==}
-    engines: {node: '>=6.0.0'}
-    hasBin: true
 
   '@babel/parser@7.29.7':
     resolution: {integrity: sha512-hnORnjP/1P/zFEndoeX+n+t1RwWRJiJpM/jO7FW32Kn9r5+sJB2JWOdYo4L6k78j15eCwY3Gm/7364B1EMwtNg==}
@@ -3902,10 +3925,6 @@ snapshots:
       '@babel/template': 7.29.7
       '@babel/types': 7.29.7
 
-  '@babel/parser@7.29.2':
-    dependencies:
-      '@babel/types': 7.29.7
-
   '@babel/parser@7.29.7':
     dependencies:
       '@babel/types': 7.29.7
@@ -6341,7 +6360,7 @@ snapshots:
 
   magicast@0.5.2:
     dependencies:
-      '@babel/parser': 7.29.2
+      '@babel/parser': 7.29.7
       '@babel/types': 7.29.7
       source-map-js: 1.2.1
 

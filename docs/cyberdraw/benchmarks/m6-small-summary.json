@@ -1,0 +1,2554 @@
+{
+  "generatedAt": "2026-07-16T17:38:41.123Z",
+  "benchmarkVersion": "m6-runtime-snapshot-benchmarks-v1",
+  "environment": {
+    "node": "v24.18.0",
+    "pnpm": "10.8.1",
+    "os": "Linux",
+    "arch": "x64",
+    "commit": "b5700560cdb1"
+  },
+  "config": {
+    "fixtures": [
+      "small"
+    ],
+    "iterations": 5,
+    "warmup": 2,
+    "seed": 424242,
+    "includeRaw": true,
+    "format": "json"
+  },
+  "results": [
+    {
+      "fixture": "small",
+      "scenario": {
+        "name": "document",
+        "category": "document",
+        "description": "Full document snapshot.",
+        "scope": {
+          "kind": "document"
+        }
+      },
+      "seed": 424242,
+      "iterations": 5,
+      "warmup": 2,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 8,
+        "elements": 360,
+        "nodes": 300,
+        "edges": 50,
+        "groups": 10,
+        "maxGroupDepth": 5,
+        "metadataKeysApprox": 1080,
+        "labelBytesApprox": 8640
+      },
+      "counts": {
+        "pagesVisited": 2,
+        "layersVisited": 8,
+        "elementsInspected": 360,
+        "elementsIncluded": 360,
+        "contextOnlyElements": 0,
+        "externalReferences": 0,
+        "diagnostics": 1
+      },
+      "hardLimitOutcome": "within-limit",
+      "graphModelFindings": 0,
+      "metrics": {
+        "scopeResolutionMs": {
+          "median": 50.30102599999998,
+          "p95": 89.08194400000002,
+          "min": 48.157137000000034,
+          "max": 89.08194400000002,
+          "mean": 61.96531980000001,
+          "stdev": 16.71354623103106
+        },
+        "syntheticTraversalMs": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        },
+        "syntheticExtractionMs": {
+          "median": 50.30102599999998,
+          "p95": 89.08194400000002,
+          "min": 48.157137000000034,
+          "max": 89.08194400000002,
+          "mean": 61.96531980000001,
+          "stdev": 16.71354623103106
+        },
+        "canonicalizationMs": {
+          "median": 9.841335999999956,
+          "p95": 10.673545999999988,
+          "min": 8.52669400000002,
+          "max": 10.673545999999988,
+          "mean": 9.71542119999999,
+          "stdev": 0.7522625234555689
+        },
+        "contentRevisionMs": {
+          "median": 0.019706000000041968,
+          "p95": 0.02235300000006646,
+          "min": 0.018650999999977103,
+          "max": 0.02235300000006646,
+          "mean": 0.02000420000001668,
+          "stdev": 0.0012501838904992804
+        },
+        "selectionRevisionMs": {
+          "median": 0.0008360000000493528,
+          "p95": 0.000887000000034277,
+          "min": 0.0007519999999203719,
+          "max": 0.000887000000034277,
+          "mean": 0.0008257999999955245,
+          "stdev": 0.000049680579736619095
+        },
+        "serializationMs": {
+          "median": 0.9923900000000003,
+          "p95": 1.2047190000000114,
+          "min": 0.915348999999992,
+          "max": 1.2047190000000114,
+          "mean": 1.0344939999999838,
+          "stdev": 0.09848774800147334
+        },
+        "validationMs": {
+          "median": 1.4490780000000996,
+          "p95": 1.5169259999998985,
+          "min": 1.3456539999999677,
+          "max": 1.5169259999998985,
+          "mean": 1.4382104000000027,
+          "stdev": 0.05564530801639188
+        },
+        "adapterMs": {
+          "median": 5.740884000000051,
+          "p95": 8.946051000000011,
+          "min": 4.711315000000013,
+          "max": 8.946051000000011,
+          "mean": 6.203854999999999,
+          "stdev": 1.4544491130963613
+        },
+        "normalizationMs": {
+          "median": 12.544400999999993,
+          "p95": 13.211831000000075,
+          "min": 10.707381999999939,
+          "max": 13.211831000000075,
+          "mean": 12.320300599999996,
+          "stdev": 0.8811812912091885
+        },
+        "freshnessMs": {
+          "median": 0.05320299999993949,
+          "p95": 0.05400699999995595,
+          "min": 0.0469869999999446,
+          "max": 0.05400699999995595,
+          "mean": 0.05205239999997957,
+          "stdev": 0.002577319196388651
+        },
+        "totalMs": {
+          "median": 78.99096199999997,
+          "p95": 120.439299,
+          "min": 77.93830700000001,
+          "max": 120.439299,
+          "mean": 92.76251400000001,
+          "stdev": 18.087521966215125
+        },
+        "jsonBytes": {
+          "median": 176098,
+          "p95": 176098,
+          "min": 176098,
+          "max": 176098,
+          "mean": 176098,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": 4704728,
+          "p95": 6461600,
+          "min": -10804040,
+          "max": 6461600,
+          "mean": 1340307.2,
+          "stdev": 6508615.2492159
+        }
+      },
+      "notes": []
+    },
+    {
+      "fixture": "small",
+      "scenario": {
+        "name": "pages-visible",
+        "category": "pages",
+        "description": "Single visible page.",
+        "scope": {
+          "kind": "pages",
+          "pageIds": [
+            "small-page-0"
+          ]
+        }
+      },
+      "seed": 424242,
+      "iterations": 5,
+      "warmup": 2,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 8,
+        "elements": 360,
+        "nodes": 300,
+        "edges": 50,
+        "groups": 10,
+        "maxGroupDepth": 5,
+        "metadataKeysApprox": 1080,
+        "labelBytesApprox": 8640
+      },
+      "counts": {
+        "pagesVisited": 1,
+        "layersVisited": 4,
+        "elementsInspected": 180,
+        "elementsIncluded": 180,
+        "contextOnlyElements": 0,
+        "externalReferences": 0,
+        "diagnostics": 1
+      },
+      "hardLimitOutcome": "within-limit",
+      "graphModelFindings": 0,
+      "metrics": {
+        "scopeResolutionMs": {
+          "median": 30.443450999999982,
+          "p95": 51.84521200000006,
+          "min": 21.22110600000019,
+          "max": 51.84521200000006,
+          "mean": 33.313792000000056,
+          "stdev": 10.113664263860644
+        },
+        "syntheticTraversalMs": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        },
+        "syntheticExtractionMs": {
+          "median": 30.443450999999982,
+          "p95": 51.84521200000006,
+          "min": 21.22110600000019,
+          "max": 51.84521200000006,
+          "mean": 33.313792000000056,
+          "stdev": 10.113664263860644
+        },
+        "canonicalizationMs": {
+          "median": 4.62188500000002,
+          "p95": 8.00016800000003,
+          "min": 4.311625000000049,
+          "max": 8.00016800000003,
+          "mean": 5.198874400000068,
+          "stdev": 1.406237286322258
+        },
+        "contentRevisionMs": {
+          "median": 0.019916999999850304,
+          "p95": 0.02868100000000595,
+          "min": 0.019636999999875115,
+          "max": 0.02868100000000595,
+          "mean": 0.022403799999983674,
+          "stdev": 0.0035671634333462846
+        },
+        "selectionRevisionMs": {
+          "median": 0.0006470000000717846,
+          "p95": 0.010867999999845779,
+          "min": 0.0005490000000918371,
+          "max": 0.010867999999845779,
+          "mean": 0.00266500000002452,
+          "stdev": 0.004101833297351457
+        },
+        "serializationMs": {
+          "median": 0.4398590000000695,
+          "p95": 0.6150710000000572,
+          "min": 0.4345900000000711,
+          "max": 0.6150710000000572,
+          "mean": 0.4837638000000652,
+          "stdev": 0.06925804351090566
+        },
+        "validationMs": {
+          "median": 0.7663500000001022,
+          "p95": 0.8899300000000494,
+          "min": 0.7405169999999544,
+          "max": 0.8899300000000494,
+          "mean": 0.7921140000000377,
+          "stdev": 0.05233189156527842
+        },
+        "adapterMs": {
+          "median": 2.402601000000004,
+          "p95": 5.340846000000056,
+          "min": 2.388868000000002,
+          "max": 5.340846000000056,
+          "mean": 3.1777136000000157,
+          "stdev": 1.1452134769400357
+        },
+        "normalizationMs": {
+          "median": 5.681694999999991,
+          "p95": 8.037882000000081,
+          "min": 4.483260999999857,
+          "max": 8.037882000000081,
+          "mean": 5.829603399999951,
+          "stdev": 1.3039743963034156
+        },
+        "freshnessMs": {
+          "median": 0.05082399999992049,
+          "p95": 0.0797420000000102,
+          "min": 0.04655899999988833,
+          "max": 0.0797420000000102,
+          "mean": 0.05635579999996025,
+          "stdev": 0.012148834617379011
+        },
+        "totalMs": {
+          "median": 46.308565000000044,
+          "p95": 71.18379600000003,
+          "min": 34.017672000000175,
+          "max": 71.18379600000003,
+          "mean": 48.88907140000008,
+          "stdev": 12.292803243366981
+        },
+        "jsonBytes": {
+          "median": 88927,
+          "p95": 88927,
+          "min": 88927,
+          "max": 88927,
+          "mean": 88927,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": -5970536,
+          "p95": 26680568,
+          "min": -6133592,
+          "max": 26680568,
+          "mean": 3865089.6,
+          "stdev": 13144003.027809657
+        }
+      },
+      "notes": [],
+      "documentBaselineBytes": 176098,
+      "scopedDocumentRatio": 0.5049858601460551,
+      "payloadReductionPercent": 49.50141398539449,
+      "timeReductionPercent": 41.37485627786117
+    },
+    {
+      "fixture": "small",
+      "scenario": {
+        "name": "pages-background",
+        "category": "pages",
+        "description": "Single background page.",
+        "scope": {
+          "kind": "pages",
+          "pageIds": [
+            "small-page-1"
+          ]
+        }
+      },
+      "seed": 424242,
+      "iterations": 5,
+      "warmup": 2,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 8,
+        "elements": 360,
+        "nodes": 300,
+        "edges": 50,
+        "groups": 10,
+        "maxGroupDepth": 5,
+        "metadataKeysApprox": 1080,
+        "labelBytesApprox": 8640
+      },
+      "counts": {
+        "pagesVisited": 1,
+        "layersVisited": 4,
+        "elementsInspected": 180,
+        "elementsIncluded": 180,
+        "contextOnlyElements": 0,
+        "externalReferences": 0,
+        "diagnostics": 1
+      },
+      "hardLimitOutcome": "within-limit",
+      "graphModelFindings": 0,
+      "metrics": {
+        "scopeResolutionMs": {
+          "median": 21.427477999999837,
+          "p95": 23.893826999999874,
+          "min": 21.245118000000048,
+          "max": 23.893826999999874,
+          "mean": 22.197225399999933,
+          "stdev": 1.0745185192597817
+        },
+        "syntheticTraversalMs": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        },
+        "syntheticExtractionMs": {
+          "median": 21.427477999999837,
+          "p95": 23.893826999999874,
+          "min": 21.245118000000048,
+          "max": 23.893826999999874,
+          "mean": 22.197225399999933,
+          "stdev": 1.0745185192597817
+        },
+        "canonicalizationMs": {
+          "median": 4.3854539999999815,
+          "p95": 6.122532999999976,
+          "min": 4.135976999999912,
+          "max": 6.122532999999976,
+          "mean": 4.719919199999959,
+          "stdev": 0.7182308138392473
+        },
+        "contentRevisionMs": {
+          "median": 0.019137000000000626,
+          "p95": 0.02878999999984444,
+          "min": 0.01862000000005537,
+          "max": 0.02878999999984444,
+          "mean": 0.021117000000003827,
+          "stdev": 0.0038679039284020703
+        },
+        "selectionRevisionMs": {
+          "median": 0.0007410000000618311,
+          "p95": 0.0008729999999559368,
+          "min": 0.0005640000001676526,
+          "max": 0.0008729999999559368,
+          "mean": 0.0007538000000295142,
+          "stdev": 0.00011085016907958983
+        },
+        "serializationMs": {
+          "median": 0.45034800000007635,
+          "p95": 0.9773999999999887,
+          "min": 0.3983149999999114,
+          "max": 0.9773999999999887,
+          "mean": 0.5478648000000248,
+          "stdev": 0.2159697258389605
+        },
+        "validationMs": {
+          "median": 0.7607940000000326,
+          "p95": 2.010206000000153,
+          "min": 0.7186899999999241,
+          "max": 2.010206000000153,
+          "mean": 1.0018490000000384,
+          "stdev": 0.5044428977952404
+        },
+        "adapterMs": {
+          "median": 2.396009000000049,
+          "p95": 2.5091030000000956,
+          "min": 2.240007999999989,
+          "max": 2.5091030000000956,
+          "mean": 2.3956202000000304,
+          "stdev": 0.09274652834349315
+        },
+        "normalizationMs": {
+          "median": 4.480264000000034,
+          "p95": 4.767049000000043,
+          "min": 4.104164999999966,
+          "max": 4.767049000000043,
+          "mean": 4.482116799999995,
+          "stdev": 0.21677702765137621
+        },
+        "freshnessMs": {
+          "median": 0.04917599999998856,
+          "p95": 0.07740399999988767,
+          "min": 0.04418600000008155,
+          "max": 0.07740399999988767,
+          "mean": 0.0538195999999516,
+          "stdev": 0.012001897743229635
+        },
+        "totalMs": {
+          "median": 34.71260599999982,
+          "p95": 38.62768699999992,
+          "min": 34.00604700000008,
+          "max": 38.62768699999992,
+          "mean": 35.42855379999992,
+          "stdev": 1.7044074903657644
+        },
+        "jsonBytes": {
+          "median": 88932,
+          "p95": 88932,
+          "min": 88932,
+          "max": 88932,
+          "mean": 88932,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": -5972712,
+          "p95": 26790664,
+          "min": -6237816,
+          "max": 26790664,
+          "mean": 534310.4,
+          "stdev": 13129494.730672704
+        }
+      },
+      "notes": [],
+      "documentBaselineBytes": 176098,
+      "scopedDocumentRatio": 0.5050142534270691,
+      "payloadReductionPercent": 49.49857465729309,
+      "timeReductionPercent": 56.054964870538186
+    },
+    {
+      "fixture": "small",
+      "scenario": {
+        "name": "pages-two",
+        "category": "pages",
+        "description": "Two-page subset.",
+        "scope": {
+          "kind": "pages",
+          "pageIds": [
+            "small-page-0",
+            "small-page-1"
+          ]
+        }
+      },
+      "seed": 424242,
+      "iterations": 5,
+      "warmup": 2,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 8,
+        "elements": 360,
+        "nodes": 300,
+        "edges": 50,
+        "groups": 10,
+        "maxGroupDepth": 5,
+        "metadataKeysApprox": 1080,
+        "labelBytesApprox": 8640
+      },
+      "counts": {
+        "pagesVisited": 2,
+        "layersVisited": 8,
+        "elementsInspected": 360,
+        "elementsIncluded": 360,
+        "contextOnlyElements": 0,
+        "externalReferences": 0,
+        "diagnostics": 1
+      },
+      "hardLimitOutcome": "within-limit",
+      "graphModelFindings": 0,
+      "metrics": {
+        "scopeResolutionMs": {
+          "median": 46.98545000000013,
+          "p95": 49.793382000000065,
+          "min": 44.6582699999999,
+          "max": 49.793382000000065,
+          "mean": 47.067830800000046,
+          "stdev": 1.6366985068659148
+        },
+        "syntheticTraversalMs": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        },
+        "syntheticExtractionMs": {
+          "median": 46.98545000000013,
+          "p95": 49.793382000000065,
+          "min": 44.6582699999999,
+          "max": 49.793382000000065,
+          "mean": 47.067830800000046,
+          "stdev": 1.6366985068659148
+        },
+        "canonicalizationMs": {
+          "median": 9.056030999999848,
+          "p95": 12.005308999999897,
+          "min": 9.020776000000069,
+          "max": 12.005308999999897,
+          "mean": 9.681862199999978,
+          "stdev": 1.1660044327056742
+        },
+        "contentRevisionMs": {
+          "median": 0.02395200000000841,
+          "p95": 0.025718000000097163,
+          "min": 0.023271999999906257,
+          "max": 0.025718000000097163,
+          "mean": 0.02412360000002991,
+          "stdev": 0.0008363555703629047
+        },
+        "selectionRevisionMs": {
+          "median": 0.0007809999999608408,
+          "p95": 0.0009889999998904386,
+          "min": 0.0007009999999354477,
+          "max": 0.0009889999998904386,
+          "mean": 0.0008213999999497901,
+          "stdev": 0.00009985910071493094
+        },
+        "serializationMs": {
+          "median": 1.0534430000000157,
+          "p95": 1.237421999999924,
+          "min": 1.0027010000001155,
+          "max": 1.237421999999924,
+          "mean": 1.0935911999999917,
+          "stdev": 0.0821649831092945
+        },
+        "validationMs": {
+          "median": 1.426635000000033,
+          "p95": 1.5098379999999452,
+          "min": 1.4027189999999337,
+          "max": 1.5098379999999452,
+          "mean": 1.4442645999999513,
+          "stdev": 0.03804767866033895
+        },
+        "adapterMs": {
+          "median": 4.410652000000027,
+          "p95": 12.139752000000044,
+          "min": 3.485875000000078,
+          "max": 12.139752000000044,
+          "mean": 5.880463000000009,
+          "stdev": 3.2082780923802776
+        },
+        "normalizationMs": {
+          "median": 8.031026999999995,
+          "p95": 15.089185999999927,
+          "min": 7.808185000000094,
+          "max": 15.089185999999927,
+          "mean": 9.451818600000024,
+          "stdev": 2.823688536037069
+        },
+        "freshnessMs": {
+          "median": 0.05449399999997695,
+          "p95": 0.05564400000002934,
+          "min": 0.05379399999992529,
+          "max": 0.05564400000002934,
+          "mean": 0.05454939999999624,
+          "stdev": 0.0006807541700560298
+        },
+        "totalMs": {
+          "median": 74.45762300000001,
+          "p95": 83.52392600000007,
+          "min": 70.10886299999993,
+          "max": 83.52392600000007,
+          "mean": 74.7099306,
+          "stdev": 4.85442919575819
+        },
+        "jsonBytes": {
+          "median": 176293,
+          "p95": 176293,
+          "min": 176293,
+          "max": 176293,
+          "mean": 176293,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": -11889312,
+          "p95": 20669096,
+          "min": -12617528,
+          "max": 20669096,
+          "mean": 751502.4,
+          "stdev": 15905710.002889624
+        }
+      },
+      "notes": [],
+      "documentBaselineBytes": 176098,
+      "scopedDocumentRatio": 1.0011073379595452,
+      "payloadReductionPercent": -0.11073379595451627,
+      "timeReductionPercent": 5.739060375033731
+    },
+    {
+      "fixture": "small",
+      "scenario": {
+        "name": "layers-small",
+        "category": "layers",
+        "description": "One small layer on the visible page.",
+        "scope": {
+          "kind": "layers",
+          "pageId": "small-page-0",
+          "layerIds": [
+            "small-page-0-layer-0"
+          ]
+        }
+      },
+      "seed": 424242,
+      "iterations": 5,
+      "warmup": 2,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 8,
+        "elements": 360,
+        "nodes": 300,
+        "edges": 50,
+        "groups": 10,
+        "maxGroupDepth": 5,
+        "metadataKeysApprox": 1080,
+        "labelBytesApprox": 8640
+      },
+      "counts": {
+        "pagesVisited": 1,
+        "layersVisited": 1,
+        "elementsInspected": 180,
+        "elementsIncluded": 49,
+        "contextOnlyElements": 4,
+        "externalReferences": 10,
+        "diagnostics": 1
+      },
+      "hardLimitOutcome": "within-limit",
+      "graphModelFindings": 4,
+      "metrics": {
+        "scopeResolutionMs": {
+          "median": 6.611245999999937,
+          "p95": 7.869787999999971,
+          "min": 6.298180999999886,
+          "max": 7.869787999999971,
+          "mean": 6.88798839999995,
+          "stdev": 0.5700950255551004
+        },
+        "syntheticTraversalMs": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        },
+        "syntheticExtractionMs": {
+          "median": 6.611245999999937,
+          "p95": 7.869787999999971,
+          "min": 6.298180999999886,
+          "max": 7.869787999999971,
+          "mean": 6.88798839999995,
+          "stdev": 0.5700950255551004
+        },
+        "canonicalizationMs": {
+          "median": 1.300179000000071,
+          "p95": 1.5508829999998852,
+          "min": 1.180466000000024,
+          "max": 1.5508829999998852,
+          "mean": 1.3179133999999977,
+          "stdev": 0.1253760994680667
+        },
+        "contentRevisionMs": {
+          "median": 0.019174999999904685,
+          "p95": 0.020615000000134387,
+          "min": 0.018301999999948748,
+          "max": 0.020615000000134387,
+          "mean": 0.019366000000036365,
+          "stdev": 0.0008491270812158915
+        },
+        "selectionRevisionMs": {
+          "median": 0.0007200000000011642,
+          "p95": 0.0008820000000469008,
+          "min": 0.0006750000000010914,
+          "max": 0.0008820000000469008,
+          "mean": 0.0007716000000073109,
+          "stdev": 0.00008928740111906982
+        },
+        "serializationMs": {
+          "median": 0.14202500000010332,
+          "p95": 0.14577299999996285,
+          "min": 0.13225299999999152,
+          "max": 0.14577299999996285,
+          "mean": 0.14012900000002446,
+          "stdev": 0.004609558937702549
+        },
+        "validationMs": {
+          "median": 0.28538800000001174,
+          "p95": 0.4342269999999644,
+          "min": 0.2666110000000117,
+          "max": 0.4342269999999644,
+          "mean": 0.31135119999999006,
+          "stdev": 0.06210883382385516
+        },
+        "adapterMs": {
+          "median": 0.7345480000001317,
+          "p95": 0.7831260000000384,
+          "min": 0.6774829999999383,
+          "max": 0.7831260000000384,
+          "mean": 0.7259198000000197,
+          "stdev": 0.03695836647584409
+        },
+        "normalizationMs": {
+          "median": 1.3548189999999067,
+          "p95": 1.3823509999999715,
+          "min": 1.3164100000001326,
+          "max": 1.3823509999999715,
+          "mean": 1.3507552000000032,
+          "stdev": 0.02742880976922546
+        },
+        "freshnessMs": {
+          "median": 0.04525699999999233,
+          "p95": 0.09695000000010623,
+          "min": 0.040369000000055166,
+          "max": 0.09695000000010623,
+          "mean": 0.05497340000006261,
+          "stdev": 0.021150065802285394
+        },
+        "totalMs": {
+          "median": 10.55004699999995,
+          "p95": 11.926097000000027,
+          "min": 10.272013000000015,
+          "max": 11.926097000000027,
+          "mean": 10.814227600000004,
+          "stdev": 0.6119644257802933
+        },
+        "jsonBytes": {
+          "median": 26645,
+          "p95": 26645,
+          "min": 26645,
+          "max": 26645,
+          "mean": 26645,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": 7811168,
+          "p95": 7822792,
+          "min": -25356696,
+          "max": 7822792,
+          "mean": 1176731.2,
+          "stdev": 13266717.183234598
+        }
+      },
+      "notes": [],
+      "documentBaselineBytes": 176098,
+      "scopedDocumentRatio": 0.15130779452350396,
+      "payloadReductionPercent": 84.8692205476496,
+      "timeReductionPercent": 86.64398213051265
+    },
+    {
+      "fixture": "small",
+      "scenario": {
+        "name": "layers-many",
+        "category": "layers",
+        "description": "Several layers on the visible page.",
+        "scope": {
+          "kind": "layers",
+          "pageId": "small-page-0",
+          "layerIds": [
+            "small-page-0-layer-0",
+            "small-page-0-layer-1"
+          ]
+        }
+      },
+      "seed": 424242,
+      "iterations": 5,
+      "warmup": 2,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 8,
+        "elements": 360,
+        "nodes": 300,
+        "edges": 50,
+        "groups": 10,
+        "maxGroupDepth": 5,
+        "metadataKeysApprox": 1080,
+        "labelBytesApprox": 8640
+      },
+      "counts": {
+        "pagesVisited": 1,
+        "layersVisited": 2,
+        "elementsInspected": 180,
+        "elementsIncluded": 93,
+        "contextOnlyElements": 3,
+        "externalReferences": 10,
+        "diagnostics": 1
+      },
+      "hardLimitOutcome": "within-limit",
+      "graphModelFindings": 3,
+      "metrics": {
+        "scopeResolutionMs": {
+          "median": 11.565664000000197,
+          "p95": 13.693275000000085,
+          "min": 11.288385999999718,
+          "max": 13.693275000000085,
+          "mean": 11.930654199999935,
+          "stdev": 0.8891370630690821
+        },
+        "syntheticTraversalMs": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        },
+        "syntheticExtractionMs": {
+          "median": 11.565664000000197,
+          "p95": 13.693275000000085,
+          "min": 11.288385999999718,
+          "max": 13.693275000000085,
+          "mean": 11.930654199999935,
+          "stdev": 0.8891370630690821
+        },
+        "canonicalizationMs": {
+          "median": 2.3779850000000806,
+          "p95": 4.62355400000024,
+          "min": 2.1942470000003595,
+          "max": 4.62355400000024,
+          "mean": 2.906503000000157,
+          "stdev": 0.9039695794813188
+        },
+        "contentRevisionMs": {
+          "median": 0.020817000000079133,
+          "p95": 0.023844000000281085,
+          "min": 0.019619999999576976,
+          "max": 0.023844000000281085,
+          "mean": 0.02172840000002907,
+          "stdev": 0.0017013839780372804
+        },
+        "selectionRevisionMs": {
+          "median": 0.0007940000000417058,
+          "p95": 0.2883649999998852,
+          "min": 0.0007829999999557913,
+          "max": 0.2883649999998852,
+          "mean": 0.05832420000006096,
+          "stdev": 0.11502040692563986
+        },
+        "serializationMs": {
+          "median": 0.24513699999988603,
+          "p95": 0.2840569999998479,
+          "min": 0.24185399999987567,
+          "max": 0.2840569999998479,
+          "mean": 0.25325859999993555,
+          "stdev": 0.01565686020371083
+        },
+        "validationMs": {
+          "median": 0.45641299999988405,
+          "p95": 0.6041869999999108,
+          "min": 0.4142219999998815,
+          "max": 0.6041869999999108,
+          "mean": 0.48515239999996995,
+          "stdev": 0.06638522493024608
+        },
+        "adapterMs": {
+          "median": 1.2112160000001495,
+          "p95": 1.6158319999999549,
+          "min": 1.189770999999837,
+          "max": 1.6158319999999549,
+          "mean": 1.3431209999999738,
+          "stdev": 0.18214109118802246
+        },
+        "normalizationMs": {
+          "median": 2.5285759999997026,
+          "p95": 9.868576000000303,
+          "min": 2.3643080000001646,
+          "max": 9.868576000000303,
+          "mean": 4.07906239999993,
+          "stdev": 2.907387117659851
+        },
+        "freshnessMs": {
+          "median": 0.0563680000000204,
+          "p95": 0.06015500000012253,
+          "min": 0.04654000000027736,
+          "max": 0.06015500000012253,
+          "mean": 0.0541906000000381,
+          "stdev": 0.005383551898036729
+        },
+        "totalMs": {
+          "median": 19.560746999999992,
+          "p95": 28.523063999999977,
+          "min": 18.10815999999977,
+          "max": 28.523063999999977,
+          "mean": 21.138026999999965,
+          "stdev": 3.778951589750553
+        },
+        "jsonBytes": {
+          "median": 48115,
+          "p95": 48115,
+          "min": 48115,
+          "max": 48115,
+          "mean": 48115,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": 14174944,
+          "p95": 14226640,
+          "min": -18833592,
+          "max": 14226640,
+          "mean": 1011915.2,
+          "stdev": 16143495.307236316
+        }
+      },
+      "notes": [],
+      "documentBaselineBytes": 176098,
+      "scopedDocumentRatio": 0.27322854319753775,
+      "payloadReductionPercent": 72.67714568024623,
+      "timeReductionPercent": 75.2367277157607
+    },
+    {
+      "fixture": "small",
+      "scenario": {
+        "name": "layers-cross-layer-edge",
+        "category": "layers",
+        "description": "Layer that includes edges with terminals outside scope.",
+        "scope": {
+          "kind": "layers",
+          "pageId": "small-page-0",
+          "layerIds": [
+            "small-page-0-layer-3"
+          ]
+        }
+      },
+      "seed": 424242,
+      "iterations": 5,
+      "warmup": 2,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 8,
+        "elements": 360,
+        "nodes": 300,
+        "edges": 50,
+        "groups": 10,
+        "maxGroupDepth": 5,
+        "metadataKeysApprox": 1080,
+        "labelBytesApprox": 8640
+      },
+      "counts": {
+        "pagesVisited": 1,
+        "layersVisited": 1,
+        "elementsInspected": 180,
+        "elementsIncluded": 48,
+        "contextOnlyElements": 3,
+        "externalReferences": 9,
+        "diagnostics": 1
+      },
+      "hardLimitOutcome": "within-limit",
+      "graphModelFindings": 3,
+      "metrics": {
+        "scopeResolutionMs": {
+          "median": 6.624264000000039,
+          "p95": 13.566796000000068,
+          "min": 6.100467000000208,
+          "max": 13.566796000000068,
+          "mean": 8.088094000000092,
+          "stdev": 2.8029023373933644
+        },
+        "syntheticTraversalMs": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        },
+        "syntheticExtractionMs": {
+          "median": 6.624264000000039,
+          "p95": 13.566796000000068,
+          "min": 6.100467000000208,
+          "max": 13.566796000000068,
+          "mean": 8.088094000000092,
+          "stdev": 2.8029023373933644
+        },
+        "canonicalizationMs": {
+          "median": 1.2671009999999114,
+          "p95": 1.5956719999999223,
+          "min": 1.2408940000000257,
+          "max": 1.5956719999999223,
+          "mean": 1.3358477999999194,
+          "stdev": 0.13216048461686705
+        },
+        "contentRevisionMs": {
+          "median": 0.01979799999980969,
+          "p95": 0.02040900000019974,
+          "min": 0.019451000000117347,
+          "max": 0.02040900000019974,
+          "mean": 0.01987760000001799,
+          "stdev": 0.00033173157824209037
+        },
+        "selectionRevisionMs": {
+          "median": 0.0007350000000769796,
+          "p95": 0.0008420000003752648,
+          "min": 0.0005679999999301799,
+          "max": 0.0008420000003752648,
+          "mean": 0.0007212000001345587,
+          "stdev": 0.00009750774337345355
+        },
+        "serializationMs": {
+          "median": 0.1424250000000029,
+          "p95": 0.14570899999989706,
+          "min": 0.13709800000015093,
+          "max": 0.14570899999989706,
+          "mean": 0.14154980000002979,
+          "stdev": 0.0028633360542578185
+        },
+        "validationMs": {
+          "median": 0.2889020000002347,
+          "p95": 0.293833999999606,
+          "min": 0.27743999999984226,
+          "max": 0.293833999999606,
+          "mean": 0.28693640000001325,
+          "stdev": 0.0054884856052872895
+        },
+        "adapterMs": {
+          "median": 0.6703529999999773,
+          "p95": 0.7700399999998808,
+          "min": 0.6397670000001199,
+          "max": 0.7700399999998808,
+          "mean": 0.6847971999999573,
+          "stdev": 0.04455968570079839
+        },
+        "normalizationMs": {
+          "median": 1.254504999999881,
+          "p95": 1.8657829999997375,
+          "min": 1.2056900000002315,
+          "max": 1.8657829999997375,
+          "mean": 1.3991892000000008,
+          "stdev": 0.24418358142371904
+        },
+        "freshnessMs": {
+          "median": 0.045133999999961816,
+          "p95": 0.05112099999996644,
+          "min": 0.04437199999983932,
+          "max": 0.05112099999996644,
+          "mean": 0.04706559999985984,
+          "stdev": 0.002861250677611024
+        },
+        "totalMs": {
+          "median": 10.910055000000284,
+          "p95": 17.488962999999785,
+          "min": 9.882098999999926,
+          "max": 17.488962999999785,
+          "mean": 12.008939799999917,
+          "stdev": 2.8327418413797365
+        },
+        "jsonBytes": {
+          "median": 26112,
+          "p95": 26112,
+          "min": 26112,
+          "max": 26112,
+          "mean": 26112,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": 7612568,
+          "p95": 7615800,
+          "min": -25669848,
+          "max": 7615800,
+          "mean": 956355.2,
+          "stdev": 13313101.701578494
+        }
+      },
+      "notes": [],
+      "documentBaselineBytes": 176098,
+      "scopedDocumentRatio": 0.1482810707674136,
+      "payloadReductionPercent": 85.17189292325864,
+      "timeReductionPercent": 86.18822366032168
+    },
+    {
+      "fixture": "small",
+      "scenario": {
+        "name": "layers-many-external-references",
+        "category": "layers",
+        "description": "Layer likely to produce many external references.",
+        "scope": {
+          "kind": "layers",
+          "pageId": "small-page-0",
+          "layerIds": [
+            "small-page-0-layer-3"
+          ]
+        }
+      },
+      "seed": 424242,
+      "iterations": 5,
+      "warmup": 2,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 8,
+        "elements": 360,
+        "nodes": 300,
+        "edges": 50,
+        "groups": 10,
+        "maxGroupDepth": 5,
+        "metadataKeysApprox": 1080,
+        "labelBytesApprox": 8640
+      },
+      "counts": {
+        "pagesVisited": 1,
+        "layersVisited": 1,
+        "elementsInspected": 180,
+        "elementsIncluded": 48,
+        "contextOnlyElements": 3,
+        "externalReferences": 9,
+        "diagnostics": 1
+      },
+      "hardLimitOutcome": "within-limit",
+      "graphModelFindings": 3,
+      "metrics": {
+        "scopeResolutionMs": {
+          "median": 6.136316999999963,
+          "p95": 8.27221899999995,
+          "min": 6.116426999999931,
+          "max": 8.27221899999995,
+          "mean": 6.606000199999926,
+          "stdev": 0.8393334685988515
+        },
+        "syntheticTraversalMs": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        },
+        "syntheticExtractionMs": {
+          "median": 6.136316999999963,
+          "p95": 8.27221899999995,
+          "min": 6.116426999999931,
+          "max": 8.27221899999995,
+          "mean": 6.606000199999926,
+          "stdev": 0.8393334685988515
+        },
+        "canonicalizationMs": {
+          "median": 1.2691909999998643,
+          "p95": 1.2809320000001208,
+          "min": 1.2540690000000723,
+          "max": 1.2809320000001208,
+          "mean": 1.2692195999999967,
+          "stdev": 0.010099967873219526
+        },
+        "contentRevisionMs": {
+          "median": 0.019412000000102125,
+          "p95": 0.019768000000112806,
+          "min": 0.019314000000122178,
+          "max": 0.019768000000112806,
+          "mean": 0.019529600000078064,
+          "stdev": 0.00018801765866791018
+        },
+        "selectionRevisionMs": {
+          "median": 0.0007380000001830922,
+          "p95": 0.0007860000000619038,
+          "min": 0.0006339999999909196,
+          "max": 0.0007860000000619038,
+          "mean": 0.0007352000000537373,
+          "stdev": 0.00005498145142663201
+        },
+        "serializationMs": {
+          "median": 0.14794099999971877,
+          "p95": 0.15978799999993498,
+          "min": 0.13987300000007963,
+          "max": 0.15978799999993498,
+          "mean": 0.14749519999995755,
+          "stdev": 0.007078396355009268
+        },
+        "validationMs": {
+          "median": 0.2868820000003325,
+          "p95": 0.2949069999999665,
+          "min": 0.2836379999998826,
+          "max": 0.2949069999999665,
+          "mean": 0.28831679999993864,
+          "stdev": 0.003913148880405793
+        },
+        "adapterMs": {
+          "median": 0.645328999999947,
+          "p95": 0.6497060000001511,
+          "min": 0.6356249999998909,
+          "max": 0.6497060000001511,
+          "mean": 0.644564999999966,
+          "stdev": 0.005053309212801007
+        },
+        "normalizationMs": {
+          "median": 1.2402889999998479,
+          "p95": 1.2611820000001899,
+          "min": 1.2352780000001076,
+          "max": 1.2611820000001899,
+          "mean": 1.2435042000000975,
+          "stdev": 0.009222487850962283
+        },
+        "freshnessMs": {
+          "median": 0.043572000000040134,
+          "p95": 0.044425999999930355,
+          "min": 0.04321200000003955,
+          "max": 0.044425999999930355,
+          "mean": 0.043651200000022074,
+          "stdev": 0.0004260579302860239
+        },
+        "totalMs": {
+          "median": 9.802198000000317,
+          "p95": 11.971337999999832,
+          "min": 9.755216999999902,
+          "max": 11.971337999999832,
+          "mean": 10.26785179999997,
+          "stdev": 0.8575310966746583
+        },
+        "jsonBytes": {
+          "median": 26112,
+          "p95": 26112,
+          "min": 26112,
+          "max": 26112,
+          "mean": 26112,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": 7612416,
+          "p95": 7634120,
+          "min": -25653392,
+          "max": 7634120,
+          "mean": 961553.6,
+          "stdev": 13307476.898274258
+        }
+      },
+      "notes": [],
+      "documentBaselineBytes": 176098,
+      "scopedDocumentRatio": 0.1482810707674136,
+      "payloadReductionPercent": 85.17189292325864,
+      "timeReductionPercent": 87.59073474760274
+    },
+    {
+      "fixture": "small",
+      "scenario": {
+        "name": "selection-empty",
+        "category": "selection",
+        "description": "Empty UI selection.",
+        "scope": {
+          "kind": "selection",
+          "pageId": "small-page-0"
+        },
+        "mutate": "selection-only"
+      },
+      "seed": 424242,
+      "iterations": 5,
+      "warmup": 2,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 8,
+        "elements": 360,
+        "nodes": 300,
+        "edges": 50,
+        "groups": 10,
+        "maxGroupDepth": 5,
+        "metadataKeysApprox": 1080,
+        "labelBytesApprox": 8640
+      },
+      "counts": {
+        "pagesVisited": 1,
+        "layersVisited": 4,
+        "elementsInspected": 180,
+        "elementsIncluded": 0,
+        "contextOnlyElements": 0,
+        "externalReferences": 0,
+        "diagnostics": 1
+      },
+      "hardLimitOutcome": "within-limit",
+      "graphModelFindings": 0,
+      "metrics": {
+        "scopeResolutionMs": {
+          "median": 0.5179849999999533,
+          "p95": 1.0508169999998245,
+          "min": 0.5009300000001531,
+          "max": 1.0508169999998245,
+          "mean": 0.62026079999996,
+          "stdev": 0.21552014267100714
+        },
+        "syntheticTraversalMs": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        },
+        "syntheticExtractionMs": {
+          "median": 0.5179849999999533,
+          "p95": 1.0508169999998245,
+          "min": 0.5009300000001531,
+          "max": 1.0508169999998245,
+          "mean": 0.62026079999996,
+          "stdev": 0.21552014267100714
+        },
+        "canonicalizationMs": {
+          "median": 0.10179299999981595,
+          "p95": 0.1026600000000144,
+          "min": 0.10064899999997579,
+          "max": 0.1026600000000144,
+          "mean": 0.1018037999999251,
+          "stdev": 0.0006681668653593604
+        },
+        "contentRevisionMs": {
+          "median": 0.016256999999768595,
+          "p95": 0.01630700000032448,
+          "min": 0.016006999999717664,
+          "max": 0.01630700000032448,
+          "mean": 0.016179399999964518,
+          "stdev": 0.00013630201773892685
+        },
+        "selectionRevisionMs": {
+          "median": 0.0008430000002590532,
+          "p95": 0.001010999999834894,
+          "min": 0.0008120000002236338,
+          "max": 0.001010999999834894,
+          "mean": 0.0008726000000024214,
+          "stdev": 0.00007060481559713498
+        },
+        "serializationMs": {
+          "median": 0.01903600000014194,
+          "p95": 0.019460999999864725,
+          "min": 0.018814999999904103,
+          "max": 0.019460999999864725,
+          "mean": 0.01910939999997936,
+          "stdev": 0.00025898772169663764
+        },
+        "validationMs": {
+          "median": 0.05897300000015093,
+          "p95": 0.0616730000001553,
+          "min": 0.05817799999977069,
+          "max": 0.0616730000001553,
+          "mean": 0.05933940000004441,
+          "stdev": 0.0012062229645500367
+        },
+        "adapterMs": {
+          "median": 0.009829000000081578,
+          "p95": 0.010970000000270375,
+          "min": 0.009389999999712018,
+          "max": 0.010970000000270375,
+          "mean": 0.009962400000040362,
+          "stdev": 0.0005344300142716865
+        },
+        "normalizationMs": {
+          "median": 0.03196799999977884,
+          "p95": 0.033950999999888154,
+          "min": 0.031335000000126456,
+          "max": 0.033950999999888154,
+          "mean": 0.03236340000003111,
+          "stdev": 0.0010142935669952189
+        },
+        "freshnessMs": {
+          "median": 0.03378599999996368,
+          "p95": 0.034183000000211905,
+          "min": 0.033474999999725696,
+          "max": 0.034183000000211905,
+          "mean": 0.0338024000000587,
+          "stdev": 0.0002268149908397333
+        },
+        "totalMs": {
+          "median": 0.7950470000000678,
+          "p95": 1.332915999999841,
+          "min": 0.7753789999997025,
+          "max": 1.332915999999841,
+          "mean": 0.8972123999999895,
+          "stdev": 0.21812086512713216
+        },
+        "jsonBytes": {
+          "median": 2463,
+          "p95": 2463,
+          "min": 2463,
+          "max": 2463,
+          "mean": 2463,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": 563856,
+          "p95": 570312,
+          "min": 563728,
+          "max": 570312,
+          "mean": 565736,
+          "stdev": 2604.3901397448117
+        }
+      },
+      "notes": [
+        "Selection scope is UI-bound; synthetic benchmark models selected IDs only."
+      ],
+      "documentBaselineBytes": 176098,
+      "scopedDocumentRatio": 0.013986530227486967,
+      "payloadReductionPercent": 98.6013469772513,
+      "timeReductionPercent": 98.99349624327898
+    },
+    {
+      "fixture": "small",
+      "scenario": {
+        "name": "selection-one",
+        "category": "selection",
+        "description": "One selected element.",
+        "scope": {
+          "kind": "selection",
+          "pageId": "small-page-0"
+        }
+      },
+      "seed": 424242,
+      "iterations": 5,
+      "warmup": 2,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 8,
+        "elements": 360,
+        "nodes": 300,
+        "edges": 50,
+        "groups": 10,
+        "maxGroupDepth": 5,
+        "metadataKeysApprox": 1080,
+        "labelBytesApprox": 8640
+      },
+      "counts": {
+        "pagesVisited": 1,
+        "layersVisited": 4,
+        "elementsInspected": 180,
+        "elementsIncluded": 1,
+        "contextOnlyElements": 0,
+        "externalReferences": 0,
+        "diagnostics": 1
+      },
+      "hardLimitOutcome": "within-limit",
+      "graphModelFindings": 0,
+      "metrics": {
+        "scopeResolutionMs": {
+          "median": 0.6254509999998845,
+          "p95": 0.7455649999997149,
+          "min": 0.619108000000324,
+          "max": 0.7455649999997149,
+          "mean": 0.6485496000000239,
+          "stdev": 0.048683116529501226
+        },
+        "syntheticTraversalMs": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        },
+        "syntheticExtractionMs": {
+          "median": 0.6254509999998845,
+          "p95": 0.7455649999997149,
+          "min": 0.619108000000324,
+          "max": 0.7455649999997149,
+          "mean": 0.6485496000000239,
+          "stdev": 0.048683116529501226
+        },
+        "canonicalizationMs": {
+          "median": 0.12653299999965384,
+          "p95": 0.23022200000013981,
+          "min": 0.12530400000014197,
+          "max": 0.23022200000013981,
+          "mean": 0.14694879999997285,
+          "stdev": 0.041640940947184346
+        },
+        "contentRevisionMs": {
+          "median": 0.016270999999960623,
+          "p95": 0.016660999999658088,
+          "min": 0.016066000000137137,
+          "max": 0.016660999999658088,
+          "mean": 0.01631440000001021,
+          "stdev": 0.00019380980351971436
+        },
+        "selectionRevisionMs": {
+          "median": 0.0008760000000620494,
+          "p95": 0.0009609999997337582,
+          "min": 0.0008560000001125445,
+          "max": 0.0009609999997337582,
+          "mean": 0.0008901999999579857,
+          "stdev": 0.000036624581786360455
+        },
+        "serializationMs": {
+          "median": 0.02279900000030466,
+          "p95": 0.023272999999790045,
+          "min": 0.02264999999988504,
+          "max": 0.023272999999790045,
+          "mean": 0.022875199999998586,
+          "stdev": 0.0002143738789359222
+        },
+        "validationMs": {
+          "median": 0.06597700000020268,
+          "p95": 0.07401900000013484,
+          "min": 0.06555299999990893,
+          "max": 0.07401900000013484,
+          "mean": 0.06761020000003555,
+          "stdev": 0.0032375528660234243
+        },
+        "adapterMs": {
+          "median": 0.03478899999981877,
+          "p95": 0.08142399999996996,
+          "min": 0.032418999999663356,
+          "max": 0.08142399999996996,
+          "mean": 0.044381199999861565,
+          "stdev": 0.018752334632310106
+        },
+        "normalizationMs": {
+          "median": 0.07493599999997969,
+          "p95": 0.0800760000001901,
+          "min": 0.0713660000001255,
+          "max": 0.0800760000001901,
+          "mean": 0.07555059999995137,
+          "stdev": 0.003391392610682355
+        },
+        "freshnessMs": {
+          "median": 0.03475299999990966,
+          "p95": 0.0374019999999291,
+          "min": 0.034443000000010215,
+          "max": 0.0374019999999291,
+          "mean": 0.03526879999999437,
+          "stdev": 0.0010893011337308552
+        },
+        "totalMs": {
+          "median": 1.0548140000000785,
+          "p95": 1.123689000000013,
+          "min": 0.9999659999998585,
+          "max": 1.123689000000013,
+          "mean": 1.0620444000000133,
+          "stdev": 0.048933993798271014
+        },
+        "jsonBytes": {
+          "median": 2910,
+          "p95": 2910,
+          "min": 2910,
+          "max": 2910,
+          "mean": 2910,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": 701912,
+          "p95": 711912,
+          "min": 701864,
+          "max": 711912,
+          "mean": 703969.6,
+          "stdev": 3973.578014837509
+        }
+      },
+      "notes": [
+        "Selection scope is UI-bound; synthetic benchmark models selected IDs only."
+      ],
+      "documentBaselineBytes": 176098,
+      "scopedDocumentRatio": 0.016524889550136857,
+      "payloadReductionPercent": 98.34751104498632,
+      "timeReductionPercent": 98.6646396330759
+    },
+    {
+      "fixture": "small",
+      "scenario": {
+        "name": "selection-multiple",
+        "category": "selection",
+        "description": "Multiple selected elements including group and edge when available.",
+        "scope": {
+          "kind": "selection",
+          "pageId": "small-page-0"
+        }
+      },
+      "seed": 424242,
+      "iterations": 5,
+      "warmup": 2,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 8,
+        "elements": 360,
+        "nodes": 300,
+        "edges": 50,
+        "groups": 10,
+        "maxGroupDepth": 5,
+        "metadataKeysApprox": 1080,
+        "labelBytesApprox": 8640
+      },
+      "counts": {
+        "pagesVisited": 1,
+        "layersVisited": 4,
+        "elementsInspected": 180,
+        "elementsIncluded": 3,
+        "contextOnlyElements": 0,
+        "externalReferences": 1,
+        "diagnostics": 1
+      },
+      "hardLimitOutcome": "within-limit",
+      "graphModelFindings": 0,
+      "metrics": {
+        "scopeResolutionMs": {
+          "median": 0.8853359999998247,
+          "p95": 0.8914159999999356,
+          "min": 0.8783239999997932,
+          "max": 0.8914159999999356,
+          "mean": 0.8855111999998371,
+          "stdev": 0.005029792496791753
+        },
+        "syntheticTraversalMs": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        },
+        "syntheticExtractionMs": {
+          "median": 0.8853359999998247,
+          "p95": 0.8914159999999356,
+          "min": 0.8783239999997932,
+          "max": 0.8914159999999356,
+          "mean": 0.8855111999998371,
+          "stdev": 0.005029792496791753
+        },
+        "canonicalizationMs": {
+          "median": 0.1786389999997482,
+          "p95": 0.19394499999998516,
+          "min": 0.17595200000005207,
+          "max": 0.19394499999998516,
+          "mean": 0.1823669999998856,
+          "stdev": 0.006566121381787842
+        },
+        "contentRevisionMs": {
+          "median": 0.0169530000002851,
+          "p95": 0.01722399999971458,
+          "min": 0.016612999999779277,
+          "max": 0.01722399999971458,
+          "mean": 0.016924999999991995,
+          "stdev": 0.0002551289868682948
+        },
+        "selectionRevisionMs": {
+          "median": 0.0008609999999862339,
+          "p95": 0.0009150000000772707,
+          "min": 0.0008549999997740088,
+          "max": 0.0009150000000772707,
+          "mean": 0.0008764000000155648,
+          "stdev": 0.00002460569042609405
+        },
+        "serializationMs": {
+          "median": 0.02928799999972398,
+          "p95": 0.02979800000002797,
+          "min": 0.028874000000087108,
+          "max": 0.02979800000002797,
+          "mean": 0.029324799999994867,
+          "stdev": 0.00030624330193351426
+        },
+        "validationMs": {
+          "median": 0.07720600000038758,
+          "p95": 0.0808790000000954,
+          "min": 0.07579799999984971,
+          "max": 0.0808790000000954,
+          "mean": 0.0776996000001418,
+          "stdev": 0.0017039545299278474
+        },
+        "adapterMs": {
+          "median": 0.06259500000032858,
+          "p95": 0.0672220000001289,
+          "min": 0.061397999999826425,
+          "max": 0.0672220000001289,
+          "mean": 0.0633404000000155,
+          "stdev": 0.0020110071706268915
+        },
+        "normalizationMs": {
+          "median": 0.12748400000009497,
+          "p95": 0.1379109999998036,
+          "min": 0.12655999999969936,
+          "max": 0.1379109999998036,
+          "mean": 0.1296053999999458,
+          "stdev": 0.004277162030976936
+        },
+        "freshnessMs": {
+          "median": 0.03593200000022989,
+          "p95": 0.4315870000000359,
+          "min": 0.035390000000006694,
+          "max": 0.4315870000000359,
+          "mean": 0.11528399999997418,
+          "stdev": 0.1581533644372118
+        },
+        "totalMs": {
+          "median": 1.428812999999991,
+          "p95": 1.814574999999877,
+          "min": 1.4179989999997815,
+          "max": 1.814574999999877,
+          "mean": 1.5047699999999167,
+          "stdev": 0.15499412682032104
+        },
+        "jsonBytes": {
+          "median": 3930,
+          "p95": 3930,
+          "min": 3930,
+          "max": 3930,
+          "mean": 3930,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": 1012344,
+          "p95": 1014800,
+          "min": 1011688,
+          "max": 1014800,
+          "mean": 1012683.2,
+          "stdev": 1122.5867271618704
+        }
+      },
+      "notes": [
+        "Selection scope is UI-bound; synthetic benchmark models selected IDs only."
+      ],
+      "documentBaselineBytes": 176098,
+      "scopedDocumentRatio": 0.02231711887698895,
+      "payloadReductionPercent": 97.76828811230111,
+      "timeReductionPercent": 98.1911690099432
+    },
+    {
+      "fixture": "small",
+      "scenario": {
+        "name": "freshness-no-change",
+        "category": "freshness",
+        "description": "Recapture without content changes.",
+        "scope": {
+          "kind": "pages",
+          "pageIds": [
+            "small-page-0"
+          ]
+        },
+        "mutate": "none"
+      },
+      "seed": 424242,
+      "iterations": 5,
+      "warmup": 2,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 8,
+        "elements": 360,
+        "nodes": 300,
+        "edges": 50,
+        "groups": 10,
+        "maxGroupDepth": 5,
+        "metadataKeysApprox": 1080,
+        "labelBytesApprox": 8640
+      },
+      "counts": {
+        "pagesVisited": 1,
+        "layersVisited": 4,
+        "elementsInspected": 180,
+        "elementsIncluded": 180,
+        "contextOnlyElements": 0,
+        "externalReferences": 0,
+        "diagnostics": 1
+      },
+      "hardLimitOutcome": "within-limit",
+      "graphModelFindings": 0,
+      "metrics": {
+        "scopeResolutionMs": {
+          "median": 22.63876500000015,
+          "p95": 30.69786299999987,
+          "min": 19.789236000000074,
+          "max": 30.69786299999987,
+          "mean": 24.629757000000062,
+          "stdev": 4.46260008860695
+        },
+        "syntheticTraversalMs": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        },
+        "syntheticExtractionMs": {
+          "median": 22.63876500000015,
+          "p95": 30.69786299999987,
+          "min": 19.789236000000074,
+          "max": 30.69786299999987,
+          "mean": 24.629757000000062,
+          "stdev": 4.46260008860695
+        },
+        "canonicalizationMs": {
+          "median": 4.372397000000092,
+          "p95": 10.612672000000202,
+          "min": 4.1744330000001355,
+          "max": 10.612672000000202,
+          "mean": 6.062492400000155,
+          "stdev": 2.4787015530850787
+        },
+        "contentRevisionMs": {
+          "median": 0.018970999999964988,
+          "p95": 0.029606999999941763,
+          "min": 0.017184999999699357,
+          "max": 0.029606999999941763,
+          "mean": 0.021072799999910786,
+          "stdev": 0.0044829773321035426
+        },
+        "selectionRevisionMs": {
+          "median": 0.00084500000002663,
+          "p95": 0.00094600000011269,
+          "min": 0.0007630000000062864,
+          "max": 0.00094600000011269,
+          "mean": 0.0008672000000842673,
+          "stdev": 0.00006798646928243382
+        },
+        "serializationMs": {
+          "median": 0.48286800000005314,
+          "p95": 0.5849379999999655,
+          "min": 0.4445660000001226,
+          "max": 0.5849379999999655,
+          "mean": 0.5018276000000697,
+          "stdev": 0.051681412355276284
+        },
+        "validationMs": {
+          "median": 0.7592509999999493,
+          "p95": 0.8508449999999357,
+          "min": 0.7507919999998194,
+          "max": 0.8508449999999357,
+          "mean": 0.7788175999999112,
+          "stdev": 0.03705972685598904
+        },
+        "adapterMs": {
+          "median": 2.95819100000017,
+          "p95": 9.1769290000002,
+          "min": 2.156847999999627,
+          "max": 9.1769290000002,
+          "mean": 3.950928399999975,
+          "stdev": 2.6416430865513356
+        },
+        "normalizationMs": {
+          "median": 4.475105999999869,
+          "p95": 8.72050900000022,
+          "min": 4.345848999999816,
+          "max": 8.72050900000022,
+          "mean": 5.617200999999932,
+          "stdev": 1.6919938610891188
+        },
+        "freshnessMs": {
+          "median": 0.05332799999996496,
+          "p95": 0.07319600000028004,
+          "min": 0.046569000000090455,
+          "max": 0.07319600000028004,
+          "mean": 0.05543060000009063,
+          "stdev": 0.00928986319822296
+        },
+        "totalMs": {
+          "median": 39.50652500000024,
+          "p95": 54.34499000000005,
+          "min": 32.69488900000033,
+          "max": 54.34499000000005,
+          "mean": 41.62496900000006,
+          "stdev": 7.979346950597887
+        },
+        "jsonBytes": {
+          "median": 88927,
+          "p95": 88927,
+          "min": 88927,
+          "max": 88927,
+          "mean": 88927,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": -5814608,
+          "p95": 26619288,
+          "min": -40041152,
+          "max": 26619288,
+          "mean": 210249.6,
+          "stdev": 24849364.56383963
+        }
+      },
+      "notes": [],
+      "documentBaselineBytes": 176098,
+      "scopedDocumentRatio": 0.5049858601460551,
+      "payloadReductionPercent": 49.50141398539449,
+      "timeReductionPercent": 49.98601865362742
+    },
+    {
+      "fixture": "small",
+      "scenario": {
+        "name": "freshness-inside-scope",
+        "category": "freshness",
+        "description": "Recapture after content inside scope changes.",
+        "scope": {
+          "kind": "pages",
+          "pageIds": [
+            "small-page-0"
+          ]
+        },
+        "mutate": "inside-scope"
+      },
+      "seed": 424242,
+      "iterations": 5,
+      "warmup": 2,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 8,
+        "elements": 360,
+        "nodes": 300,
+        "edges": 50,
+        "groups": 10,
+        "maxGroupDepth": 5,
+        "metadataKeysApprox": 1080,
+        "labelBytesApprox": 8640
+      },
+      "counts": {
+        "pagesVisited": 1,
+        "layersVisited": 4,
+        "elementsInspected": 180,
+        "elementsIncluded": 180,
+        "contextOnlyElements": 0,
+        "externalReferences": 0,
+        "diagnostics": 1
+      },
+      "hardLimitOutcome": "within-limit",
+      "graphModelFindings": 0,
+      "metrics": {
+        "scopeResolutionMs": {
+          "median": 21.553382000000056,
+          "p95": 38.55450999999994,
+          "min": 21.27324699999963,
+          "max": 38.55450999999994,
+          "mean": 25.168314399999872,
+          "stdev": 6.721591007053062
+        },
+        "syntheticTraversalMs": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        },
+        "syntheticExtractionMs": {
+          "median": 21.553382000000056,
+          "p95": 38.55450999999994,
+          "min": 21.27324699999963,
+          "max": 38.55450999999994,
+          "mean": 25.168314399999872,
+          "stdev": 6.721591007053062
+        },
+        "canonicalizationMs": {
+          "median": 4.36013899999989,
+          "p95": 5.442164000000048,
+          "min": 4.233576000000085,
+          "max": 5.442164000000048,
+          "mean": 4.631603399999949,
+          "stdev": 0.4454684408025284
+        },
+        "contentRevisionMs": {
+          "median": 0.019830000000183645,
+          "p95": 0.04155300000002171,
+          "min": 0.017039000000295346,
+          "max": 0.04155300000002171,
+          "mean": 0.02338820000013584,
+          "stdev": 0.009144445251568347
+        },
+        "selectionRevisionMs": {
+          "median": 0.0008519999996678962,
+          "p95": 0.0009220000001732842,
+          "min": 0.0007310000000870787,
+          "max": 0.0009220000001732842,
+          "mean": 0.0008431999999629625,
+          "stdev": 0.0000648672490287723
+        },
+        "serializationMs": {
+          "median": 0.4406850000000304,
+          "p95": 0.46459699999968507,
+          "min": 0.41930900000033944,
+          "max": 0.46459699999968507,
+          "mean": 0.440530200000012,
+          "stdev": 0.014588715658139429
+        },
+        "validationMs": {
+          "median": 0.7613270000001648,
+          "p95": 0.7938099999996666,
+          "min": 0.6775689999999486,
+          "max": 0.7938099999996666,
+          "mean": 0.7426416000000244,
+          "stdev": 0.04029256228433419
+        },
+        "adapterMs": {
+          "median": 2.219524999999976,
+          "p95": 2.436420999999882,
+          "min": 1.9949780000001738,
+          "max": 2.436420999999882,
+          "mean": 2.211912199999915,
+          "stdev": 0.14521643214918392
+        },
+        "normalizationMs": {
+          "median": 4.170294999999896,
+          "p95": 10.859273999999914,
+          "min": 3.9028950000001714,
+          "max": 10.859273999999914,
+          "mean": 5.457306200000039,
+          "stdev": 2.704989095025007
+        },
+        "freshnessMs": {
+          "median": 0.05036800000016228,
+          "p95": 0.08945300000004863,
+          "min": 0.04569499999979598,
+          "max": 0.08945300000004863,
+          "mean": 0.0578602000000501,
+          "stdev": 0.016201327197483895
+        },
+        "totalMs": {
+          "median": 35.430733000000146,
+          "p95": 50.0043169999999,
+          "min": 33.80830799999967,
+          "max": 50.0043169999999,
+          "mean": 38.74044239999985,
+          "stdev": 6.051859518804213
+        },
+        "jsonBytes": {
+          "median": 88927,
+          "p95": 88927,
+          "min": 88927,
+          "max": 88927,
+          "mean": 88927,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": 26517312,
+          "p95": 26518240,
+          "min": -40036024,
+          "max": 26518240,
+          "mean": 12240,
+          "stdev": 32462910.456032988
+        }
+      },
+      "notes": [],
+      "documentBaselineBytes": 176098,
+      "scopedDocumentRatio": 0.5049858601460551,
+      "payloadReductionPercent": 49.50141398539449,
+      "timeReductionPercent": 55.14583934298691
+    },
+    {
+      "fixture": "small",
+      "scenario": {
+        "name": "freshness-outside-scope",
+        "category": "freshness",
+        "description": "Recapture after content outside scope changes.",
+        "scope": {
+          "kind": "pages",
+          "pageIds": [
+            "small-page-0"
+          ]
+        },
+        "mutate": "outside-scope"
+      },
+      "seed": 424242,
+      "iterations": 5,
+      "warmup": 2,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 8,
+        "elements": 360,
+        "nodes": 300,
+        "edges": 50,
+        "groups": 10,
+        "maxGroupDepth": 5,
+        "metadataKeysApprox": 1080,
+        "labelBytesApprox": 8640
+      },
+      "counts": {
+        "pagesVisited": 1,
+        "layersVisited": 4,
+        "elementsInspected": 180,
+        "elementsIncluded": 180,
+        "contextOnlyElements": 0,
+        "externalReferences": 0,
+        "diagnostics": 1
+      },
+      "hardLimitOutcome": "within-limit",
+      "graphModelFindings": 0,
+      "metrics": {
+        "scopeResolutionMs": {
+          "median": 21.37499200000002,
+          "p95": 33.05400699999973,
+          "min": 20.992783000000145,
+          "max": 33.05400699999973,
+          "mean": 24.862928999999987,
+          "stdev": 4.784042475765094
+        },
+        "syntheticTraversalMs": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        },
+        "syntheticExtractionMs": {
+          "median": 21.37499200000002,
+          "p95": 33.05400699999973,
+          "min": 20.992783000000145,
+          "max": 33.05400699999973,
+          "mean": 24.862928999999987,
+          "stdev": 4.784042475765094
+        },
+        "canonicalizationMs": {
+          "median": 4.564292999999907,
+          "p95": 4.8980860000001485,
+          "min": 4.324205999999776,
+          "max": 4.8980860000001485,
+          "mean": 4.563559199999963,
+          "stdev": 0.19070852321960943
+        },
+        "contentRevisionMs": {
+          "median": 0.019552999999632448,
+          "p95": 0.028363000000354077,
+          "min": 0.018840000000182044,
+          "max": 0.028363000000354077,
+          "mean": 0.021311999999943508,
+          "stdev": 0.003607701151872074
+        },
+        "selectionRevisionMs": {
+          "median": 0.0008849999999256397,
+          "p95": 0.0009959999997590785,
+          "min": 0.00087100000018836,
+          "max": 0.0009959999997590785,
+          "mean": 0.0009047999999893363,
+          "stdev": 0.00004679914516638214
+        },
+        "serializationMs": {
+          "median": 0.4939760000002025,
+          "p95": 0.6689240000000609,
+          "min": 0.4436080000000402,
+          "max": 0.6689240000000609,
+          "mean": 0.5237020000000484,
+          "stdev": 0.07934792887778883
+        },
+        "validationMs": {
+          "median": 0.7943220000001929,
+          "p95": 0.8759839999997894,
+          "min": 0.7536559999998644,
+          "max": 0.8759839999997894,
+          "mean": 0.8112186000000292,
+          "stdev": 0.04394940525467761
+        },
+        "adapterMs": {
+          "median": 2.37730799999963,
+          "p95": 3.880055000000084,
+          "min": 2.2496069999997417,
+          "max": 3.880055000000084,
+          "mean": 2.766809799999919,
+          "stdev": 0.6227776512032885
+        },
+        "normalizationMs": {
+          "median": 4.056466,
+          "p95": 9.024891000000025,
+          "min": 3.865639000000101,
+          "max": 9.024891000000025,
+          "mean": 5.109261200000037,
+          "stdev": 1.9736621370461787
+        },
+        "freshnessMs": {
+          "median": 0.053347999999914464,
+          "p95": 0.08020299999998315,
+          "min": 0.05149900000014895,
+          "max": 0.08020299999998315,
+          "mean": 0.059034799999972166,
+          "stdev": 0.010789043653616215
+        },
+        "totalMs": {
+          "median": 39.3777070000001,
+          "p95": 45.85677399999986,
+          "min": 33.13902099999996,
+          "max": 45.85677399999986,
+          "mean": 38.72593740000002,
+          "stdev": 4.342183088590421
+        },
+        "jsonBytes": {
+          "median": 88927,
+          "p95": 88927,
+          "min": 88927,
+          "max": 88927,
+          "mean": 88927,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": 26517312,
+          "p95": 26630320,
+          "min": -40022608,
+          "max": 26630320,
+          "mean": -47528,
+          "stdev": 32581406.175495766
+        }
+      },
+      "notes": [],
+      "documentBaselineBytes": 176098,
+      "scopedDocumentRatio": 0.5049858601460551,
+      "payloadReductionPercent": 49.50141398539449,
+      "timeReductionPercent": 50.14909807023224
+    },
+    {
+      "fixture": "small",
+      "scenario": {
+        "name": "graph-document",
+        "category": "graph-model",
+        "description": "Graph adapter and normalization for complete document.",
+        "scope": {
+          "kind": "document"
+        }
+      },
+      "seed": 424242,
+      "iterations": 5,
+      "warmup": 2,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 8,
+        "elements": 360,
+        "nodes": 300,
+        "edges": 50,
+        "groups": 10,
+        "maxGroupDepth": 5,
+        "metadataKeysApprox": 1080,
+        "labelBytesApprox": 8640
+      },
+      "counts": {
+        "pagesVisited": 2,
+        "layersVisited": 8,
+        "elementsInspected": 360,
+        "elementsIncluded": 360,
+        "contextOnlyElements": 0,
+        "externalReferences": 0,
+        "diagnostics": 1
+      },
+      "hardLimitOutcome": "within-limit",
+      "graphModelFindings": 0,
+      "metrics": {
+        "scopeResolutionMs": {
+          "median": 44.312163000000055,
+          "p95": 62.8866909999997,
+          "min": 41.94035399999984,
+          "max": 62.8866909999997,
+          "mean": 47.37604519999995,
+          "stdev": 7.844066394203975
+        },
+        "syntheticTraversalMs": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        },
+        "syntheticExtractionMs": {
+          "median": 44.312163000000055,
+          "p95": 62.8866909999997,
+          "min": 41.94035399999984,
+          "max": 62.8866909999997,
+          "mean": 47.37604519999995,
+          "stdev": 7.844066394203975
+        },
+        "canonicalizationMs": {
+          "median": 9.084371999999803,
+          "p95": 12.268579000000045,
+          "min": 8.377930000000106,
+          "max": 12.268579000000045,
+          "mean": 9.562313199999972,
+          "stdev": 1.3796577037229978
+        },
+        "contentRevisionMs": {
+          "median": 0.01847700000007535,
+          "p95": 0.018774000000121305,
+          "min": 0.016489999999976135,
+          "max": 0.018774000000121305,
+          "mean": 0.018067400000109046,
+          "stdev": 0.0008238564438538469
+        },
+        "selectionRevisionMs": {
+          "median": 0.0009509999999863794,
+          "p95": 0.0011509999999361753,
+          "min": 0.0008849999999256397,
+          "max": 0.0011509999999361753,
+          "mean": 0.0009737999999742897,
+          "stdev": 0.00009265505920865263
+        },
+        "serializationMs": {
+          "median": 1.0466120000000956,
+          "p95": 1.2564499999998588,
+          "min": 1.0257999999998901,
+          "max": 1.2564499999998588,
+          "mean": 1.1048501999998734,
+          "stdev": 0.0871983710682137
+        },
+        "validationMs": {
+          "median": 1.409400000000005,
+          "p95": 1.690038000000186,
+          "min": 1.2932999999998174,
+          "max": 1.690038000000186,
+          "mean": 1.4400311999999758,
+          "stdev": 0.1333194208950536
+        },
+        "adapterMs": {
+          "median": 3.745726999999988,
+          "p95": 3.965135999999802,
+          "min": 3.675420000000031,
+          "max": 3.965135999999802,
+          "mean": 3.8039107999999944,
+          "stdev": 0.11764459428865515
+        },
+        "normalizationMs": {
+          "median": 7.129045000000133,
+          "p95": 7.437156999999843,
+          "min": 7.060673999999835,
+          "max": 7.437156999999843,
+          "mean": 7.189115799999945,
+          "stdev": 0.14331572637412657
+        },
+        "freshnessMs": {
+          "median": 0.04581599999983155,
+          "p95": 0.04673099999990882,
+          "min": 0.04431900000008682,
+          "max": 0.04673099999990882,
+          "mean": 0.045518600000013974,
+          "stdev": 0.000859290078972663
+        },
+        "totalMs": {
+          "median": 67.38319300000012,
+          "p95": 85.01580299999978,
+          "min": 65.38378200000034,
+          "max": 85.01580299999978,
+          "mean": 70.54806220000009,
+          "stdev": 7.280154126850816
+        },
+        "jsonBytes": {
+          "median": 176098,
+          "p95": 176098,
+          "min": 176098,
+          "max": 176098,
+          "mean": 176098,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": -14484184,
+          "p95": 52778208,
+          "min": -14543624,
+          "max": 52778208,
+          "mean": -937435.2,
+          "stdev": 26858680.10948498
+        }
+      },
+      "notes": [],
+      "documentBaselineBytes": 176098,
+      "scopedDocumentRatio": 1,
+      "payloadReductionPercent": 0,
+      "timeReductionPercent": 14.69505967024412
+    },
+    {
+      "fixture": "small",
+      "scenario": {
+        "name": "graph-partial-truncated",
+        "category": "graph-model",
+        "description": "Graph adapter and normalization for partial snapshot.",
+        "scope": {
+          "kind": "pages",
+          "pageIds": [
+            "small-page-0"
+          ]
+        },
+        "partial": true
+      },
+      "seed": 424242,
+      "iterations": 5,
+      "warmup": 2,
+      "fixtureSummary": {
+        "pages": 2,
+        "layers": 8,
+        "elements": 360,
+        "nodes": 300,
+        "edges": 50,
+        "groups": 10,
+        "maxGroupDepth": 5,
+        "metadataKeysApprox": 1080,
+        "labelBytesApprox": 8640
+      },
+      "counts": {
+        "pagesVisited": 1,
+        "layersVisited": 4,
+        "elementsInspected": 180,
+        "elementsIncluded": 180,
+        "contextOnlyElements": 0,
+        "externalReferences": 0,
+        "diagnostics": 2
+      },
+      "hardLimitOutcome": "soft-limit",
+      "graphModelFindings": 0,
+      "metrics": {
+        "scopeResolutionMs": {
+          "median": 20.91097400000035,
+          "p95": 22.727864999999838,
+          "min": 20.106186999999863,
+          "max": 22.727864999999838,
+          "mean": 21.35554179999999,
+          "stdev": 0.9961400334007557
+        },
+        "syntheticTraversalMs": {
+          "median": 0,
+          "p95": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "stdev": 0
+        },
+        "syntheticExtractionMs": {
+          "median": 20.91097400000035,
+          "p95": 22.727864999999838,
+          "min": 20.106186999999863,
+          "max": 22.727864999999838,
+          "mean": 21.35554179999999,
+          "stdev": 0.9961400334007557
+        },
+        "canonicalizationMs": {
+          "median": 4.438768999999866,
+          "p95": 7.83452699999998,
+          "min": 4.334902000000056,
+          "max": 7.83452699999998,
+          "mean": 5.214503999999943,
+          "stdev": 1.3324901988306055
+        },
+        "contentRevisionMs": {
+          "median": 0.018909000000348897,
+          "p95": 0.019839000000047236,
+          "min": 0.018015999999988708,
+          "max": 0.019839000000047236,
+          "mean": 0.018813399999999092,
+          "stdev": 0.0006238315798742149
+        },
+        "selectionRevisionMs": {
+          "median": 0.0009370000002490997,
+          "p95": 0.000950000000102591,
+          "min": 0.0008840000000418513,
+          "max": 0.000950000000102591,
+          "mean": 0.0009210000001075968,
+          "stdev": 0.000029732137636756863
+        },
+        "serializationMs": {
+          "median": 0.4675050000000738,
+          "p95": 1.4909010000001217,
+          "min": 0.44117099999994025,
+          "max": 1.4909010000001217,
+          "mean": 0.6719954000000143,
+          "stdev": 0.4103301938998458
+        },
+        "validationMs": {
+          "median": 0.7572330000002694,
+          "p95": 1.3086210000001302,
+          "min": 0.7526339999999436,
+          "max": 1.3086210000001302,
+          "mean": 0.8661050000000614,
+          "stdev": 0.22127097374489815
+        },
+        "adapterMs": {
+          "median": 1.7440040000001318,
+          "p95": 4.064315000000079,
+          "min": 1.7275469999999586,
+          "max": 4.064315000000079,
+          "mean": 2.226125000000047,
+          "stdev": 0.920198350777712
+        },
+        "normalizationMs": {
+          "median": 3.4641849999998158,
+          "p95": 6.503801000000294,
+          "min": 3.1439579999996567,
+          "max": 6.503801000000294,
+          "mean": 3.9943707999998876,
+          "stdev": 1.2612387908068345
+        },
+        "freshnessMs": {
+          "median": 0.0500409999999647,
+          "p95": 0.05256999999983236,
+          "min": 0.04898400000001857,
+          "max": 0.05256999999983236,
+          "mean": 0.05071859999989101,
+          "stdev": 0.0013660078476218805
+        },
+        "totalMs": {
+          "median": 33.26547100000016,
+          "p95": 41.99744600000031,
+          "min": 31.608730000000378,
+          "max": 41.99744600000031,
+          "mean": 34.40496300000014,
+          "stdev": 3.873533803033327
+        },
+        "jsonBytes": {
+          "median": 89109,
+          "p95": 89109,
+          "min": 89109,
+          "max": 89109,
+          "mean": 89109,
+          "stdev": 0
+        },
+        "heapDeltaBytes": {
+          "median": 26514224,
+          "p95": 26517464,
+          "min": -40038624,
+          "max": 26517464,
+          "mean": -20497.6,
+          "stdev": 32501126.48003653
+        }
+      },
+      "notes": [
+        "Partial snapshot is non-conclusive and suppresses definitive broken-reference interpretation."
+      ],
+      "documentBaselineBytes": 176098,
+      "scopedDocumentRatio": 0.5060193755749639,
+      "payloadReductionPercent": 49.39806244250361,
+      "timeReductionPercent": 57.886990919290014
+    }
+  ]
+}

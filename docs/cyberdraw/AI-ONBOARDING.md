@@ -33,6 +33,9 @@ diagramming work.
     using runtime snapshots for future product features.
 11. `docs/cyberdraw/milestones/M5-scoped-snapshot-delivery.md` before changing
     internal runtime snapshot scopes.
+12. `docs/cyberdraw/milestones/M6-runtime-snapshot-benchmarks.md` before
+    changing runtime snapshot scaling strategy, limits, chunking or
+    incremental-analysis plans.
 
 Read `AGENTS.md` before modifying anything. It contains repository-wide logging,
 navigation and command-output discipline.
@@ -47,6 +50,7 @@ navigation and command-output discipline.
 | `packages/drawio-mcp-compat/` | Shared draw.io version compatibility helpers |
 | `packages/cyberdraw-graph-model/` | Private pure read-only graph model spike package; core consumes experimental `CanonicalDiagramInput`, legacy draw.io/MCP read shapes stay in an adapter |
 | `packages/cyberdraw-runtime-contract/` | Private runtime snapshot contract constants, types, validation and revision helpers shared by server and plugin |
+| `packages/cyberdraw-runtime-benchmarks/` | Private manual M6 benchmark harness for synthetic runtime snapshot scaling evidence |
 | `packages/drawio-mcp-dev-proxy/` | Local HTTPS/WSS development proxy |
 | `docs/cyberdraw/` | Official CyberDraw fork documentation |
 | `docs/cyberdraw/adr/` | Architecture decision records |
@@ -142,6 +146,8 @@ direct shell commands and package scripts.
   `packages/cyberdraw-runtime-contract/src/index.ts`
 - Scoped snapshot milestone:
   `docs/cyberdraw/milestones/M5-scoped-snapshot-delivery.md`
+- Runtime snapshot benchmark milestone:
+  `docs/cyberdraw/milestones/M6-runtime-snapshot-benchmarks.md`
 
 For architecture-level orientation, prefer `ARCHITECTURE.md` before reading
 source files.

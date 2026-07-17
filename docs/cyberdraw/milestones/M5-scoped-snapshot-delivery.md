@@ -171,3 +171,13 @@ are versioned and validated, background pages preserve UI state, scoped
 revisions are deterministic, omitted external references are not treated as
 broken, no public MCP tool is added, CI-equivalent build/lint/format/test/audit
 commands pass, and rollback is documented.
+
+## M6 Follow-Up
+
+M6 benchmark evidence is documented in
+`docs/cyberdraw/milestones/M6-runtime-snapshot-benchmarks.md`. The synthetic
+results confirm that scoped snapshots materially reduce payload and processing
+cost, including a hard-limit fixture where document scope exceeds the current
+hard limit but pages, layers and selection remain practical. Draft ADR 0004
+proposes scoped and hierarchical requests as the M7 strategy while deferring
+chunking, streaming and incremental analysis.

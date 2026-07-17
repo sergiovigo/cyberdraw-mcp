@@ -107,6 +107,10 @@ baseline. It is not an implementation plan for M0 itself.
   records private scoped runtime snapshot delivery for document, pages, layers
   and selection scopes. It keeps the path internal, adds no public MCP tool and
   preserves document-only compatibility for older peers.
+- M6 update: `docs/cyberdraw/milestones/M6-runtime-snapshot-benchmarks.md`
+  records synthetic benchmark evidence for document, pages, layers and
+  selection scopes. Draft ADR 0004 proposes scoped/hierarchical snapshots as the
+  M7 scaling strategy, with chunking and incremental analysis deferred.
 - Effort: M.
 - Suggested milestone: Architecture Intelligence Foundation runtime integration
   hardening and compatibility evidence.

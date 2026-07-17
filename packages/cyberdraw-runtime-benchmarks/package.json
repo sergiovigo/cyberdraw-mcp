@@ -1,0 +1,38 @@
+{
+  "name": "cyberdraw-runtime-benchmarks",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Internal CyberDraw runtime snapshot benchmark harness",
+  "type": "module",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "bin": {
+    "cyberdraw-runtime-benchmark": "build/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./build/index.d.ts",
+      "import": "./build/index.js"
+    }
+  },
+  "scripts": {
+    "build": "rimraf build && tsc",
+    "benchmark": "node build/cli.js",
+    "benchmark:smoke": "node build/cli.js --fixture small --scenario document --iterations 3 --warmup 1",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --testMatch '**/build/**/*.test.js'",
+    "lint": "tsc --noEmit",
+    "clean": "rimraf build coverage"
+  },
+  "dependencies": {
+    "cyberdraw-graph-model": "workspace:*",
+    "cyberdraw-runtime-contract": "workspace:*"
+  },
+  "devDependencies": {
+    "@jest/globals": "30.2.0",
+    "@types/jest": "30.0.0",
+    "@types/node": "25.0.3",
+    "jest": "30.2.0",
+    "rimraf": "6.1.3",
+    "typescript": "catalog:"
+  }
+}
