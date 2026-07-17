@@ -233,6 +233,12 @@ main-thread drift approximation and hard-limit behavior. ADR 0004 accepts
 hierarchical scoped snapshots as the next strategy while deferring chunking,
 streaming and incremental analysis.
 
+M8 hierarchical planner evidence is recorded in
+`docs/cyberdraw/milestones/M8-hierarchical-snapshot-planner.md`. It implements
+private planner/executor code over existing runtime scopes and feeds the
+internal graph model without accepting this RFC as a public schema or stable
+API. The RFC remains Draft.
+
 ## Data Model Proposal
 
 Use normalized entities keyed by internal ID, plus explicit references. Prefer

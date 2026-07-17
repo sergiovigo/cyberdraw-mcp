@@ -116,6 +116,12 @@ baseline. It is not an implementation plan for M0 itself.
   records real draw.io browser benchmark evidence for document, pages, layers
   and selection scopes. ADR 0004 is accepted with a scope-first/hierarchical
   strategy; chunking, streaming and incremental analysis remain deferred.
+- M8 update:
+  `docs/cyberdraw/milestones/M8-hierarchical-snapshot-planner.md` implements
+  that accepted strategy as private internal planner/executor code, but remains
+  PARTIAL until real draw.io evidence demonstrates multi-step expansion with a
+  resolvable external reference. It adds no public MCP tool, persistence,
+  chunking, streaming or stable identity.
 - Effort: M.
 - Suggested milestone: Architecture Intelligence Foundation runtime integration
   hardening and compatibility evidence.

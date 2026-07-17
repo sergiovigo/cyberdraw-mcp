@@ -39,6 +39,8 @@ diagramming work.
 13. `docs/cyberdraw/milestones/M7-real-environment-snapshot-benchmarks.md`
     before changing real-runtime snapshot limits, browser extraction behavior
     or ADR 0004 follow-up strategy.
+14. `docs/cyberdraw/milestones/M8-hierarchical-snapshot-planner.md` before
+    building internal analysis flows on scoped runtime snapshots.
 
 Read `AGENTS.md` before modifying anything. It contains repository-wide logging,
 navigation and command-output discipline.
@@ -153,6 +155,12 @@ direct shell commands and package scripts.
   `docs/cyberdraw/milestones/M6-runtime-snapshot-benchmarks.md`
 - Real-environment snapshot benchmark milestone:
   `docs/cyberdraw/milestones/M7-real-environment-snapshot-benchmarks.md`
+- Hierarchical snapshot planner milestone:
+  `docs/cyberdraw/milestones/M8-hierarchical-snapshot-planner.md`
+- Planner and executor implementation:
+  `packages/cyberdraw-graph-model/src/hierarchical-snapshot-planner.ts`,
+  `packages/cyberdraw-graph-model/src/scoped-snapshot-merge.ts` and
+  `packages/drawio-mcp-server/src/cyberdraw-hierarchical-snapshot.ts`
 
 For architecture-level orientation, prefer `ARCHITECTURE.md` before reading
 source files.

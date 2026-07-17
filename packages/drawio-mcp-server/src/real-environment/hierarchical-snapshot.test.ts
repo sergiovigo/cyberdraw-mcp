@@ -1,0 +1,264 @@
+import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
+
+import {
+  createRealEnvironmentContext,
+  disposeRealEnvironmentContext,
+  resetDiagram,
+  selectCell,
+} from "./harness.js";
+import { expectNoBrowserErrors, expectNoServerErrors } from "./assertions.js";
+import { callToolJson } from "./tools.js";
+import { expectToolSuccess, unwrapToolPayload } from "./test-helpers.js";
+import type { RealEnvironmentContext } from "./types.js";
+import {
+  executeHierarchicalSnapshotPlan,
+  inventoryFromRuntimeSnapshot,
+} from "../cyberdraw-hierarchical-snapshot.js";
+import { requestCyberdrawRuntimeSnapshot } from "../cyberdraw-runtime-snapshot.js";
+import type { RuntimeSnapshot } from "cyberdraw-runtime-contract";
+
+describe("real environment/hierarchical snapshot planner", () => {
+  let context: RealEnvironmentContext;
+
+  beforeAll(async () => {
+    context = await createRealEnvironmentContext();
+  }, 180000);
+
+  afterAll(async () => {
+    await disposeRealEnvironmentContext(context);
+  });
+
+  it("executes visible-page, explicit-layer and selection plans while preserving UI", async () => {
+    await resetDiagram(context);
+    context.browserMessages.length = 0;
+    const logCountBefore = context.logger.entries.length;
+
+    const { payload: rectPayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string };
+    }>(context, "add-rectangle", {
+      x: 80,
+      y: 90,
+      width: 140,
+      height: 80,
+      text: "M8 visible node",
+    });
+    expectToolSuccess(rectPayload);
+    const rect = unwrapToolPayload<{ id: string }>(rectPayload);
+
+    const { payload: layerPayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string; name: string };
+    }>(context, "create-layer", { name: "M8 Layer" });
+    expectToolSuccess(layerPayload);
+    const layer = unwrapToolPayload<{ id: string; name: string }>(layerPayload);
+
+    const { payload: pagePayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string };
+    }>(context, "get-current-page", {});
+    expectToolSuccess(pagePayload);
+    const page = unwrapToolPayload<{ id: string }>(pagePayload);
+
+    await callToolJson(context, "move-cell-to-layer", {
+      cell_id: rect.id,
+      target_layer_id: layer.id,
+    });
+    await selectCell(context.page, rect.id);
+    const beforeState = await readEditorState(context);
+
+    const visible = await executeHierarchicalSnapshotPlan(
+      context.app.context,
+      { kind: "inspect-visible-page" },
+      { limits: { maxPlanSteps: 4 } },
+    );
+    const layerPlan = await executeHierarchicalSnapshotPlan(
+      context.app.context,
+      {
+        kind: "inspect-layers",
+        layers: [{ pageId: page.id, layerIds: [layer.id] }],
+      },
+      { limits: { maxPlanSteps: 4 } },
+    );
+    const selection = await executeHierarchicalSnapshotPlan(
+      context.app.context,
+      { kind: "inspect-selection" },
+      { limits: { maxPlanSteps: 4 } },
+    );
+
+    expect(visible.plan.steps[0]?.requestedScope.kind).toBe("pages");
+    expect(layerPlan.plan.steps[0]?.requestedScope).toMatchObject({
+      kind: "layers",
+      pageId: page.id,
+    });
+    expect(selection.plan.steps[0]?.requestedScope.kind).toBe("selection");
+    expect(
+      visible.graph?.elements.some((element) => element.drawioId === rect.id),
+    ).toBe(true);
+    expect(layerPlan.metrics.measuredBytes).toBeGreaterThan(0);
+    expect(selection.metrics.measuredBytes).toBeGreaterThan(0);
+
+    const afterState = await readEditorState(context);
+    expect(afterState).toEqual(beforeState);
+    await expectNoBrowserErrors(context, "hierarchical-snapshot");
+    await expectNoServerErrors(
+      context,
+      "hierarchical-snapshot",
+      logCountBefore,
+    );
+  }, 180000);
+
+  it("covers background page, explicit page target, empty selection, hard-limit avoidance and stale plan", async () => {
+    await resetDiagram(context);
+    context.browserMessages.length = 0;
+    const logCountBefore = context.logger.entries.length;
+
+    const { payload: visiblePagePayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string };
+    }>(context, "get-current-page", {});
+    expectToolSuccess(visiblePagePayload);
+    const visiblePage = unwrapToolPayload<{ id: string }>(visiblePagePayload);
+
+    const { payload: visibleRectPayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string };
+    }>(context, "add-rectangle", {
+      target_page: { id: visiblePage.id },
+      x: 120,
+      y: 120,
+      width: 120,
+      height: 70,
+      text: "M8 stale node",
+    });
+    expectToolSuccess(visibleRectPayload);
+    const visibleRect = unwrapToolPayload<{ id: string }>(visibleRectPayload);
+
+    const { payload: backgroundPagePayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string };
+    }>(context, "create-page", { name: "M8 Background" });
+    expectToolSuccess(backgroundPagePayload);
+    const backgroundPage = unwrapToolPayload<{ id: string }>(
+      backgroundPagePayload,
+    );
+
+    const { payload: backgroundRectPayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string };
+    }>(context, "add-rectangle", {
+      target_page: { id: backgroundPage.id },
+      x: 180,
+      y: 160,
+      width: 120,
+      height: 70,
+      text: "M8 background node",
+    });
+    expectToolSuccess(backgroundRectPayload);
+    const backgroundRect = unwrapToolPayload<{ id: string }>(
+      backgroundRectPayload,
+    );
+
+    await clearSelection(context);
+    const beforeState = await readEditorState(context);
+
+    const background = await executeHierarchicalSnapshotPlan(
+      context.app.context,
+      { kind: "inspect-pages", pageIds: [backgroundPage.id] },
+      { limits: { maxPlanSteps: 4 } },
+    );
+    const emptySelection = await executeHierarchicalSnapshotPlan(
+      context.app.context,
+      { kind: "inspect-selection" },
+      { limits: { maxPlanSteps: 4 } },
+    );
+
+    const documentSnapshot = (await requestCyberdrawRuntimeSnapshot(
+      context.app.context,
+      {},
+    )) as RuntimeSnapshot;
+    const hardLimit = await executeHierarchicalSnapshotPlan(
+      context.app.context,
+      { kind: "inspect-document", requireCompleteDocument: true },
+      {
+        inventorySnapshot: documentSnapshot,
+        limits: { hardSnapshotBytes: 100 },
+      },
+    );
+
+    const staleInventory = (await requestCyberdrawRuntimeSnapshot(
+      context.app.context,
+      { scope: { kind: "pages", pageIds: [visiblePage.id] } },
+    )) as RuntimeSnapshot;
+    await context.page.evaluate((cellId: string) => {
+      const graph = (window as any).ui?.editor?.graph;
+      const model = graph?.getModel?.();
+      const cell = model?.getCell?.(cellId);
+      model?.beginUpdate?.();
+      try {
+        model?.setValue?.(cell, "M8 stale mutation");
+      } finally {
+        model?.endUpdate?.();
+      }
+    }, visibleRect.id);
+    const stale = await executeHierarchicalSnapshotPlan(
+      context.app.context,
+      { kind: "inspect-pages", pageIds: [visiblePage.id] },
+      { inventorySnapshot: staleInventory },
+    );
+
+    expect(background.plan.steps[0]?.requestedScope).toEqual({
+      kind: "pages",
+      pageIds: [backgroundPage.id],
+    });
+    expect(
+      background.graph?.elements.some(
+        (element) => element.drawioId === backgroundRect.id,
+      ),
+    ).toBe(true);
+    expect(emptySelection.plan.steps[0]?.requestedScope.kind).toBe("pages");
+    expect(
+      emptySelection.diagnostics.map((diagnostic) => diagnostic.code),
+    ).toContain("selection-empty");
+    expect(hardLimit.stopReason).toBe("hard-limit-reached");
+    expect(hardLimit.plan.steps).toHaveLength(0);
+    expect(stale.stopReason).toBe("stale-snapshot");
+    expect(
+      inventoryFromRuntimeSnapshot(documentSnapshot).pages.length,
+    ).toBeGreaterThan(0);
+
+    const afterState = await readEditorState(context);
+    expect(afterState.currentPageId).toBe(beforeState.currentPageId);
+    expect(afterState.editing).toBe(false);
+    await expectNoBrowserErrors(context, "hierarchical-snapshot-extra");
+    await expectNoServerErrors(
+      context,
+      "hierarchical-snapshot-extra",
+      logCountBefore,
+    );
+  }, 180000);
+});
+
+async function readEditorState(context: RealEnvironmentContext) {
+  return context.page.evaluate(() => {
+    const ui = (window as any).ui;
+    const graph = ui?.editor?.graph;
+    const currentId = ui?.currentPage?.getId?.() ?? ui?.currentPage?.id ?? null;
+    const selection = graph?.getSelectionCells?.() ?? [];
+    return {
+      currentPageId: currentId,
+      selectionIds: Array.isArray(selection)
+        ? selection.map((cell: any) => String(cell.id)).sort()
+        : [],
+      editing:
+        typeof graph?.isEditing === "function" ? graph.isEditing() : false,
+    };
+  });
+}
+
+async function clearSelection(context: RealEnvironmentContext) {
+  await context.page.evaluate(() => {
+    const graph = (window as any).ui?.editor?.graph;
+    graph?.clearSelection?.();
+  });
+}

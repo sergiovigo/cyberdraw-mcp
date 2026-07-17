@@ -275,6 +275,11 @@ M8 should implement internal hierarchical planning over existing scopes:
    limit.
 6. Defer incremental analysis until stable identity is designed.
 
+M8 follow-up: `M8-hierarchical-snapshot-planner.md` implements the private
+planner/executor split over existing scopes and keeps the M7 recommendation to
+avoid chunking, streaming, persistence and incremental analysis. M9 should use
+M8 as the bounded context provider for the first structural analysis vertical.
+
 ## Rollback
 
 Rollback removes:
