@@ -82,6 +82,13 @@ M8 should continue with hierarchical scoped analysis over the existing private
 scope family: use document scope for bounded diagrams, prefer pages and layers
 for larger diagrams, and use selection only for UI-bound focused analysis.
 
+M8 implementation update: M8 adds a private pure planner in
+`cyberdraw-graph-model` and a private server executor in `drawio-mcp-server`.
+The implementation follows this ADR without adding public MCP tools, public
+schemas, persistence, chunking, streaming or incremental analysis. The milestone
+is PARTIAL until real draw.io evidence demonstrates multi-step expansion with a
+resolvable external reference.
+
 ## Consequences
 
 Positive:
@@ -122,6 +129,10 @@ same private event family or a new private event after a separate ADR.
 - Should internal callers first request a page/layer inventory before analysis?
 - What identity strategy is sufficient for future incremental analysis?
 - Should hard-limit diagnostics include a recommended narrower scope?
+
+M8 resolves the implementation direction for the second question only partially:
+internal callers now have planner/executor code, but a dedicated cheap inventory
+extractor remains future work.
 
 ## M7 Evidence
 

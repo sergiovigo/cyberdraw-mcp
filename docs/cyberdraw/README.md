@@ -28,6 +28,7 @@ before CyberDraw-specific features are introduced.
 | [milestones/M5-scoped-snapshot-delivery.md](milestones/M5-scoped-snapshot-delivery.md) | M5 internal scoped runtime snapshot delivery semantics for pages, layers and selection | Internal milestone evidence |
 | [milestones/M6-runtime-snapshot-benchmarks.md](milestones/M6-runtime-snapshot-benchmarks.md) | M6 runtime snapshot benchmark evidence and M7 scaling recommendation | Internal milestone evidence |
 | [milestones/M7-real-environment-snapshot-benchmarks.md](milestones/M7-real-environment-snapshot-benchmarks.md) | M7 real draw.io browser benchmark evidence for scoped runtime snapshots | Internal milestone evidence |
+| [milestones/M8-hierarchical-snapshot-planner.md](milestones/M8-hierarchical-snapshot-planner.md) | M8 internal hierarchical planner/executor evidence for scoped runtime snapshots | Internal milestone evidence |
 | [benchmarks/](benchmarks/) | Small aggregate M6 synthetic and M7 real-environment benchmark summaries | Benchmark evidence |
 | [diagrams/internal-graph-model.md](diagrams/internal-graph-model.md) | Mermaid diagrams supporting RFC 0001 | Draft supporting diagrams |
 | [adr/0001-fork-strategy.md](adr/0001-fork-strategy.md) | Decision to begin as a conservative fork | Accepted ADR |
@@ -68,7 +69,9 @@ Related root documents:
     the M7 scaling recommendation.
 17. `milestones/M7-real-environment-snapshot-benchmarks.md` for real browser
     evidence before changing snapshot limits or scaling strategy.
-18. `adr/` when a lasting decision needs historical context.
+18. `milestones/M8-hierarchical-snapshot-planner.md` before using hierarchical
+    scoped snapshots for internal analysis workflows.
+19. `adr/` when a lasting decision needs historical context.
 
 ## Question Map
 
@@ -91,6 +94,7 @@ Related root documents:
 | How do internal scoped runtime snapshots work? | `milestones/M5-scoped-snapshot-delivery.md` |
 | What benchmark evidence exists for snapshot scaling? | `milestones/M6-runtime-snapshot-benchmarks.md`, `benchmarks/`, `adr/0004-runtime-snapshot-scaling-strategy.md` |
 | What real draw.io runtime evidence exists for scoped snapshots? | `milestones/M7-real-environment-snapshot-benchmarks.md`, `benchmarks/m7-real-summary.md` |
+| How does internal hierarchical snapshot planning work? | `milestones/M8-hierarchical-snapshot-planner.md`, `adr/0004-runtime-snapshot-scaling-strategy.md` |
 | What internal graph model architecture was accepted? | `adr/0003-internal-graph-model-architecture.md` |
 | Where are lasting decisions recorded? | `adr/` |
 | What third-party assets need review? | `../../THIRD_PARTY_NOTICES.md` |

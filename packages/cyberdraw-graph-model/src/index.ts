@@ -1,8 +1,17 @@
-export { fromLegacyPagedModel, toCanonicalDiagramInput } from "./legacy-adapter.js";
+export {
+  fromLegacyPagedModel,
+  toCanonicalDiagramInput,
+} from "./legacy-adapter.js";
 export {
   fromRuntimeSnapshot,
   toCanonicalRuntimeSnapshotInput,
 } from "./runtime-snapshot-adapter.js";
+export {
+  defaultSnapshotPlanLimits,
+  planHierarchicalSnapshot,
+  scopeKey,
+} from "./hierarchical-snapshot-planner.js";
+export { mergeScopedSnapshotResults } from "./scoped-snapshot-merge.js";
 export {
   provisionalDiagramId,
   provisionalElementId,
@@ -39,3 +48,24 @@ export type {
   Style,
   UnknownElement,
 } from "./types.js";
+export type {
+  DiagramInventory,
+  HierarchicalSnapshotIntent,
+  HierarchicalSnapshotIntentKind,
+  InventoryLayer,
+  InventoryPage,
+  PlannerSnapshotScope,
+  SnapshotPlan,
+  SnapshotPlanCoverage,
+  SnapshotPlanDecision,
+  SnapshotPlanDiagnostic,
+  SnapshotPlanExecutionResult,
+  SnapshotPlanEstimate,
+  SnapshotPlanLimits,
+  SnapshotPlanStep,
+  SnapshotPlanStopReason,
+} from "./hierarchical-snapshot-planner.js";
+export type {
+  ScopedSnapshotMergeDiagnostic,
+  ScopedSnapshotMergeResult,
+} from "./scoped-snapshot-merge.js";
