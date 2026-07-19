@@ -116,6 +116,141 @@ describe("real environment/hierarchical snapshot planner", () => {
     );
   }, 180000);
 
+  it("resolves public M13 default scope through MCP without document snapshots", async () => {
+    await resetDiagram(context);
+    context.browserMessages.length = 0;
+    const logCountBefore = context.logger.entries.length;
+
+    const { payload: pagePayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string };
+    }>(context, "get-current-page", {});
+    expectToolSuccess(pagePayload);
+    const page = unwrapToolPayload<{ id: string }>(pagePayload);
+
+    const { payload: layersPayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string; visible?: boolean }[];
+    }>(context, "list-layers", {});
+    expectToolSuccess(layersPayload);
+    const visibleLayerIds = unwrapToolPayload<
+      { id: string; visible?: boolean }[]
+    >(layersPayload)
+      .filter((layer) => layer.visible !== false)
+      .map((layer) => layer.id);
+    expect(visibleLayerIds.length).toBeGreaterThan(0);
+
+    const beforeState = await readEditorState(context);
+    const listedTools = await context.client.listTools();
+    expect(
+      listedTools.tools.some(
+        (tool) => tool.name === "cyberdraw_analyze_structure",
+      ),
+    ).toBe(true);
+
+    const analyze = await callToolJson<any>(
+      context,
+      "cyberdraw_analyze_structure",
+      { mode: "analyze" },
+    );
+    const analyzeRepeat = await callToolJson<any>(
+      context,
+      "cyberdraw_analyze_structure",
+      { mode: "analyze" },
+    );
+    const validate = await callToolJson<any>(
+      context,
+      "cyberdraw_analyze_structure",
+      {
+        mode: "validate",
+        query: { limit: 10 },
+        planning: { policy: "conservative" },
+        validation: { mode: "full-internal" },
+      },
+    );
+
+    for (const result of [analyze.payload, analyzeRepeat.payload]) {
+      expect(result.scope.requested).toMatchObject({ defaulted: true });
+      expect(result.scope.inspected.document).toBe(false);
+      expect(result.scope.inspected.pageIds).toEqual([page.id]);
+      expect(result.scope.inspected.layerTargets.length).toBeGreaterThan(0);
+      expect(
+        result.scope.inspected.layerTargets.every(
+          (target: { pageId: string; layerIds: string[] }) =>
+            target.pageId === page.id &&
+            target.layerIds.every((layerId) =>
+              visibleLayerIds.includes(layerId),
+            ),
+        ),
+      ).toBe(true);
+      expect(result.scope.documentScopeUsed).toBe(false);
+      expect(result.coverage.document).toBe(false);
+      expect(result.safety.mutationInvocations).toBe(0);
+    }
+    expect(JSON.stringify(analyzeRepeat.payload)).toBe(
+      JSON.stringify(analyze.payload),
+    );
+
+    expect(validate.payload.scope.requested).toMatchObject({
+      defaulted: true,
+    });
+    expect(validate.payload.scope.inspected.document).toBe(false);
+    expect(validate.payload.scope.documentScopeUsed).toBe(false);
+    expect(validate.payload.coverage.document).toBe(false);
+    expect(validate.payload.safety.mutationInvocations).toBe(0);
+
+    const messages = context.logger.entries
+      .slice(logCountBefore)
+      .map((entry) => entry.message);
+    expect(
+      messages.filter((message) =>
+        message.includes(
+          "[cyberdraw.runtimeSnapshot] starting request scope=document",
+        ),
+      ),
+    ).toHaveLength(0);
+    expect(
+      messages.filter((message) =>
+        message.includes(
+          "[cyberdraw.runtimeSnapshot] starting request scope=selection",
+        ),
+      ).length,
+    ).toBeGreaterThanOrEqual(3);
+    expect(
+      messages.filter((message) =>
+        message.includes(
+          "[cyberdraw.runtimeSnapshot] starting request scope=layers",
+        ),
+      ).length,
+    ).toBeGreaterThanOrEqual(3);
+    expect(
+      messages.filter((message) => message.includes("plannerInvocations=1"))
+        .length,
+    ).toBeGreaterThanOrEqual(3);
+    expect(
+      messages.filter((message) =>
+        message.includes("structuralAnalysisInvocations=1"),
+      ).length,
+    ).toBeGreaterThanOrEqual(3);
+    expect(
+      messages.filter((message) => message.includes("mutationInvocations=0"))
+        .length,
+    ).toBeGreaterThanOrEqual(3);
+    expect(
+      messages.filter((message) => message.includes("documentScopeUsed=false"))
+        .length,
+    ).toBeGreaterThanOrEqual(3);
+
+    const afterState = await readEditorState(context);
+    expect(afterState).toEqual(beforeState);
+    await expectNoBrowserErrors(context, "m13-default-scope-mcp");
+    await expectNoServerErrors(
+      context,
+      "m13-default-scope-mcp",
+      logCountBefore,
+    );
+  }, 180000);
+
   it("covers background page, explicit page target, empty selection, hard-limit avoidance and stale plan", async () => {
     await resetDiagram(context);
     context.browserMessages.length = 0;

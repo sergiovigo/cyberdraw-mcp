@@ -2,8 +2,10 @@ import { z } from "zod";
 
 import {
   executeHierarchicalSnapshotPlan,
+  inventoryFromRuntimeSnapshot,
   type HierarchicalSnapshotExecutionOptions,
 } from "../cyberdraw-hierarchical-snapshot.js";
+import { requestCyberdrawRuntimeSnapshotMeasured } from "../cyberdraw-runtime-snapshot.js";
 import type { Context } from "../types.js";
 import type { ToolRegistrar } from "./types.js";
 import type {
@@ -22,7 +24,9 @@ import type {
   StructuralChangeProposal,
   StructuralAnalysisCoverage,
   SnapshotPlanExecutionResult,
+  HierarchicalSnapshotIntent,
 } from "cyberdraw-graph-model";
+import type { RuntimeSnapshot } from "cyberdraw-runtime-contract";
 
 export const TOOL_cyberdraw_analyze_structure = "cyberdraw_analyze_structure";
 
@@ -475,13 +479,17 @@ export async function analyzeStructurePublic(
 ): Promise<PublicStructuralResponse> {
   const counters = createInstrumentationCounters();
   counters.plannerInvocations += 1;
+  const resolved = await resolvePublicAnalysisIntent(context, input);
   const execution = await executeHierarchicalSnapshotPlan(
     context,
-    intentFor(input),
-    executionOptionsFor(input, counters),
+    resolved.intent,
+    executionOptionsFor(input, counters, resolved.inventorySnapshot),
   );
   assertNoMutationInvocations(counters);
   const response = mapExecutionToPublicResponse(input, execution, counters);
+  context.log.debug(
+    `[cyberdraw_analyze_structure] completed mode=${input.mode} plannerInvocations=${counters.plannerInvocations} snapshotRequests=${counters.snapshotRequests} structuralAnalysisInvocations=${counters.structuralAnalysisInvocations} mutationInvocations=${counters.mutationInvocations} documentScopeUsed=${response.scope.documentScopeUsed} inspectedDocument=${response.scope.inspected.document}`,
+  );
   return enforceResponseLimit(response);
 }
 
@@ -500,7 +508,78 @@ export function assertNoMutationInvocations(value: {
   }
 }
 
-function intentFor(input: CyberdrawAnalyzeStructureInput) {
+async function resolvePublicAnalysisIntent(
+  context: Context,
+  input: CyberdrawAnalyzeStructureInput,
+): Promise<{
+  readonly intent: HierarchicalSnapshotIntent;
+  readonly inventorySnapshot?: RuntimeSnapshot;
+}> {
+  if (!isDefaultScope(input)) {
+    return { intent: intentFor(input) };
+  }
+  const inventorySnapshot = await requestCyberdrawRuntimeSnapshotMeasured(
+    context,
+    {
+      scope: { kind: "selection" },
+      limits: {
+        hardSnapshotBytes: input.expansion.maxBytes,
+      },
+    },
+    { replyTimeoutMs: DEFAULT_TIMEOUT_MS },
+  ).then((result) => result.snapshot);
+  const inventory = inventoryFromRuntimeSnapshot(inventorySnapshot);
+  const page = resolveDefaultPage(inventory);
+  if (!page) {
+    throw new Error("default scope could not resolve the active Draw.io page");
+  }
+  const layer = resolveDefaultLayer(page);
+  if (layer) {
+    return {
+      intent: {
+        kind: "analyze-structure",
+        layers: [{ pageId: page.id, layerIds: [layer.id] }],
+      },
+      inventorySnapshot,
+    };
+  }
+  return {
+    intent: { kind: "analyze-structure", pageIds: [page.id] },
+    inventorySnapshot,
+  };
+}
+
+function isDefaultScope(input: CyberdrawAnalyzeStructureInput): boolean {
+  return !input.scope?.pageId && !input.scope?.layerId;
+}
+
+function resolveDefaultPage(
+  inventory: ReturnType<typeof inventoryFromRuntimeSnapshot>,
+) {
+  const activePageId =
+    inventory.activePageId ?? inventory.pages.find((page) => page.active)?.id;
+  if (!activePageId) {
+    return undefined;
+  }
+  const matches = inventory.pages.filter((page) => page.id === activePageId);
+  return matches.length === 1 ? matches[0] : undefined;
+}
+
+function resolveDefaultLayer(
+  page: ReturnType<typeof inventoryFromRuntimeSnapshot>["pages"][number],
+) {
+  const visibleLayers = page.layers
+    .filter((layer) => layer.visible === true)
+    .sort(
+      (left, right) =>
+        left.order - right.order || left.id.localeCompare(right.id),
+    );
+  return visibleLayers[0];
+}
+
+function intentFor(
+  input: CyberdrawAnalyzeStructureInput,
+): HierarchicalSnapshotIntent {
   if (input.scope?.layerId) {
     return {
       kind: "analyze-structure" as const,
@@ -521,6 +600,7 @@ function intentFor(input: CyberdrawAnalyzeStructureInput) {
 function executionOptionsFor(
   input: CyberdrawAnalyzeStructureInput,
   counters: InstrumentationCounters,
+  inventorySnapshot?: RuntimeSnapshot,
 ): HierarchicalSnapshotExecutionOptions {
   const query = queryFor(input);
   const policy = policyFor(input.planning?.policy ?? "conservative");
@@ -534,6 +614,7 @@ function executionOptionsFor(
     runtimeLimits: {
       hardSnapshotBytes: input.expansion.maxBytes,
     },
+    ...(inventorySnapshot ? { inventorySnapshot } : {}),
     replyTimeoutMs: DEFAULT_TIMEOUT_MS,
     ...(query ? { structuralQuery: query } : {}),
     ...(input.mode === "plan" || input.mode === "validate"
@@ -665,6 +746,7 @@ function mapExecutionToPublicResponse(
     ...limitLimitations(input, findings, plan),
   ]);
   const coverage = publicCoverage(analysis?.coverage ?? execution.coverage);
+  const inspectedCoverage = publicCoverage(execution.coverage);
   const response: PublicStructuralResponse = {
     version: PUBLIC_RESPONSE_VERSION,
     mode: input.mode,
@@ -676,9 +758,9 @@ function mapExecutionToPublicResponse(
         defaulted: !input.scope?.pageId && !input.scope?.layerId,
       },
       inspected: {
-        document: coverage.document,
-        pageIds: coverage.pageIds,
-        layerTargets: coverage.layerTargets,
+        document: inspectedCoverage.document,
+        pageIds: inspectedCoverage.pageIds,
+        layerTargets: inspectedCoverage.layerTargets,
       },
       expanded: execution.metrics.stepsExecuted > 1,
       documentScopeUsed: execution.plan.steps.some(
@@ -989,6 +1071,9 @@ function outcomeFor(
   }
   if (execution.stopReason === "stale-snapshot") {
     return "stale";
+  }
+  if (execution.stopReason === "missing-target") {
+    return "invalid-request";
   }
   if (query?.outcome === "insufficient-coverage") {
     return "insufficient-coverage";
