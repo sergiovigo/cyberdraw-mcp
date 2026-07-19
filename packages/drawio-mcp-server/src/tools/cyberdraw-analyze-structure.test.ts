@@ -141,7 +141,10 @@ describe("cyberdraw_analyze_structure public tool", () => {
   });
 
   it("runs analyze/query/plan/validate once per required phase and returns public-only data", async () => {
-    const analyze = await runPublicMode({ mode: "analyze" });
+    const analyze = await runPublicMode(
+      { mode: "analyze" },
+      { scope: { pageId: "m9-page", layerId: "layer-a" } },
+    );
     expect(analyze.response.mode).toBe("analyze");
     expect(analyze.response.findings).toEqual(
       expect.arrayContaining([
@@ -167,24 +170,38 @@ describe("cyberdraw_analyze_structure public tool", () => {
       mutationAttempted: false,
       mutationInvocations: 0,
     });
-    expect(analyze.sent).toHaveLength(3);
+    expect(sentScopes(analyze.sent)).toEqual([
+      "layers:m9-page:layer-a",
+      "layers:m9-page:layer-a",
+      "layers:m9-page:layer-b",
+    ]);
 
-    const query = await runPublicMode({
-      mode: "query",
-      query: { findingTypes: ["broken-reference"], limit: 10 },
-    });
+    const query = await runPublicMode(
+      {
+        mode: "query",
+        query: { findingTypes: ["broken-reference"], limit: 10 },
+      },
+      { scope: { pageId: "m9-page", layerId: "layer-a" } },
+    );
     expect(query.response.query).toMatchObject({
       outcome: "ok",
       totalMatched: 1,
       returned: 1,
     });
-    expect(query.sent).toHaveLength(3);
+    expect(sentScopes(query.sent)).toEqual([
+      "layers:m9-page:layer-a",
+      "layers:m9-page:layer-a",
+      "layers:m9-page:layer-b",
+    ]);
 
-    const plan = await runPublicMode({
-      mode: "plan",
-      query: { findingTypes: ["broken-reference"] },
-      planning: { policy: "allow-detach-broken-terminal" },
-    });
+    const plan = await runPublicMode(
+      {
+        mode: "plan",
+        query: { findingTypes: ["broken-reference"] },
+        planning: { policy: "allow-detach-broken-terminal" },
+      },
+      { scope: { pageId: "m9-page", layerId: "layer-a" } },
+    );
     expect(plan.response.plan).toMatchObject({
       executable: false,
       proposalCount: 1,
@@ -197,12 +214,15 @@ describe("cyberdraw_analyze_structure public tool", () => {
       ],
     });
 
-    const validate = await runPublicMode({
-      mode: "validate",
-      query: { findingTypes: ["broken-reference"] },
-      planning: { policy: "allow-detach-broken-terminal" },
-      validation: { mode: "full-internal" },
-    });
+    const validate = await runPublicMode(
+      {
+        mode: "validate",
+        query: { findingTypes: ["broken-reference"] },
+        planning: { policy: "allow-detach-broken-terminal" },
+        validation: { mode: "full-internal" },
+      },
+      { scope: { pageId: "m9-page", layerId: "layer-a" } },
+    );
     expect(validate.response.validation).toMatchObject({
       outcome: "valid-with-limitations",
       planIntegrity: "valid",
@@ -217,6 +237,176 @@ describe("cyberdraw_analyze_structure public tool", () => {
     expect(serialized).not.toContain('operation":{"operationType');
     expect(serialized).not.toContain("provenance");
     expect(serialized).not.toContain("fingerprint");
+  });
+
+  it.each([
+    ["mode-only", { mode: "analyze" }],
+    ["empty", {}],
+    ["empty scope object", { scope: {} }],
+  ])(
+    "defaults %s requests to current page and visible layer",
+    async (_, input) => {
+      const result = await runPublicMode(input);
+
+      expect(result.response.scope.requested).toMatchObject({
+        defaulted: true,
+      });
+      expect(result.response.scope.inspected.document).toBe(false);
+      expect(result.response.scope.inspected.pageIds).toEqual(["m9-page"]);
+      expect(result.response.scope.inspected.layerTargets).toEqual([
+        { pageId: "m9-page", layerIds: ["layer-a"] },
+        { pageId: "m9-page", layerIds: ["layer-b"] },
+      ]);
+      expect(result.response.scope.documentScopeUsed).toBe(false);
+      expect(result.response.scope.expanded).toBe(true);
+      expect(result.response.coverage.document).toBe(false);
+      expect(result.response.safety.mutationInvocations).toBe(0);
+      expect(sentScopes(result.sent)).toEqual([
+        "selection",
+        "layers:m9-page:layer-a",
+        "layers:m9-page:layer-b",
+      ]);
+      expect(sentScopes(result.sent)).not.toContain("document");
+    },
+  );
+
+  it("falls back to current page when no visible layer is resolvable", async () => {
+    const result = await runPublicMode(
+      { mode: "analyze" },
+      { inventoryKind: "no-visible-layer" },
+    );
+
+    expect(result.response.scope).toMatchObject({
+      requested: { defaulted: true },
+      inspected: {
+        document: false,
+        pageIds: ["m9-page"],
+        layerTargets: [],
+      },
+      documentScopeUsed: false,
+    });
+    expect(result.response.coverage.document).toBe(false);
+    expect(sentScopes(result.sent)).toEqual(["selection", "pages:m9-page"]);
+    expect(sentScopes(result.sent)).not.toContain("document");
+  });
+
+  it.each(["analyze", "query", "plan", "validate"] as const)(
+    "%s shares default scope resolution without document fallback",
+    async (mode) => {
+      const result = await runPublicMode(defaultInputForMode(mode));
+
+      expect(result.response.mode).toBe(mode);
+      expect(result.response.scope.documentScopeUsed).toBe(false);
+      expect(result.response.scope.inspected.document).toBe(false);
+      expect(sentScopes(result.sent)[0]).toBe("selection");
+      expect(sentScopes(result.sent)).not.toContain("document");
+      expect(result.response.safety.mutationInvocations).toBe(0);
+    },
+  );
+
+  it("keeps explicit page and layer scopes unchanged", async () => {
+    const page = await runPublicMode(
+      { mode: "analyze" },
+      { scope: { pageId: "m9-page" } },
+    );
+    const layer = await runPublicMode(
+      { mode: "analyze" },
+      { scope: { pageId: "m9-page", layerId: "layer-a" } },
+    );
+
+    expect(page.response.scope.requested).toMatchObject({
+      pageId: "m9-page",
+      defaulted: false,
+    });
+    expect(page.response.scope.inspected).toMatchObject({
+      document: false,
+      pageIds: ["m9-page"],
+      layerTargets: [],
+    });
+    expect(sentScopes(page.sent)).toEqual(["pages:m9-page", "pages:m9-page"]);
+
+    expect(layer.response.scope.requested).toMatchObject({
+      pageId: "m9-page",
+      layerId: "layer-a",
+      defaulted: false,
+    });
+    expect(layer.response.scope.inspected.document).toBe(false);
+    expect(layer.response.scope.inspected.pageIds).toEqual(["m9-page"]);
+    expect(layer.response.scope.inspected.layerTargets).toEqual([
+      { pageId: "m9-page", layerIds: ["layer-a"] },
+      { pageId: "m9-page", layerIds: ["layer-b"] },
+    ]);
+    expect(sentScopes(layer.sent)).toEqual([
+      "layers:m9-page:layer-a",
+      "layers:m9-page:layer-a",
+      "layers:m9-page:layer-b",
+    ]);
+  });
+
+  it("returns a controlled invalid request for an explicit missing page", async () => {
+    const result = await runPublicMode(
+      { mode: "analyze" },
+      { scope: { pageId: "missing-page" } },
+    );
+
+    expect(result.response.outcome).toBe("invalid-request");
+    expect(result.response.scope.documentScopeUsed).toBe(false);
+    expect(result.response.scope.inspected.document).toBe(false);
+    expect(sentScopes(result.sent)).toEqual(["pages:missing-page"]);
+  });
+
+  it("returns a controlled limited outcome for an explicit missing layer", async () => {
+    const result = await runPublicMode(
+      { mode: "analyze" },
+      { scope: { pageId: "m9-page", layerId: "missing-layer" } },
+    );
+
+    expect(result.response.outcome).toBe("ok-with-limitations");
+    expect(result.response.limitations).toEqual(
+      expect.arrayContaining([
+        { code: "analysis-is-scoped-not-complete-document" },
+      ]),
+    );
+    expect(result.response.scope.documentScopeUsed).toBe(false);
+    expect(result.response.scope.inspected.document).toBe(false);
+    expect(sentScopes(result.sent)).toEqual([
+      "layers:m9-page:missing-layer",
+      "layers:m9-page:missing-layer",
+    ]);
+  });
+
+  it("fails closed when a default scope cannot resolve an active page", async () => {
+    const { context, listeners, sent } = createInteractiveContext();
+    const responsePromise = analyzeStructurePublic(
+      context,
+      parseCyberdrawAnalyzeStructureInput({ mode: "analyze" }),
+    );
+    await flushMicrotasks();
+    reply(
+      listeners,
+      "request-1",
+      m9RuntimeSnapshot("no-active-page", { kind: "selection" }),
+    );
+
+    await expect(responsePromise).rejects.toThrow(
+      "default scope could not resolve the active Draw.io page",
+    );
+    expect(sentScopes(sent)).toEqual(["selection"]);
+  });
+
+  it("fails closed when multiple documents make default routing ambiguous", async () => {
+    const { context } = createInteractiveContext({
+      resolveTargetDocument: async () => {
+        throw new Error("Multiple Draw.io documents are connected");
+      },
+    });
+
+    await expect(
+      analyzeStructurePublic(
+        context,
+        parseCyberdrawAnalyzeStructureInput({ mode: "analyze" }),
+      ),
+    ).rejects.toThrow("Multiple Draw.io documents are connected");
   });
 
   it("keeps deterministic public ordering and canonicalizes reordered arrays", async () => {
@@ -334,31 +524,64 @@ describe("cyberdraw_analyze_structure public tool", () => {
   });
 });
 
-async function runPublicMode(input: Record<string, unknown>) {
+async function runPublicMode(
+  input: Record<string, unknown>,
+  options: {
+    readonly scope?: { readonly pageId?: string; readonly layerId?: string };
+    readonly inventoryKind?: "default" | "no-visible-layer";
+  } = {},
+) {
   const { context, listeners, sent } = createInteractiveContext();
-  const responsePromise = analyzeStructurePublic(
-    context,
-    parseCyberdrawAnalyzeStructureInput({
-      scope: { pageId: "m9-page", layerId: "layer-a" },
-      expansion: { maxScopes: 4, maxDepth: 2, maxBytes: 2 * 1024 * 1024 },
-      ...input,
-    }),
-  );
-  await flushMicrotasks();
-  reply(listeners, "request-1", m9RuntimeSnapshot("focus"));
-  await flushMicrotasks();
-  reply(listeners, "request-2", m9RuntimeSnapshot("focus"));
-  await flushMicrotasks();
-  reply(listeners, "request-3", m9RuntimeSnapshot("context"));
+  const parsedInput = parseCyberdrawAnalyzeStructureInput({
+    expansion: { maxScopes: 4, maxDepth: 2, maxBytes: 2 * 1024 * 1024 },
+    ...(options.scope ? { scope: options.scope } : {}),
+    ...input,
+  });
+  const responsePromise = analyzeStructurePublic(context, parsedInput);
+  await driveRuntimeSnapshotReplies(listeners, sent, options.inventoryKind);
   const response = await responsePromise;
   return { response, sent };
 }
 
-function createInteractiveContext() {
+async function driveRuntimeSnapshotReplies(
+  listeners: ReadonlyMap<string, BusListener<Record<string, unknown>>>,
+  sent: readonly unknown[],
+  inventoryKind: "default" | "no-visible-layer" = "default",
+) {
+  let replied = 0;
+  for (;;) {
+    await flushMicrotasks();
+    const message = sent[replied] as
+      | {
+          readonly __request_id?: string;
+          readonly scope?: RuntimeSnapshotScope;
+        }
+      | undefined;
+    if (!message?.__request_id || !message.scope) {
+      if (replied === sent.length) {
+        return;
+      }
+      throw new Error("Runtime snapshot request was not emitted");
+    }
+    reply(
+      listeners,
+      message.__request_id,
+      m9RuntimeSnapshotForScope(message.scope, inventoryKind),
+    );
+    replied += 1;
+  }
+}
+
+function createInteractiveContext(
+  options: {
+    readonly resolveTargetDocument?: Context["document_routing"]["resolve_target_document"];
+  } = {},
+) {
   const listeners = new Map<string, BusListener<Record<string, unknown>>>();
   const sent: unknown[] = [];
   const context = createTestContext({
     sent,
+    resolveTargetDocument: options.resolveTargetDocument,
     onReply: (eventName, listener) => {
       listeners.set(eventName, listener);
       return () => listeners.delete(eventName);
@@ -381,6 +604,7 @@ function reply(
 
 function createTestContext(options: {
   readonly sent: unknown[];
+  readonly resolveTargetDocument?: Context["document_routing"]["resolve_target_document"];
   readonly onReply: (
     eventName: string,
     listener: BusListener<Record<string, unknown>>,
@@ -405,20 +629,22 @@ function createTestContext(options: {
     }),
     document_routing: {
       list_documents: async () => [],
-      resolve_target_document: async () => ({
-        connection_id: "connection-1",
-        target_document: { id: "m9-doc" },
-        document: {
-          id: "m9-doc",
-          title: null,
-          mode: null,
-          hash: null,
-          file_url: null,
-          page_count: 1,
-          current_page: null,
-        },
-        runtime_capabilities: createRuntimeCapabilities(),
-      }),
+      resolve_target_document:
+        options.resolveTargetDocument ??
+        (async () => ({
+          connection_id: "connection-1",
+          target_document: { id: "m9-doc" },
+          document: {
+            id: "m9-doc",
+            title: null,
+            mode: null,
+            hash: null,
+            file_url: null,
+            page_count: 1,
+            current_page: null,
+          },
+          runtime_capabilities: createRuntimeCapabilities(),
+        })),
     },
     log: {
       debug: () => {},
@@ -427,72 +653,227 @@ function createTestContext(options: {
   };
 }
 
-function m9RuntimeSnapshot(kind: "focus" | "context"): RuntimeSnapshot {
+function defaultInputForMode(
+  mode: "analyze" | "query" | "plan" | "validate",
+): Record<string, unknown> {
+  if (mode === "analyze") {
+    return { mode };
+  }
+  if (mode === "query") {
+    return {
+      mode,
+      query: { findingTypes: ["broken-reference"], limit: 10 },
+    };
+  }
+  if (mode === "plan") {
+    return {
+      mode,
+      query: { findingTypes: ["broken-reference"], limit: 10 },
+      planning: { policy: "allow-detach-broken-terminal" },
+    };
+  }
+  return {
+    mode,
+    query: { findingTypes: ["broken-reference"], limit: 10 },
+    planning: { policy: "allow-detach-broken-terminal" },
+    validation: { mode: "full-internal" },
+  };
+}
+
+function sentScopes(sent: readonly unknown[]) {
+  return sent.map((message) =>
+    testScopeKey((message as { readonly scope: RuntimeSnapshotScope }).scope),
+  );
+}
+
+function testScopeKey(scope: RuntimeSnapshotScope): string {
+  if (scope.kind === "pages") {
+    return `pages:${scope.pageIds.join(",")}`;
+  }
+  if (scope.kind === "layers") {
+    return `layers:${scope.pageId}:${scope.layerIds.join(",")}`;
+  }
+  return scope.kind;
+}
+
+function m9RuntimeSnapshotForScope(
+  requestedScope: RuntimeSnapshotScope,
+  inventoryKind: "default" | "no-visible-layer" = "default",
+): RuntimeSnapshot {
+  if (requestedScope.kind === "selection") {
+    return m9RuntimeSnapshot("inventory", requestedScope, inventoryKind);
+  }
+  if (requestedScope.kind === "pages") {
+    if (requestedScope.pageIds.includes("missing-page")) {
+      return m9RuntimeSnapshot("missing-page", requestedScope);
+    }
+    return m9RuntimeSnapshot("page", requestedScope);
+  }
+  if (requestedScope.kind === "layers") {
+    if (requestedScope.layerIds.includes("missing-layer")) {
+      return m9RuntimeSnapshot("missing-layer", requestedScope);
+    }
+    return m9RuntimeSnapshot(
+      requestedScope.layerIds.includes("layer-b") ? "context" : "focus",
+      requestedScope,
+    );
+  }
+  throw new Error("unit test must not request document scope by default");
+}
+
+function m9RuntimeSnapshot(
+  kind:
+    | "inventory"
+    | "focus"
+    | "context"
+    | "page"
+    | "missing-page"
+    | "missing-layer"
+    | "no-active-page",
+  requestedScope: RuntimeSnapshotScope,
+  inventoryKind: "default" | "no-visible-layer" = "default",
+): RuntimeSnapshot {
   const elements: RuntimeSnapshot["pages"][number]["elements"] =
-    kind === "focus"
+    kind === "inventory" ||
+    kind === "missing-page" ||
+    kind === "missing-layer" ||
+    kind === "no-active-page"
+      ? []
+      : kind === "focus"
+        ? [
+            {
+              id: "source-a",
+              pageId: "m9-page",
+              layerId: "layer-a",
+              parentId: "layer-a",
+              type: "vertex",
+              label: { format: "plain", text: "source-a" },
+            },
+            {
+              id: "orphan-a",
+              pageId: "m9-page",
+              layerId: "layer-a",
+              parentId: "layer-a",
+              type: "vertex",
+            },
+            {
+              id: "edge-cross",
+              pageId: "m9-page",
+              layerId: "layer-a",
+              parentId: "layer-a",
+              sourceId: "source-a",
+              targetId: "target-b",
+              type: "edge",
+            },
+            {
+              id: "edge-broken",
+              pageId: "m9-page",
+              layerId: "layer-a",
+              parentId: "layer-a",
+              sourceId: "source-a",
+              targetId: "missing-terminal",
+              type: "edge",
+            },
+          ]
+        : kind === "context"
+          ? [
+              {
+                id: "target-b",
+                pageId: "m9-page",
+                layerId: "layer-b",
+                parentId: "layer-b",
+                type: "vertex",
+              },
+            ]
+          : [
+              {
+                id: "source-a",
+                pageId: "m9-page",
+                layerId: "layer-a",
+                parentId: "layer-a",
+                type: "vertex",
+                label: { format: "plain", text: "source-a" },
+              },
+              {
+                id: "target-b",
+                pageId: "m9-page",
+                layerId: "layer-b",
+                parentId: "layer-b",
+                type: "vertex",
+              },
+            ];
+  const resolvedScope: RuntimeSnapshotScope =
+    requestedScope.kind === "selection"
+      ? { kind: "selection", pageId: "m9-page" }
+      : requestedScope;
+  const includedLayers =
+    requestedScope.kind === "layers"
       ? [
           {
-            id: "source-a",
-            pageId: "m9-page",
-            layerId: "layer-a",
-            parentId: "layer-a",
-            type: "vertex",
-            label: { format: "plain", text: "source-a" },
-          },
-          {
-            id: "orphan-a",
-            pageId: "m9-page",
-            layerId: "layer-a",
-            parentId: "layer-a",
-            type: "vertex",
-          },
-          {
-            id: "edge-cross",
-            pageId: "m9-page",
-            layerId: "layer-a",
-            parentId: "layer-a",
-            sourceId: "source-a",
-            targetId: "target-b",
-            type: "edge",
-          },
-          {
-            id: "edge-broken",
-            pageId: "m9-page",
-            layerId: "layer-a",
-            parentId: "layer-a",
-            sourceId: "source-a",
-            targetId: "missing-terminal",
-            type: "edge",
+            pageId: requestedScope.pageId,
+            layerIds: kind === "missing-layer" ? [] : requestedScope.layerIds,
           },
         ]
+      : requestedScope.kind === "pages" && kind !== "missing-page"
+        ? [
+            {
+              pageId: "m9-page",
+              layerIds: ["layer-a", "layer-b"],
+            },
+          ]
+        : requestedScope.kind === "selection"
+          ? [
+              {
+                pageId: "m9-page",
+                layerIds: ["layer-a", "layer-b"],
+              },
+            ]
+          : [];
+  const pages =
+    kind === "missing-page"
+      ? []
       : [
           {
-            id: "target-b",
-            pageId: "m9-page",
-            layerId: "layer-b",
-            parentId: "layer-b",
-            type: "vertex",
+            id: "m9-page",
+            index: 0,
+            name: "M9 synthetic",
+            visible: true,
+            background: false,
+            layers: [
+              {
+                id: "layer-a",
+                name: "Layer A",
+                visible: inventoryKind === "default",
+                locked: false,
+                pageId: "m9-page",
+                index: 0,
+              },
+              {
+                id: "layer-b",
+                name: "Layer B",
+                visible: inventoryKind === "default",
+                locked: false,
+                pageId: "m9-page",
+                index: 1,
+              },
+            ],
+            elements,
           },
         ];
-  const scope: RuntimeSnapshotScope = {
-    kind: "layers",
-    pageId: "m9-page",
-    layerIds: [kind === "focus" ? "layer-a" : "layer-b"],
-  };
   return {
     schemaVersion: "cyberdraw.runtime-snapshot.v1",
     contractVersion: 1,
     document: {
       id: "m9-doc",
       pageCount: 1,
-      currentPageId: "m9-page",
+      currentPageId: kind === "no-active-page" ? undefined : "m9-page",
       capturedAt: "2026-07-17T00:00:00.000Z",
       revisionSignals: {
         documentId: "m9-doc",
-        pageIds: ["m9-page"],
-        scope,
-        requestedScope: scope,
-        resolvedScope: scope,
+        pageIds: pages.map((page) => page.id),
+        scope: resolvedScope,
+        requestedScope,
+        resolvedScope,
         complete: true,
         contentRevision:
           kind === "focus"
@@ -502,15 +883,10 @@ function m9RuntimeSnapshot(kind: "focus" | "context"): RuntimeSnapshot {
       },
     },
     scope: {
-      requestedScope: scope,
-      resolvedScope: scope,
-      includedPages: ["m9-page"],
-      includedLayers: [
-        {
-          pageId: "m9-page",
-          layerIds: [kind === "focus" ? "layer-a" : "layer-b"],
-        },
-      ],
+      requestedScope,
+      resolvedScope,
+      includedPages: pages.map((page) => page.id),
+      includedLayers,
       includedElementCount: elements.length,
       contextElementCount: 0,
       externalReferences:
@@ -526,41 +902,36 @@ function m9RuntimeSnapshot(kind: "focus" | "context"): RuntimeSnapshot {
               },
             ]
           : [],
-      missingPageIds: [],
-      missingLayerIds: [],
+      missingPageIds: kind === "missing-page" ? ["missing-page"] : [],
+      missingLayerIds:
+        kind === "missing-layer"
+          ? [{ pageId: "m9-page", layerIds: ["missing-layer"] }]
+          : [],
       includedContext: false,
       requiresScopeExpansion: kind === "focus",
       conclusive: true,
     },
-    pages: [
-      {
-        id: "m9-page",
-        index: 0,
-        name: "M9 synthetic",
-        visible: true,
-        background: false,
-        layers: [
-          {
-            id: "layer-a",
-            name: "Layer A",
-            visible: true,
-            locked: false,
-            pageId: "m9-page",
-            index: 0,
-          },
-          {
-            id: "layer-b",
-            name: "Layer B",
-            visible: true,
-            locked: false,
-            pageId: "m9-page",
-            index: 1,
-          },
-        ],
-        elements,
-      },
-    ],
-    diagnostics: [],
+    pages,
+    diagnostics:
+      kind === "missing-page"
+        ? [
+            {
+              code: "page_not_found",
+              message: "Runtime snapshot requested a page that does not exist.",
+              pageId: "missing-page",
+            },
+          ]
+        : kind === "missing-layer"
+          ? [
+              {
+                code: "layer_not_found",
+                message:
+                  "Runtime snapshot requested a layer that does not exist on the resolved page.",
+                pageId: "m9-page",
+                layerId: "missing-layer",
+              },
+            ]
+          : [],
     completeness: { status: "complete" },
     truncated: false,
     limits: {
