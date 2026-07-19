@@ -14,7 +14,10 @@ import {
   executeHierarchicalSnapshotPlan,
   inventoryFromRuntimeSnapshot,
 } from "../cyberdraw-hierarchical-snapshot.js";
-import { queryStructuralAnalysis } from "cyberdraw-graph-model";
+import {
+  planStructuralChanges,
+  queryStructuralAnalysis,
+} from "cyberdraw-graph-model";
 import { requestCyberdrawRuntimeSnapshot } from "../cyberdraw-runtime-snapshot.js";
 import {
   runtimeSnapshotScopeKey,
@@ -588,6 +591,8 @@ describe("real environment/hierarchical snapshot planner", () => {
     let snapshotRequests = 0;
     let analysisInvocations = 0;
     let queryInvocations = 0;
+    let planInvocations = 0;
+    let mutationInvocations = 0;
     const originalSend = context.app.context.bus.send_to_extension;
     context.app.context.bus.send_to_extension = (message) => {
       if (
@@ -614,12 +619,22 @@ describe("real environment/hierarchical snapshot planner", () => {
           filters: { findingTypes: ["broken-reference"] },
           coverageRequirement: "complete-target-scopes",
         },
+        structuralChangePlan: {
+          useStructuralQueryResult: true,
+          policy: { allowDetachBrokenTerminals: true },
+        },
         instrumentation: {
           onStructuralAnalysis: () => {
             analysisInvocations += 1;
           },
           onStructuralQuery: () => {
             queryInvocations += 1;
+          },
+          onStructuralPlan: () => {
+            planInvocations += 1;
+          },
+          onMutation: () => {
+            mutationInvocations += 1;
           },
         },
       },
@@ -719,6 +734,24 @@ describe("real environment/hierarchical snapshot planner", () => {
       kind: "list-findings",
       coverageRequirement: "complete-document",
     });
+    const conservativePlan = planStructuralChanges({
+      analysis: result.structuralAnalysis,
+      selectedFindingIds: [
+        broken.findingId,
+        confirmedOrphan.findingId,
+        crossLayer.findingId,
+      ],
+    });
+    const explicitDeletePlan = planStructuralChanges({
+      analysis: result.structuralAnalysis,
+      selectedFindingIds: [confirmedOrphan.findingId],
+      policy: { allowDeleteConfirmedOrphans: true },
+    });
+    const stablePlan = planStructuralChanges({
+      analysis: result.structuralAnalysis,
+      queryResult: result.structuralQueryResult,
+      policy: { allowDetachBrokenTerminals: true },
+    });
 
     expect(result.plan.steps[0]?.requestedScope).toEqual({
       kind: "layers",
@@ -782,7 +815,10 @@ describe("real environment/hierarchical snapshot planner", () => {
     expect(analysisInvocations).toBe(analysisInvocationsBeforeQueries);
     expect(analysisInvocations).toBe(1);
     expect(result.structuralQueryResult).toBeDefined();
+    expect(result.structuralChangePlan).toBeDefined();
     expect(queryInvocations).toBe(9);
+    expect(planInvocations).toBe(1);
+    expect(mutationInvocations).toBe(0);
     expect(brokenQuery.results).toEqual([broken]);
     expect(
       layerQuery.results.some(
@@ -810,6 +846,48 @@ describe("real environment/hierarchical snapshot planner", () => {
         expect.objectContaining({ code: "insufficient-coverage" }),
       ],
     });
+    expect(result.structuralChangePlan).toMatchObject({
+      outcome: "planned",
+      selectedFindingIds: [broken.findingId],
+      proposalCount: 1,
+      coverage: result.structuralAnalysis.coverage,
+      revisionEvidence: result.structuralAnalysis.revisionEvidence,
+    });
+    expect(result.structuralChangePlan?.planId).toBe(stablePlan.planId);
+    expect(
+      result.structuralChangePlan?.proposals.map(
+        (proposal) => proposal.proposalId,
+      ),
+    ).toEqual(stablePlan.proposals.map((proposal) => proposal.proposalId));
+    expect(result.structuralChangePlan?.proposals[0]).toMatchObject({
+      proposalType: "detach-broken-terminal",
+      operation: {
+        operationType: "detach-terminal",
+        target: { terminal: "target" },
+      },
+    });
+    expect(
+      JSON.stringify(result.structuralChangePlan?.proposals[0]),
+    ).not.toContain("replace-terminal-reference");
+    expect(
+      conservativePlan.proposals.map((proposal) => proposal.proposalType),
+    ).toEqual(
+      expect.arrayContaining(["manual-review", "review-cross-layer-edge"]),
+    );
+    expect(
+      conservativePlan.proposals.map((proposal) => proposal.proposalType),
+    ).not.toContain("delete-orphan-element");
+    expect(explicitDeletePlan).toMatchObject({
+      outcome: "planned",
+      proposals: [
+        expect.objectContaining({ proposalType: "delete-orphan-element" }),
+      ],
+    });
+    expect(result.structuralChangePlan?.coverage).toEqual(
+      result.structuralAnalysis.coverage,
+    );
+    expect(result.structuralChangePlan?.revisionCompatible).toBe(true);
+    expect(result.structuralChangePlan?.documentRevision).toBeDefined();
     expect(
       result.plan.steps.some((step) => step.requestedScope.kind === "document"),
     ).toBe(false);

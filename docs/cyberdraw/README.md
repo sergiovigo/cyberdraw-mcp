@@ -32,6 +32,7 @@ before CyberDraw-specific features are introduced.
 | [milestones/M8.1-real-external-reference-expansion.md](milestones/M8.1-real-external-reference-expansion.md)   | M8.1 real draw.io evidence for external-reference scope expansion                                                | Internal milestone evidence |
 | [milestones/M9-internal-structural-analysis.md](milestones/M9-internal-structural-analysis.md)                 | M9 private structural analysis vertical over scoped snapshots, merge and graph model                             | Internal milestone evidence |
 | [milestones/M10-internal-structural-queries.md](milestones/M10-internal-structural-queries.md)                 | M10 private deterministic query layer over already materialized M9 structural analysis results                   | Internal milestone evidence |
+| [milestones/M11-internal-structural-change-planning.md](milestones/M11-internal-structural-change-planning.md) | M11 private deterministic proposal planning layer over M9 findings and M10 selections                            | Internal milestone evidence |
 | [benchmarks/](benchmarks/)                                                                                     | Small aggregate M6 synthetic and M7 real-environment benchmark summaries                                         | Benchmark evidence          |
 | [diagrams/internal-graph-model.md](diagrams/internal-graph-model.md)                                           | Mermaid diagrams supporting RFC 0001                                                                             | Draft supporting diagrams   |
 | [adr/0001-fork-strategy.md](adr/0001-fork-strategy.md)                                                         | Decision to begin as a conservative fork                                                                         | Accepted ADR                |
@@ -80,7 +81,9 @@ Related root documents:
     reference, cross-layer and orphan analysis semantics.
 21. `milestones/M10-internal-structural-queries.md` for private structural
     finding queries over M9 results.
-22. `adr/` when a lasting decision needs historical context.
+22. `milestones/M11-internal-structural-change-planning.md` for private
+    non-mutating structural change proposals over M9/M10 results.
+23. `adr/` when a lasting decision needs historical context.
 
 ## Question Map
 
@@ -106,6 +109,7 @@ Related root documents:
 | How does internal hierarchical snapshot planning work?          | `milestones/M8-hierarchical-snapshot-planner.md`, `milestones/M8.1-real-external-reference-expansion.md`, `adr/0004-runtime-snapshot-scaling-strategy.md` |
 | How does internal structural analysis work?                     | `milestones/M9-internal-structural-analysis.md`, `rfc/0001-internal-graph-model.md`, `adr/0003-internal-graph-model-architecture.md`                      |
 | How are structural findings queried internally?                 | `milestones/M10-internal-structural-queries.md`, `milestones/M9-internal-structural-analysis.md`                                                          |
+| How are internal structural change proposals planned?           | `milestones/M11-internal-structural-change-planning.md`, `milestones/M10-internal-structural-queries.md`, `milestones/M9-internal-structural-analysis.md` |
 | What internal graph model architecture was accepted?            | `adr/0003-internal-graph-model-architecture.md`                                                                                                           |
 | Where are lasting decisions recorded?                           | `adr/`                                                                                                                                                    |
 | What third-party assets need review?                            | `../../THIRD_PARTY_NOTICES.md`                                                                                                                            |

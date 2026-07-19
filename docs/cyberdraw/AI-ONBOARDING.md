@@ -49,6 +49,8 @@ diagramming work.
 17. `docs/cyberdraw/milestones/M10-internal-structural-queries.md` when
     changing private queries over already materialized structural analysis
     results.
+18. `docs/cyberdraw/milestones/M11-internal-structural-change-planning.md` when
+    changing private non-mutating structural change proposals over M9/M10 data.
 
 Read `AGENTS.md` before modifying anything. It contains repository-wide logging,
 navigation and command-output discipline.
@@ -171,6 +173,8 @@ direct shell commands and package scripts.
   `docs/cyberdraw/milestones/M9-internal-structural-analysis.md`
 - Internal structural query evidence:
   `docs/cyberdraw/milestones/M10-internal-structural-queries.md`
+- Internal structural change planning evidence:
+  `docs/cyberdraw/milestones/M11-internal-structural-change-planning.md`
 - Planner and executor implementation:
   `packages/cyberdraw-graph-model/src/hierarchical-snapshot-planner.ts`,
   `packages/cyberdraw-graph-model/src/scoped-snapshot-merge.ts` and
