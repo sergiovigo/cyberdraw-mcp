@@ -14,6 +14,7 @@ import {
   executeHierarchicalSnapshotPlan,
   inventoryFromRuntimeSnapshot,
 } from "../cyberdraw-hierarchical-snapshot.js";
+import { queryStructuralAnalysis } from "cyberdraw-graph-model";
 import { requestCyberdrawRuntimeSnapshot } from "../cyberdraw-runtime-snapshot.js";
 import {
   runtimeSnapshotScopeKey,
@@ -584,6 +585,21 @@ describe("real environment/hierarchical snapshot planner", () => {
     const beforeState = await readEditorState(context);
     const executionLogStart = context.logger.entries.length;
 
+    let snapshotRequests = 0;
+    let analysisInvocations = 0;
+    let queryInvocations = 0;
+    const originalSend = context.app.context.bus.send_to_extension;
+    context.app.context.bus.send_to_extension = (message) => {
+      if (
+        message &&
+        typeof message === "object" &&
+        (message as { __event?: unknown }).__event ===
+          "cyberdraw.runtimeSnapshot.v1"
+      ) {
+        snapshotRequests += 1;
+      }
+      originalSend(message);
+    };
     const result = await executeHierarchicalSnapshotPlan(
       context.app.context,
       {
@@ -593,8 +609,23 @@ describe("real environment/hierarchical snapshot planner", () => {
       {
         limits: { maxPlanSteps: 4, maxExpansionDepth: 2 },
         runtimeLimits: { hardSnapshotBytes: 2 * 1024 * 1024 },
+        structuralQuery: {
+          kind: "list-findings",
+          filters: { findingTypes: ["broken-reference"] },
+          coverageRequirement: "complete-target-scopes",
+        },
+        instrumentation: {
+          onStructuralAnalysis: () => {
+            analysisInvocations += 1;
+          },
+          onStructuralQuery: () => {
+            queryInvocations += 1;
+          },
+        },
       },
-    );
+    ).finally(() => {
+      context.app.context.bus.send_to_extension = originalSend;
+    });
 
     const findings = result.structuralAnalysis?.findings ?? [];
     const crossLayer = findings.find(
@@ -629,6 +660,65 @@ describe("real environment/hierarchical snapshot planner", () => {
     const executedLogMessages = context.logger.entries
       .slice(executionLogStart)
       .map((entry) => entry.message);
+    if (
+      !result.structuralAnalysis ||
+      !broken ||
+      !crossLayer ||
+      !confirmedOrphan
+    ) {
+      throw new Error("M10 query fixture requires M9 findings");
+    }
+    const snapshotRequestsBeforeQueries = snapshotRequests;
+    const stepsExecutedBeforeQueries = result.metrics.stepsExecuted;
+    const analysisInvocationsBeforeQueries = analysisInvocations;
+    const runQuery = (
+      query: Parameters<typeof queryStructuralAnalysis>[0]["query"],
+    ) => {
+      queryInvocations += 1;
+      return queryStructuralAnalysis({
+        analysis: result.structuralAnalysis!,
+        query,
+      });
+    };
+    const brokenQuery =
+      result.structuralQueryResult ??
+      runQuery({
+        kind: "list-findings",
+        filters: { findingTypes: ["broken-reference"] },
+      });
+    if (broken.findingType !== "broken-reference" || !broken.layerId) {
+      throw new Error("M10 real layer query requires a structural layerId");
+    }
+    const layerQuery = runQuery({
+      kind: "list-findings",
+      filters: { layerIds: [broken.layerId] },
+    });
+    const crossLayerQuery = runQuery({
+      kind: "list-findings",
+      filters: { classifications: ["same-page-cross-layer"] },
+    });
+    const orphanQuery = runQuery({
+      kind: "list-findings",
+      filters: { findingTypes: ["orphan-element"] },
+    });
+    const lookupQuery = runQuery({
+      kind: "get-finding",
+      findingId: broken.findingId,
+    });
+    const summaryQuery = runQuery({
+      kind: "summarize",
+      groupBy: "finding-type",
+    });
+    const countsQuery = runQuery({ kind: "counts" });
+    const coverageSatisfied = runQuery({
+      kind: "list-findings",
+      coverageRequirement: "complete-target-scopes",
+      limit: 1,
+    });
+    const coverageInsufficient = runQuery({
+      kind: "list-findings",
+      coverageRequirement: "complete-document",
+    });
 
     expect(result.plan.steps[0]?.requestedScope).toEqual({
       kind: "layers",
@@ -685,6 +775,40 @@ describe("real environment/hierarchical snapshot planner", () => {
       brokenReferenceCount: { value: 1, basis: "observed" },
       crossLayerEdgeCount: { value: 1, basis: "observed" },
       orphanElementCount: { value: 1, basis: "observed" },
+    });
+    expect(snapshotRequests).toBe(result.metrics.stepsExecuted + 1);
+    expect(snapshotRequests).toBe(snapshotRequestsBeforeQueries);
+    expect(result.metrics.stepsExecuted).toBe(stepsExecutedBeforeQueries);
+    expect(analysisInvocations).toBe(analysisInvocationsBeforeQueries);
+    expect(analysisInvocations).toBe(1);
+    expect(result.structuralQueryResult).toBeDefined();
+    expect(queryInvocations).toBe(9);
+    expect(brokenQuery.results).toEqual([broken]);
+    expect(
+      layerQuery.results.some(
+        (finding) => finding.findingId === broken.findingId,
+      ),
+    ).toBe(true);
+    expect(crossLayerQuery.results).toEqual([crossLayer]);
+    expect(orphanQuery.results).toEqual([confirmedOrphan]);
+    expect(lookupQuery.finding).toEqual(broken);
+    expect(summaryQuery.groups).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: "broken-reference", count: 1 }),
+        expect.objectContaining({ key: "cross-layer-edge", count: 2 }),
+        expect.objectContaining({ key: "orphan-element", count: 1 }),
+      ]),
+    );
+    expect(countsQuery.summary?.counts).toEqual(
+      result.structuralAnalysis?.counts,
+    );
+    expect(coverageSatisfied.outcome).toBe("ok");
+    expect(coverageInsufficient).toMatchObject({
+      outcome: "insufficient-coverage",
+      results: [],
+      queryDiagnostics: [
+        expect.objectContaining({ code: "insufficient-coverage" }),
+      ],
     });
     expect(
       result.plan.steps.some((step) => step.requestedScope.kind === "document"),

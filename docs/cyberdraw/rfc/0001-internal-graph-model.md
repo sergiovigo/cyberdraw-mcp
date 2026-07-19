@@ -250,6 +250,14 @@ broken-reference, cross-layer and orphan findings with coverage/completeness
 context. The RFC remains Draft and no public schema, public MCP tool,
 persistence, semantic diff, change plan or stable identity is accepted.
 
+M10 internal structural query evidence is recorded in
+`docs/cyberdraw/milestones/M10-internal-structural-queries.md`. It adds a pure
+private query layer over already materialized M9 `StructuralAnalysisResult`
+data, with exact filters, closed ordering/grouping, pagination, count reuse and
+coverage requirements. The RFC remains Draft and no public schema, public MCP
+tool, endpoint, persistence, search language, semantic diff, change plan,
+mutation plan or stable identity is accepted.
+
 ## Data Model Proposal
 
 Use normalized entities keyed by internal ID, plus explicit references. Prefer

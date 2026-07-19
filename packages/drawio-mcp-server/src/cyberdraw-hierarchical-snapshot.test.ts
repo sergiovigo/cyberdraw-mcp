@@ -144,6 +144,129 @@ describe("cyberdraw hierarchical snapshot executor", () => {
     expect(JSON.stringify(findings)).not.toContain("m9 source label");
   });
 
+  it("executes an internal structural query over the existing M9 result without extra snapshots", async () => {
+    const { context, listeners, sent } = createInteractiveContext();
+    let analysisInvocations = 0;
+    let queryInvocations = 0;
+    const execution = executeHierarchicalSnapshotPlan(
+      context,
+      {
+        kind: "analyze-structure",
+        layers: [{ pageId: "m9-page", layerIds: ["layer-a"] }],
+      },
+      {
+        inventorySnapshot: m9RuntimeSnapshot("focus"),
+        limits: { maxPlanSteps: 4, maxExpansionDepth: 2 },
+        structuralQuery: {
+          kind: "list-findings",
+          filters: { findingTypes: ["broken-reference"] },
+          coverageRequirement: "complete-target-scopes",
+        },
+        instrumentation: {
+          onStructuralAnalysis: () => {
+            analysisInvocations += 1;
+          },
+          onStructuralQuery: () => {
+            queryInvocations += 1;
+          },
+        },
+      },
+    );
+    await flushMicrotasks();
+
+    reply(listeners, "request-1", m9RuntimeSnapshot("focus"));
+    await flushMicrotasks();
+    reply(listeners, "request-2", m9RuntimeSnapshot("context"));
+
+    const result = await execution;
+    expect(sent).toHaveLength(2);
+    expect(analysisInvocations).toBe(1);
+    expect(queryInvocations).toBe(1);
+    expect(result.structuralAnalysis).toBeDefined();
+    expect(result.structuralQueryResult).toMatchObject({
+      kind: "list-findings",
+      outcome: "ok",
+      totalMatched: 1,
+      returned: 1,
+      completeness: "complete-target-scopes",
+      stopReason: "intent-satisfied",
+    });
+    expect(result.structuralQueryResult?.results[0]).toMatchObject({
+      findingType: "broken-reference",
+      status: "broken",
+      referencedElementId: "missing-terminal",
+    });
+    expect(result.structuralQueryResult?.analysisDiagnostics).toEqual(
+      result.structuralAnalysis?.diagnostics,
+    );
+    expect(result.structuralQueryResult?.limitations).toEqual(
+      result.structuralAnalysis?.limitations,
+    );
+    expect(result.metrics.measuredBytes).toBeGreaterThan(0);
+  });
+
+  it("returns internal query validation and coverage outcomes without replacing planner diagnostics", async () => {
+    const invalid = await runM9StructuralQuery({
+      kind: "list-findings",
+      filters: { elementIds: ["x".repeat(600)] },
+    } as never);
+    const insufficient = await runM9StructuralQuery({
+      kind: "list-findings",
+      coverageRequirement: "complete-document",
+    });
+    const missing = await runM9StructuralQuery({
+      kind: "get-finding",
+      findingId: "not-present",
+    });
+
+    expect(invalid.structuralQueryResult).toMatchObject({
+      outcome: "invalid-query",
+      queryDiagnostics: [expect.objectContaining({ code: "invalid-filter" })],
+    });
+    expect(insufficient.structuralQueryResult).toMatchObject({
+      outcome: "insufficient-coverage",
+      results: [],
+      queryDiagnostics: [
+        expect.objectContaining({ code: "insufficient-coverage" }),
+      ],
+    });
+    expect(missing.structuralQueryResult).toMatchObject({
+      outcome: "ok",
+      totalMatched: 0,
+      queryDiagnostics: [
+        expect.objectContaining({ code: "finding-not-found" }),
+      ],
+    });
+    expect(
+      insufficient.diagnostics.map((diagnostic) => diagnostic.code),
+    ).toContain("external-context-required");
+    expect(insufficient.stopReason).toBe("intent-satisfied");
+  });
+
+  it("does not execute a structural query when graph or structural analysis is unavailable", async () => {
+    const noAnalysis = await executeHierarchicalSnapshotPlan(
+      createInteractiveContext().context,
+      { kind: "inspect-visible-page" },
+      {
+        inventorySnapshot: runtimeSnapshot({
+          scope: { kind: "pages", pageIds: ["p1"] },
+        }),
+        limits: { executionTimeoutMs: -1 },
+        structuralQuery: { kind: "counts" },
+      },
+    );
+    const stale = await runStaleAnalyzeStructureWithQuery();
+
+    expect(noAnalysis.graph).toBeUndefined();
+    expect(noAnalysis.structuralAnalysis).toBeUndefined();
+    expect(noAnalysis.structuralQueryResult).toBeUndefined();
+    expect(noAnalysis.stopReason).toBe("timeout");
+    expect(stale.stopReason).toBe("stale-snapshot");
+    expect(stale.graph).toBeUndefined();
+    expect(stale.structuralAnalysis).toBeUndefined();
+    expect(stale.structuralQueryResult).toBeUndefined();
+  });
+
   it("stops safely on stale snapshot revision", async () => {
     const listeners = new Map<string, BusListener<Record<string, unknown>>>();
     const sent: unknown[] = [];
@@ -618,11 +741,62 @@ describe("cyberdraw hierarchical snapshot executor", () => {
         "cyberdraw.hierarchicalSnapshotPlan.v1",
         "hierarchical-snapshot-planner",
         "analyze-structure",
+        "structural-query",
+        "cyberdraw.structuralQuery.v1",
         "cyberdraw.analyzeStructure.v1",
       ]),
     );
   });
 });
+
+async function runM9StructuralQuery(
+  structuralQuery: NonNullable<
+    Parameters<typeof executeHierarchicalSnapshotPlan>[2]
+  >["structuralQuery"],
+) {
+  const { context, listeners } = createInteractiveContext();
+  const execution = executeHierarchicalSnapshotPlan(
+    context,
+    {
+      kind: "analyze-structure",
+      layers: [{ pageId: "m9-page", layerIds: ["layer-a"] }],
+    },
+    {
+      inventorySnapshot: m9RuntimeSnapshot("focus"),
+      limits: { maxPlanSteps: 4, maxExpansionDepth: 2 },
+      structuralQuery,
+    },
+  );
+  await flushMicrotasks();
+  reply(listeners, "request-1", m9RuntimeSnapshot("focus"));
+  await flushMicrotasks();
+  reply(listeners, "request-2", m9RuntimeSnapshot("context"));
+  return execution;
+}
+
+async function runStaleAnalyzeStructureWithQuery() {
+  const { context, listeners } = createInteractiveContext();
+  const execution = executeHierarchicalSnapshotPlan(
+    context,
+    { kind: "analyze-structure", pageIds: ["p1"] },
+    {
+      inventorySnapshot: runtimeSnapshot({
+        scope: { kind: "pages", pageIds: ["p1"] },
+      }),
+      structuralQuery: { kind: "counts" },
+    },
+  );
+  await flushMicrotasks();
+  reply(
+    listeners,
+    "request-1",
+    runtimeSnapshot({
+      scope: { kind: "pages", pageIds: ["p1"] },
+      revision: "cyberdraw-content-v1:fnv1a64:0000000000000002",
+    }),
+  );
+  return execution;
+}
 
 async function runSingleExpansion(options: {
   readonly limits?: Partial<SnapshotPlanLimits>;

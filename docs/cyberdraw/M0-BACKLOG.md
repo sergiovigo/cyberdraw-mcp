@@ -129,6 +129,14 @@ baseline. It is not an implementation plan for M0 itself.
   analysis for broken references, cross-layer edges, conservative orphans,
   counts and coverage/completeness. It adds no public MCP tool, public schema,
   persistence, semantic diff, change plan, mutation plan or stable identity.
+- M10 update:
+  `docs/cyberdraw/milestones/M10-internal-structural-queries.md` implements a
+  private deterministic query layer over already materialized M9 structural
+  analysis results. It adds exact filters, closed ordering/grouping, pagination,
+  count reuse, coverage requirements and private server reuse of the same M9
+  result. It adds no public MCP tool, public schema, endpoint, persistence,
+  search language, semantic diff, change plan, mutation plan or stable
+  identity.
 - Effort: M.
 - Suggested milestone: Architecture Intelligence Foundation runtime integration
   hardening and compatibility evidence.
