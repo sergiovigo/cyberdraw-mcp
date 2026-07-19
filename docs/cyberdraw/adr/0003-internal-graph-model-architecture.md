@@ -190,6 +190,14 @@ orders. It does not add public MCP tools, public schemas, persistence, XML
 editing, draw.io command execution, semantic diff, rollback, approval workflow,
 stable identity or a generic rule engine.
 
+M12 structural-change-plan-validation update:
+`docs/cyberdraw/milestones/M12-internal-change-plan-validation.md` adds a
+private pure validator in `cyberdraw-graph-model` for already produced M11
+plans. It remains inside the discardable snapshot-derived model boundary and
+does not add plan execution, public MCP tools, public schemas, persistence, XML
+editing, draw.io command execution, semantic diff, rollback or approval
+workflow.
+
 This ADR explicitly does not accept:
 
 - the current provisional identity strategy as definitive;

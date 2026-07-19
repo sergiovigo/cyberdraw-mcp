@@ -1,5 +1,6 @@
 import type { StructuralAnalysisResult } from "./structural-analysis.js";
 import type { StructuralChangePlan } from "./structural-change-plan.js";
+import type { StructuralChangePlanValidationResult } from "./structural-change-plan-validation.js";
 import type { StructuralAnalysisQueryResult } from "./structural-query.js";
 import type { DiagramSnapshot, JsonValue } from "./types.js";
 
@@ -201,6 +202,7 @@ export type SnapshotPlanExecutionResult = {
   readonly structuralAnalysis?: StructuralAnalysisResult;
   readonly structuralQueryResult?: StructuralAnalysisQueryResult;
   readonly structuralChangePlan?: StructuralChangePlan;
+  readonly structuralChangePlanValidation?: StructuralChangePlanValidationResult;
   readonly stopReason: SnapshotPlanStopReason;
   readonly diagnostics: readonly SnapshotPlanDiagnostic[];
   readonly metrics: {
