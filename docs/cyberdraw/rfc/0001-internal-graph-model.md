@@ -258,6 +258,16 @@ coverage requirements. The RFC remains Draft and no public schema, public MCP
 tool, endpoint, persistence, search language, semantic diff, change plan,
 mutation plan or stable identity is accepted.
 
+M11 internal structural change planning evidence is recorded in
+`docs/cyberdraw/milestones/M11-internal-structural-change-planning.md`. It adds
+a pure private proposal planner over M9 findings and optional M10 selections,
+with closed policies, deterministic IDs, declarative abstract operations,
+preconditions, expected postconditions, coverage/freshness preservation and
+conflict reporting. The RFC remains Draft and no public schema, public MCP tool,
+endpoint, persistence, semantic diff, approval workflow, rollback executor,
+change application, XML editing, draw.io command execution, mutation plan or
+stable identity is accepted.
+
 ## Data Model Proposal
 
 Use normalized entities keyed by internal ID, plus explicit references. Prefer

@@ -148,6 +148,9 @@ export type StructuralCountsSummary = {
 
 export type StructuralAnalysisQueryResult = {
   readonly queryVersion: typeof STRUCTURAL_QUERY_VERSION;
+  readonly analysisVersion: StructuralAnalysisResult["analysisVersion"];
+  readonly documentId?: string;
+  readonly revisionEvidence: StructuralAnalysisResult["revisionEvidence"];
   readonly kind?: StructuralQueryKind;
   readonly outcome: StructuralQueryOutcome;
   readonly results: readonly StructuralFinding[];
@@ -1010,6 +1013,9 @@ function baseResult(
 ): StructuralAnalysisQueryResult {
   return {
     queryVersion: STRUCTURAL_QUERY_VERSION,
+    analysisVersion: analysis.analysisVersion,
+    documentId: analysis.documentId,
+    revisionEvidence: cloneJsonCompatible(analysis.revisionEvidence),
     ...(kind ? { kind } : {}),
     outcome: "ok",
     results: [],

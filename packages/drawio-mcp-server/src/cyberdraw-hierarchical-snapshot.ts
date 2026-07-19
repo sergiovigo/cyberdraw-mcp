@@ -3,6 +3,7 @@ import {
   analyzeGraphStructure,
   fromRuntimeSnapshot,
   mergeScopedSnapshotResults,
+  planStructuralChanges,
   planHierarchicalSnapshot,
   queryStructuralAnalysis,
   scopeKey,
@@ -17,6 +18,8 @@ import {
   type StructuralExternalReference,
   type StructuralAnalysisQuery,
   type StructuralQueryLimits,
+  type StructuralChangePlanLimits,
+  type StructuralChangePlanPolicy,
 } from "cyberdraw-graph-model";
 import type {
   RuntimeSnapshot,
@@ -39,9 +42,24 @@ export type HierarchicalSnapshotExecutionOptions = {
   readonly inventorySnapshot?: RuntimeSnapshot;
   readonly structuralQuery?: StructuralAnalysisQuery;
   readonly structuralQueryLimits?: Partial<StructuralQueryLimits>;
+  readonly structuralChangePlan?: {
+    readonly selectedFindingIds?: readonly string[];
+    readonly useStructuralQueryResult?: boolean;
+    readonly policy?: StructuralChangePlanPolicy;
+    readonly limits?: Partial<StructuralChangePlanLimits>;
+    readonly reviewContext?: {
+      readonly expectedDocumentRevision?: string;
+      readonly knownDocumentRevisionMismatch?: boolean;
+    };
+  };
   readonly instrumentation?: {
+    readonly onSnapshotRequest?: () => void;
+    readonly onMerge?: () => void;
+    readonly onGraphBuild?: () => void;
     readonly onStructuralAnalysis?: () => void;
     readonly onStructuralQuery?: () => void;
+    readonly onStructuralPlan?: () => void;
+    readonly onMutation?: () => void;
   };
 };
 
@@ -103,6 +121,7 @@ export async function executeHierarchicalSnapshotPlan(
         },
         { replyTimeoutMs: options.replyTimeoutMs },
       );
+      options.instrumentation?.onSnapshotRequest?.();
     } catch (error) {
       diagnostics.push({
         code: "incomplete-inventory",
@@ -236,6 +255,7 @@ export async function executeHierarchicalSnapshotPlan(
     });
   }
 
+  options.instrumentation?.onMerge?.();
   const merge = mergeScopedSnapshotResults(snapshots);
   if (!merge.ok) {
     stopReason =
@@ -259,7 +279,12 @@ export async function executeHierarchicalSnapshotPlan(
   }
 
   const graph =
-    snapshots.length > 0 ? fromRuntimeSnapshot(merge.snapshot) : undefined;
+    snapshots.length > 0
+      ? (() => {
+          options.instrumentation?.onGraphBuild?.();
+          return fromRuntimeSnapshot(merge.snapshot);
+        })()
+      : undefined;
   const finalStopReason =
     stopReason === "intent-satisfied"
       ? executedPlan.steps.some(
@@ -329,6 +354,23 @@ export async function executeHierarchicalSnapshotPlan(
           });
         })()
       : undefined;
+  const structuralChangePlan =
+    structuralAnalysis && options.structuralChangePlan
+      ? (() => {
+          options.instrumentation?.onStructuralPlan?.();
+          return planStructuralChanges({
+            analysis: structuralAnalysis,
+            selectedFindingIds:
+              options.structuralChangePlan?.selectedFindingIds,
+            queryResult: options.structuralChangePlan?.useStructuralQueryResult
+              ? structuralQueryResult
+              : undefined,
+            policy: options.structuralChangePlan?.policy,
+            limits: options.structuralChangePlan?.limits,
+            reviewContext: options.structuralChangePlan?.reviewContext,
+          });
+        })()
+      : undefined;
   return executionResult(executedPlan, {
     stopReason: finalStopReason,
     diagnostics,
@@ -345,6 +387,7 @@ export async function executeHierarchicalSnapshotPlan(
     graph,
     structuralAnalysis,
     structuralQueryResult,
+    structuralChangePlan,
   });
 }
 
@@ -826,6 +869,7 @@ function executionResult(
     readonly graph?: SnapshotPlanExecutionResult["graph"];
     readonly structuralAnalysis?: SnapshotPlanExecutionResult["structuralAnalysis"];
     readonly structuralQueryResult?: SnapshotPlanExecutionResult["structuralQueryResult"];
+    readonly structuralChangePlan?: SnapshotPlanExecutionResult["structuralChangePlan"];
   },
 ): SnapshotPlanExecutionResult {
   return {
@@ -834,6 +878,7 @@ function executionResult(
     graph: state.graph,
     structuralAnalysis: state.structuralAnalysis,
     structuralQueryResult: state.structuralQueryResult,
+    structuralChangePlan: state.structuralChangePlan,
     stopReason: state.stopReason,
     diagnostics: state.diagnostics,
     metrics: {

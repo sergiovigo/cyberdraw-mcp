@@ -137,6 +137,15 @@ baseline. It is not an implementation plan for M0 itself.
   result. It adds no public MCP tool, public schema, endpoint, persistence,
   search language, semantic diff, change plan, mutation plan or stable
   identity.
+- M11 update:
+  `docs/cyberdraw/milestones/M11-internal-structural-change-planning.md`
+  implements a private deterministic proposal planner over M9 findings and M10
+  selections. It adds closed policies, declarative abstract operations,
+  preconditions, expected postconditions, deterministic plan/proposal/conflict
+  IDs and private server reuse of the same M9/M10 results. It adds no public MCP
+  tool, public schema, endpoint, persistence, XML editing, draw.io command
+  execution, approval workflow, semantic diff, rollback executor, mutation
+  application or stable identity.
 - Effort: M.
 - Suggested milestone: Architecture Intelligence Foundation runtime integration
   hardening and compatibility evidence.

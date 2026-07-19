@@ -180,6 +180,16 @@ architecture and does not add public MCP tools, public schemas, persistence,
 semantic diff, change plans, mutation plans, stable identity or a generic rule
 engine.
 
+M11 structural-change-planning update:
+`docs/cyberdraw/milestones/M11-internal-structural-change-planning.md` adds a
+private pure proposal planner in `cyberdraw-graph-model` over already
+materialized M9 findings and optional M10 selections. It stays within this ADR's
+discardable internal model boundary: plans are deterministic proposals with
+declarative abstract operations and preconditions, not mutations or execution
+orders. It does not add public MCP tools, public schemas, persistence, XML
+editing, draw.io command execution, semantic diff, rollback, approval workflow,
+stable identity or a generic rule engine.
+
 This ADR explicitly does not accept:
 
 - the current provisional identity strategy as definitive;

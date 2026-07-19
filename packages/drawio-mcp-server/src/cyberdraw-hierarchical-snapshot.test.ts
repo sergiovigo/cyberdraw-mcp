@@ -267,6 +267,145 @@ describe("cyberdraw hierarchical snapshot executor", () => {
     expect(stale.structuralQueryResult).toBeUndefined();
   });
 
+  it("executes internal structural change planning from finding IDs without extra snapshots or mutations", async () => {
+    const baseline = await runM9StructuralQuery({ kind: "list-findings" });
+    const ids = baseline.structuralAnalysis?.findings.map(
+      (finding) => finding.findingId,
+    );
+    expect(ids).toBeDefined();
+
+    const { context, listeners, sent } = createInteractiveContext();
+    const counters = instrumentationCounters();
+    const execution = executeHierarchicalSnapshotPlan(
+      context,
+      {
+        kind: "analyze-structure",
+        layers: [{ pageId: "m9-page", layerIds: ["layer-a"] }],
+      },
+      {
+        inventorySnapshot: m9RuntimeSnapshot("focus"),
+        limits: { maxPlanSteps: 4, maxExpansionDepth: 2 },
+        structuralChangePlan: {
+          selectedFindingIds: ids,
+          policy: { allowDeleteConfirmedOrphans: true },
+        },
+        instrumentation: counters.instrumentation,
+      },
+    );
+    await flushMicrotasks();
+    reply(listeners, "request-1", m9RuntimeSnapshot("focus"));
+    await flushMicrotasks();
+    reply(listeners, "request-2", m9RuntimeSnapshot("context"));
+
+    const result = await execution;
+    const plan = result.structuralChangePlan;
+    expect(plan).toBeDefined();
+    expect(plan?.outcome).toBe("planned-with-review");
+    expect(plan?.coverage).toEqual(result.structuralAnalysis?.coverage);
+    expect(plan?.revisionEvidence).toEqual(
+      result.structuralAnalysis?.revisionEvidence,
+    );
+    expect(plan?.proposals.map((proposal) => proposal.proposalType)).toEqual(
+      expect.arrayContaining([
+        "delete-orphan-element",
+        "manual-review",
+        "review-cross-layer-edge",
+      ]),
+    );
+    expect(JSON.stringify(plan)).not.toContain("m9 source label");
+    expect(sent).toHaveLength(2);
+    expect(counters.snapshotRequests).toBe(2);
+    expect(counters.mergeInvocations).toBe(1);
+    expect(counters.graphBuildInvocations).toBe(1);
+    expect(counters.structuralAnalysisInvocations).toBe(1);
+    expect(counters.structuralQueryInvocations).toBe(0);
+    expect(counters.structuralPlanInvocations).toBe(1);
+    expect(counters.mutationInvocations).toBe(0);
+  });
+
+  it("executes internal structural change planning from an M10 query result", async () => {
+    const { context, listeners, sent } = createInteractiveContext();
+    const counters = instrumentationCounters();
+    const execution = executeHierarchicalSnapshotPlan(
+      context,
+      {
+        kind: "analyze-structure",
+        layers: [{ pageId: "m9-page", layerIds: ["layer-a"] }],
+      },
+      {
+        inventorySnapshot: m9RuntimeSnapshot("focus"),
+        limits: { maxPlanSteps: 4, maxExpansionDepth: 2 },
+        structuralQuery: {
+          kind: "list-findings",
+          filters: { findingTypes: ["broken-reference"] },
+          coverageRequirement: "complete-target-scopes",
+        },
+        structuralChangePlan: {
+          useStructuralQueryResult: true,
+          policy: { allowDetachBrokenTerminals: true },
+        },
+        instrumentation: counters.instrumentation,
+      },
+    );
+    await flushMicrotasks();
+    reply(listeners, "request-1", m9RuntimeSnapshot("focus"));
+    await flushMicrotasks();
+    reply(listeners, "request-2", m9RuntimeSnapshot("context"));
+
+    const result = await execution;
+    expect(result.structuralQueryResult?.outcome).toBe("ok");
+    expect(result.structuralChangePlan).toMatchObject({
+      outcome: "planned",
+      selectedFindingCount: 1,
+      proposalCount: 1,
+      proposals: [
+        expect.objectContaining({
+          proposalType: "detach-broken-terminal",
+          operation: {
+            operationType: "detach-terminal",
+            target: { edgeId: expect.any(String), terminal: "target" },
+          },
+        }),
+      ],
+    });
+    expect(sent).toHaveLength(2);
+    expect(counters.structuralAnalysisInvocations).toBe(1);
+    expect(counters.structuralQueryInvocations).toBe(1);
+    expect(counters.structuralPlanInvocations).toBe(1);
+    expect(counters.mutationInvocations).toBe(0);
+  });
+
+  it("returns internal planning validation outcomes without replacing execution diagnostics", async () => {
+    const queryIncompatible = await runM9StructuralPlan({
+      structuralQuery: {
+        kind: "list-findings",
+        coverageRequirement: "complete-document",
+      },
+      structuralChangePlan: { useStructuralQueryResult: true },
+    });
+    const noAnalysis = await executeHierarchicalSnapshotPlan(
+      createInteractiveContext().context,
+      { kind: "inspect-visible-page" },
+      {
+        inventorySnapshot: runtimeSnapshot({
+          scope: { kind: "pages", pageIds: ["p1"] },
+        }),
+        limits: { executionTimeoutMs: -1 },
+        structuralChangePlan: { selectedFindingIds: ["anything"] },
+      },
+    );
+
+    expect(queryIncompatible.structuralChangePlan).toMatchObject({
+      outcome: "insufficient-coverage",
+      proposalCount: 0,
+    });
+    expect(noAnalysis.structuralChangePlan).toBeUndefined();
+    expect(
+      queryIncompatible.diagnostics.map((diagnostic) => diagnostic.code),
+    ).toContain("external-context-required");
+    expect(queryIncompatible.stopReason).toBe("intent-satisfied");
+  });
+
   it("stops safely on stale snapshot revision", async () => {
     const listeners = new Map<string, BusListener<Record<string, unknown>>>();
     const sent: unknown[] = [];
@@ -743,11 +882,75 @@ describe("cyberdraw hierarchical snapshot executor", () => {
         "analyze-structure",
         "structural-query",
         "cyberdraw.structuralQuery.v1",
+        "structural-change-plan",
+        "cyberdraw.structuralChangePlan.v1",
         "cyberdraw.analyzeStructure.v1",
       ]),
     );
   });
 });
+
+function instrumentationCounters() {
+  const counters = {
+    snapshotRequests: 0,
+    mergeInvocations: 0,
+    graphBuildInvocations: 0,
+    structuralAnalysisInvocations: 0,
+    structuralQueryInvocations: 0,
+    structuralPlanInvocations: 0,
+    mutationInvocations: 0,
+    instrumentation: {
+      onSnapshotRequest: () => {
+        counters.snapshotRequests += 1;
+      },
+      onMerge: () => {
+        counters.mergeInvocations += 1;
+      },
+      onGraphBuild: () => {
+        counters.graphBuildInvocations += 1;
+      },
+      onStructuralAnalysis: () => {
+        counters.structuralAnalysisInvocations += 1;
+      },
+      onStructuralQuery: () => {
+        counters.structuralQueryInvocations += 1;
+      },
+      onStructuralPlan: () => {
+        counters.structuralPlanInvocations += 1;
+      },
+      onMutation: () => {
+        counters.mutationInvocations += 1;
+      },
+    },
+  };
+  return counters;
+}
+
+async function runM9StructuralPlan(
+  options: Pick<
+    NonNullable<Parameters<typeof executeHierarchicalSnapshotPlan>[2]>,
+    "structuralQuery" | "structuralChangePlan"
+  >,
+) {
+  const { context, listeners } = createInteractiveContext();
+  const execution = executeHierarchicalSnapshotPlan(
+    context,
+    {
+      kind: "analyze-structure",
+      layers: [{ pageId: "m9-page", layerIds: ["layer-a"] }],
+    },
+    {
+      inventorySnapshot: m9RuntimeSnapshot("focus"),
+      limits: { maxPlanSteps: 4, maxExpansionDepth: 2 },
+      ...options,
+    },
+  );
+  await flushMicrotasks();
+  reply(listeners, "request-1", m9RuntimeSnapshot("focus"));
+  await flushMicrotasks();
+  reply(listeners, "request-2", m9RuntimeSnapshot("context"));
+  return execution;
+}
 
 async function runM9StructuralQuery(
   structuralQuery: NonNullable<

@@ -22,6 +22,12 @@ export {
   STRUCTURAL_QUERY_VERSION,
 } from "./structural-query.js";
 export {
+  defaultStructuralChangePlanLimits,
+  defaultStructuralChangePlanPolicy,
+  planStructuralChanges,
+  STRUCTURAL_CHANGE_PLAN_VERSION,
+} from "./structural-change-plan.js";
+export {
   provisionalDiagramId,
   provisionalElementId,
   provisionalLayerId,
@@ -117,3 +123,23 @@ export type {
   StructuralSummaryGroupBy,
   SummarizeStructuralFindingsQuery,
 } from "./structural-query.js";
+export type {
+  StructuralAbstractOperation,
+  StructuralChangePlan,
+  StructuralChangePlanInput,
+  StructuralChangePlanLimits,
+  StructuralChangePlanOutcome,
+  StructuralChangePlanPolicy,
+  StructuralChangePlanPolicyName,
+  StructuralChangeProposal,
+  StructuralPlanConflict,
+  StructuralPlanConflictType,
+  StructuralPlanDiagnostic,
+  StructuralPlanDiagnosticCode,
+  StructuralPlanPostconditionCode,
+  StructuralPlanPreconditionCode,
+  StructuralPlanRiskFlag,
+  StructuralPlanTargetIdentity,
+  StructuralProposalStatus,
+  StructuralProposalType,
+} from "./structural-change-plan.js";
