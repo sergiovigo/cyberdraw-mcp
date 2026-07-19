@@ -7,6 +7,7 @@ import {
   planHierarchicalSnapshot,
   queryStructuralAnalysis,
   scopeKey,
+  validateStructuralChangePlan,
   type DiagramInventory,
   type HierarchicalSnapshotIntent,
   type PlannerSnapshotScope,
@@ -20,6 +21,9 @@ import {
   type StructuralQueryLimits,
   type StructuralChangePlanLimits,
   type StructuralChangePlanPolicy,
+  type StructuralChangePlan,
+  type StructuralChangePlanValidationLimits,
+  type StructuralChangePlanValidationMode,
 } from "cyberdraw-graph-model";
 import type {
   RuntimeSnapshot,
@@ -52,6 +56,13 @@ export type HierarchicalSnapshotExecutionOptions = {
       readonly knownDocumentRevisionMismatch?: boolean;
     };
   };
+  readonly structuralChangePlanValidation?: {
+    readonly mode: StructuralChangePlanValidationMode;
+    readonly plan?: StructuralChangePlan;
+    readonly policy?: StructuralChangePlanPolicy;
+    readonly limits?: Partial<StructuralChangePlanValidationLimits>;
+    readonly currentDocumentRevision?: string;
+  };
   readonly instrumentation?: {
     readonly onSnapshotRequest?: () => void;
     readonly onMerge?: () => void;
@@ -59,6 +70,7 @@ export type HierarchicalSnapshotExecutionOptions = {
     readonly onStructuralAnalysis?: () => void;
     readonly onStructuralQuery?: () => void;
     readonly onStructuralPlan?: () => void;
+    readonly onStructuralValidation?: () => void;
     readonly onMutation?: () => void;
   };
 };
@@ -371,6 +383,40 @@ export async function executeHierarchicalSnapshotPlan(
           });
         })()
       : undefined;
+  const structuralChangePlanValidation =
+    structuralAnalysis &&
+    (structuralChangePlan || options.structuralChangePlanValidation?.plan) &&
+    options.structuralChangePlanValidation
+      ? (() => {
+          options.instrumentation?.onStructuralValidation?.();
+          return validateStructuralChangePlan({
+            plan:
+              options.structuralChangePlanValidation?.plan ??
+              structuralChangePlan!,
+            analysis: structuralAnalysis,
+            queryResult: structuralQueryResult,
+            expectedPolicy:
+              options.structuralChangePlanValidation?.policy ??
+              options.structuralChangePlan?.policy,
+            currentRevisionEvidence: {
+              documentId: structuralAnalysis.revisionEvidence.documentId,
+              contentRevisions:
+                structuralAnalysis.revisionEvidence.contentRevisions,
+              documentRevisions: options.structuralChangePlanValidation
+                ?.currentDocumentRevision
+                ? [
+                    options.structuralChangePlanValidation
+                      .currentDocumentRevision,
+                  ]
+                : structuralAnalysis.revisionEvidence.documentRevisions,
+              revisionCompatible:
+                structuralAnalysis.revisionEvidence.revisionCompatible,
+            },
+            limits: options.structuralChangePlanValidation?.limits,
+            mode: options.structuralChangePlanValidation.mode,
+          });
+        })()
+      : undefined;
   return executionResult(executedPlan, {
     stopReason: finalStopReason,
     diagnostics,
@@ -388,6 +434,7 @@ export async function executeHierarchicalSnapshotPlan(
     structuralAnalysis,
     structuralQueryResult,
     structuralChangePlan,
+    structuralChangePlanValidation,
   });
 }
 
@@ -870,6 +917,7 @@ function executionResult(
     readonly structuralAnalysis?: SnapshotPlanExecutionResult["structuralAnalysis"];
     readonly structuralQueryResult?: SnapshotPlanExecutionResult["structuralQueryResult"];
     readonly structuralChangePlan?: SnapshotPlanExecutionResult["structuralChangePlan"];
+    readonly structuralChangePlanValidation?: SnapshotPlanExecutionResult["structuralChangePlanValidation"];
   },
 ): SnapshotPlanExecutionResult {
   return {
@@ -879,6 +927,7 @@ function executionResult(
     structuralAnalysis: state.structuralAnalysis,
     structuralQueryResult: state.structuralQueryResult,
     structuralChangePlan: state.structuralChangePlan,
+    structuralChangePlanValidation: state.structuralChangePlanValidation,
     stopReason: state.stopReason,
     diagnostics: state.diagnostics,
     metrics: {

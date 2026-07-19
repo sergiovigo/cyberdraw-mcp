@@ -146,6 +146,12 @@ baseline. It is not an implementation plan for M0 itself.
   tool, public schema, endpoint, persistence, XML editing, draw.io command
   execution, approval workflow, semantic diff, rollback executor, mutation
   application or stable identity.
+- M12 update:
+  `docs/cyberdraw/milestones/M12-internal-change-plan-validation.md` adds a
+  private pure validator for M11 plans against current M9 and optional M10
+  material. It recomputes deterministic IDs, checks closed preconditions,
+  policy, coverage, revision and conflicts, and still adds no public MCP tool,
+  endpoint, persistence, approval workflow or mutation executor.
 - Effort: M.
 - Suggested milestone: Architecture Intelligence Foundation runtime integration
   hardening and compatibility evidence.

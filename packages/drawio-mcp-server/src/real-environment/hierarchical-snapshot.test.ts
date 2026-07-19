@@ -17,6 +17,7 @@ import {
 import {
   planStructuralChanges,
   queryStructuralAnalysis,
+  validateStructuralChangePlan,
 } from "cyberdraw-graph-model";
 import { requestCyberdrawRuntimeSnapshot } from "../cyberdraw-runtime-snapshot.js";
 import {
@@ -592,6 +593,7 @@ describe("real environment/hierarchical snapshot planner", () => {
     let analysisInvocations = 0;
     let queryInvocations = 0;
     let planInvocations = 0;
+    let validationInvocations = 0;
     let mutationInvocations = 0;
     const originalSend = context.app.context.bus.send_to_extension;
     context.app.context.bus.send_to_extension = (message) => {
@@ -623,6 +625,10 @@ describe("real environment/hierarchical snapshot planner", () => {
           useStructuralQueryResult: true,
           policy: { allowDetachBrokenTerminals: true },
         },
+        structuralChangePlanValidation: {
+          mode: "full-internal",
+          policy: { allowDetachBrokenTerminals: true },
+        },
         instrumentation: {
           onStructuralAnalysis: () => {
             analysisInvocations += 1;
@@ -632,6 +638,9 @@ describe("real environment/hierarchical snapshot planner", () => {
           },
           onStructuralPlan: () => {
             planInvocations += 1;
+          },
+          onStructuralValidation: () => {
+            validationInvocations += 1;
           },
           onMutation: () => {
             mutationInvocations += 1;
@@ -752,6 +761,63 @@ describe("real environment/hierarchical snapshot planner", () => {
       queryResult: result.structuralQueryResult,
       policy: { allowDetachBrokenTerminals: true },
     });
+    const integratedValidation = result.structuralChangePlanValidation;
+    const conservativeValidation = validateStructuralChangePlan({
+      plan: conservativePlan,
+      analysis: result.structuralAnalysis,
+      expectedPolicy: {},
+      mode: "analysis-correlated",
+    });
+    const detachValidation = validateStructuralChangePlan({
+      plan: stablePlan,
+      analysis: result.structuralAnalysis,
+      queryResult: result.structuralQueryResult,
+      expectedPolicy: { allowDetachBrokenTerminals: true },
+      mode: "full-internal",
+    });
+    const deleteValidation = validateStructuralChangePlan({
+      plan: explicitDeletePlan,
+      analysis: result.structuralAnalysis,
+      expectedPolicy: { allowDeleteConfirmedOrphans: true },
+      mode: "analysis-correlated",
+    });
+    const staleValidation = validateStructuralChangePlan({
+      plan: stablePlan,
+      analysis: result.structuralAnalysis,
+      queryResult: result.structuralQueryResult,
+      expectedPolicy: { allowDetachBrokenTerminals: true },
+      currentRevisionEvidence: { documentRevisions: ["changed-revision"] },
+      mode: "full-internal",
+    });
+    const tamperedValidation = validateStructuralChangePlan({
+      plan: { ...stablePlan, planId: "m11-plan-tampered" },
+      analysis: result.structuralAnalysis,
+      queryResult: result.structuralQueryResult,
+      expectedPolicy: { allowDetachBrokenTerminals: true },
+      mode: "full-internal",
+    });
+    const changedFindingValidation = validateStructuralChangePlan({
+      plan: stablePlan,
+      analysis: {
+        ...result.structuralAnalysis,
+        findings: [
+          {
+            ...broken,
+            referencedElementId: "changed-target",
+          },
+        ],
+      },
+      queryResult: result.structuralQueryResult,
+      expectedPolicy: { allowDetachBrokenTerminals: true },
+      mode: "analysis-correlated",
+    });
+    const policyMismatchValidation = validateStructuralChangePlan({
+      plan: stablePlan,
+      analysis: result.structuralAnalysis,
+      queryResult: result.structuralQueryResult,
+      expectedPolicy: { name: "review-only" },
+      mode: "full-internal",
+    });
 
     expect(result.plan.steps[0]?.requestedScope).toEqual({
       kind: "layers",
@@ -818,6 +884,7 @@ describe("real environment/hierarchical snapshot planner", () => {
     expect(result.structuralChangePlan).toBeDefined();
     expect(queryInvocations).toBe(9);
     expect(planInvocations).toBe(1);
+    expect(validationInvocations).toBe(1);
     expect(mutationInvocations).toBe(0);
     expect(brokenQuery.results).toEqual([broken]);
     expect(
@@ -854,6 +921,27 @@ describe("real environment/hierarchical snapshot planner", () => {
       revisionEvidence: result.structuralAnalysis.revisionEvidence,
     });
     expect(result.structuralChangePlan?.planId).toBe(stablePlan.planId);
+    expect(integratedValidation).toMatchObject({
+      mode: "full-internal",
+      outcome: "valid-with-limitations",
+      planId: stablePlan.planId,
+      recomputedPlanId: stablePlan.planId,
+      revisionStatus: "matched",
+      coverageStatus: "matched",
+      planIntegrity: {
+        planIdMatches: true,
+        proposalIdsMatch: true,
+        conflictIdsMatch: true,
+      },
+    });
+    expect(integratedValidation?.validationId).toMatch(/^m12-validation-/);
+    expect(detachValidation).toEqual(integratedValidation);
+    expect(conservativeValidation.outcome).toBe("manual-review-required");
+    expect(deleteValidation.outcome).toBe("valid-with-limitations");
+    expect(staleValidation.outcome).toBe("stale-plan");
+    expect(tamperedValidation.outcome).toBe("tampered-plan");
+    expect(changedFindingValidation.outcome).toBe("precondition-failed");
+    expect(policyMismatchValidation.outcome).toBe("tampered-plan");
     expect(
       result.structuralChangePlan?.proposals.map(
         (proposal) => proposal.proposalId,
@@ -888,6 +976,15 @@ describe("real environment/hierarchical snapshot planner", () => {
     );
     expect(result.structuralChangePlan?.revisionCompatible).toBe(true);
     expect(result.structuralChangePlan?.documentRevision).toBeDefined();
+    expect(result.structuralChangePlanValidation?.validationId).toBe(
+      validateStructuralChangePlan({
+        plan: result.structuralChangePlan!,
+        analysis: result.structuralAnalysis,
+        queryResult: result.structuralQueryResult,
+        expectedPolicy: { allowDetachBrokenTerminals: true },
+        mode: "full-internal",
+      }).validationId,
+    );
     expect(
       result.plan.steps.some((step) => step.requestedScope.kind === "document"),
     ).toBe(false);

@@ -268,6 +268,14 @@ endpoint, persistence, semantic diff, approval workflow, rollback executor,
 change application, XML editing, draw.io command execution, mutation plan or
 stable identity is accepted.
 
+M12 internal change plan validation evidence is recorded in
+`docs/cyberdraw/milestones/M12-internal-change-plan-validation.md`. It adds a
+pure private validator for M11 plans against current M9 and optional M10
+material. It validates integrity, deterministic IDs, closed preconditions,
+policy, revision, coverage and conflicts, but still does not apply plans or add
+public schema, public MCP tools, persistence, semantic diff, approval workflow,
+rollback executor, XML editing, draw.io command execution or stable identity.
+
 ## Data Model Proposal
 
 Use normalized entities keyed by internal ID, plus explicit references. Prefer

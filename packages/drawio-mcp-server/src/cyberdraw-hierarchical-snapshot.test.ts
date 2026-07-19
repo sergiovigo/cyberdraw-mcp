@@ -289,6 +289,10 @@ describe("cyberdraw hierarchical snapshot executor", () => {
           selectedFindingIds: ids,
           policy: { allowDeleteConfirmedOrphans: true },
         },
+        structuralChangePlanValidation: {
+          mode: "analysis-correlated",
+          policy: { allowDeleteConfirmedOrphans: true },
+        },
         instrumentation: counters.instrumentation,
       },
     );
@@ -305,6 +309,19 @@ describe("cyberdraw hierarchical snapshot executor", () => {
     expect(plan?.revisionEvidence).toEqual(
       result.structuralAnalysis?.revisionEvidence,
     );
+    expect(result.structuralChangePlanValidation).toMatchObject({
+      mode: "analysis-correlated",
+      outcome: "manual-review-required",
+      planId: plan?.planId,
+      planIntegrity: {
+        planIdMatches: true,
+        proposalIdsMatch: true,
+        conflictIdsMatch: true,
+      },
+    });
+    expect(result.structuralChangePlanValidation?.validationId).toMatch(
+      /^m12-validation-/,
+    );
     expect(plan?.proposals.map((proposal) => proposal.proposalType)).toEqual(
       expect.arrayContaining([
         "delete-orphan-element",
@@ -320,12 +337,14 @@ describe("cyberdraw hierarchical snapshot executor", () => {
     expect(counters.structuralAnalysisInvocations).toBe(1);
     expect(counters.structuralQueryInvocations).toBe(0);
     expect(counters.structuralPlanInvocations).toBe(1);
+    expect(counters.structuralValidationInvocations).toBe(1);
     expect(counters.mutationInvocations).toBe(0);
   });
 
   it("executes internal structural change planning from an M10 query result", async () => {
     const { context, listeners, sent } = createInteractiveContext();
     const counters = instrumentationCounters();
+    let beforeValidation: Omit<typeof counters, "instrumentation"> | undefined;
     const execution = executeHierarchicalSnapshotPlan(
       context,
       {
@@ -344,7 +363,17 @@ describe("cyberdraw hierarchical snapshot executor", () => {
           useStructuralQueryResult: true,
           policy: { allowDetachBrokenTerminals: true },
         },
-        instrumentation: counters.instrumentation,
+        structuralChangePlanValidation: {
+          mode: "full-internal",
+          policy: { allowDetachBrokenTerminals: true },
+        },
+        instrumentation: {
+          ...counters.instrumentation,
+          onStructuralValidation: () => {
+            beforeValidation = snapshotCounters(counters);
+            counters.structuralValidationInvocations += 1;
+          },
+        },
       },
     );
     await flushMicrotasks();
@@ -368,10 +397,39 @@ describe("cyberdraw hierarchical snapshot executor", () => {
         }),
       ],
     });
+    expect(result.structuralChangePlanValidation).toMatchObject({
+      mode: "full-internal",
+      outcome: "valid-with-limitations",
+      planId: result.structuralChangePlan?.planId,
+    });
+    expect(beforeValidation).toMatchObject({
+      snapshotRequests: 2,
+      mergeInvocations: 1,
+      graphBuildInvocations: 1,
+      structuralAnalysisInvocations: 1,
+      structuralQueryInvocations: 1,
+      structuralPlanInvocations: 1,
+      structuralValidationInvocations: 0,
+      mutationInvocations: 0,
+    });
     expect(sent).toHaveLength(2);
-    expect(counters.structuralAnalysisInvocations).toBe(1);
-    expect(counters.structuralQueryInvocations).toBe(1);
-    expect(counters.structuralPlanInvocations).toBe(1);
+    expect(counters.snapshotRequests).toBe(beforeValidation?.snapshotRequests);
+    expect(counters.mergeInvocations).toBe(beforeValidation?.mergeInvocations);
+    expect(counters.graphBuildInvocations).toBe(
+      beforeValidation?.graphBuildInvocations,
+    );
+    expect(counters.structuralAnalysisInvocations).toBe(
+      beforeValidation?.structuralAnalysisInvocations,
+    );
+    expect(counters.structuralQueryInvocations).toBe(
+      beforeValidation?.structuralQueryInvocations,
+    );
+    expect(counters.structuralPlanInvocations).toBe(
+      beforeValidation?.structuralPlanInvocations,
+    );
+    expect(counters.structuralValidationInvocations).toBe(
+      (beforeValidation?.structuralValidationInvocations ?? 0) + 1,
+    );
     expect(counters.mutationInvocations).toBe(0);
   });
 
@@ -404,6 +462,70 @@ describe("cyberdraw hierarchical snapshot executor", () => {
       queryIncompatible.diagnostics.map((diagnostic) => diagnostic.code),
     ).toContain("external-context-required");
     expect(queryIncompatible.stopReason).toBe("intent-satisfied");
+  });
+
+  it("returns internal change plan validation outcomes without repeating earlier work", async () => {
+    const baseline = await runM9StructuralPlan({
+      structuralChangePlan: {
+        selectedFindingIds: ["f-broken-target"],
+        policy: { allowDetachBrokenTerminals: true },
+      },
+    });
+    const validPlan = baseline.structuralChangePlan;
+    const selectedIds = baseline.structuralAnalysis?.findings
+      .filter((finding) => finding.findingType === "broken-reference")
+      .map((finding) => finding.findingId);
+    expect(validPlan).toBeDefined();
+    expect(selectedIds).toBeDefined();
+    const tamperedPlan = {
+      ...validPlan!,
+      planId: "m11-plan-tampered",
+    };
+    const stale = await runM9StructuralPlan({
+      structuralChangePlan: {
+        selectedFindingIds: selectedIds,
+        policy: { allowDetachBrokenTerminals: true },
+      },
+      structuralChangePlanValidation: {
+        mode: "analysis-correlated",
+        policy: { allowDetachBrokenTerminals: true },
+        currentDocumentRevision: "changed-revision",
+      },
+    });
+    const tampered = await runM9StructuralPlan({
+      structuralChangePlan: {
+        selectedFindingIds: selectedIds,
+        policy: { allowDetachBrokenTerminals: true },
+      },
+      structuralChangePlanValidation: {
+        mode: "integrity-only",
+        plan: tamperedPlan,
+        policy: { allowDetachBrokenTerminals: true },
+      },
+    });
+    const policyMismatch = await runM9StructuralPlan({
+      structuralChangePlan: {
+        selectedFindingIds: selectedIds,
+        policy: { allowDetachBrokenTerminals: true },
+      },
+      structuralChangePlanValidation: {
+        mode: "analysis-correlated",
+        policy: { name: "review-only" },
+      },
+    });
+
+    expect(stale.structuralChangePlanValidation?.outcome).toBe("stale-plan");
+    expect(tampered.structuralChangePlanValidation?.outcome).toBe(
+      "tampered-plan",
+    );
+    expect(policyMismatch.structuralChangePlanValidation?.outcome).toBe(
+      "tampered-plan",
+    );
+    expect(stale.structuralChangePlanValidation?.planId).toBe(
+      stale.structuralChangePlan?.planId,
+    );
+    expect(tampered.metrics.stepsExecuted).toBe(2);
+    expect(policyMismatch.metrics.stepsExecuted).toBe(2);
   });
 
   it("stops safely on stale snapshot revision", async () => {
@@ -883,7 +1005,9 @@ describe("cyberdraw hierarchical snapshot executor", () => {
         "structural-query",
         "cyberdraw.structuralQuery.v1",
         "structural-change-plan",
+        "structural-change-plan-validation",
         "cyberdraw.structuralChangePlan.v1",
+        "cyberdraw.structuralChangePlanValidation.v1",
         "cyberdraw.analyzeStructure.v1",
       ]),
     );
@@ -898,6 +1022,7 @@ function instrumentationCounters() {
     structuralAnalysisInvocations: 0,
     structuralQueryInvocations: 0,
     structuralPlanInvocations: 0,
+    structuralValidationInvocations: 0,
     mutationInvocations: 0,
     instrumentation: {
       onSnapshotRequest: () => {
@@ -918,6 +1043,9 @@ function instrumentationCounters() {
       onStructuralPlan: () => {
         counters.structuralPlanInvocations += 1;
       },
+      onStructuralValidation: () => {
+        counters.structuralValidationInvocations += 1;
+      },
       onMutation: () => {
         counters.mutationInvocations += 1;
       },
@@ -926,10 +1054,27 @@ function instrumentationCounters() {
   return counters;
 }
 
+function snapshotCounters(
+  counters: ReturnType<typeof instrumentationCounters>,
+): Omit<ReturnType<typeof instrumentationCounters>, "instrumentation"> {
+  return {
+    snapshotRequests: counters.snapshotRequests,
+    mergeInvocations: counters.mergeInvocations,
+    graphBuildInvocations: counters.graphBuildInvocations,
+    structuralAnalysisInvocations: counters.structuralAnalysisInvocations,
+    structuralQueryInvocations: counters.structuralQueryInvocations,
+    structuralPlanInvocations: counters.structuralPlanInvocations,
+    structuralValidationInvocations: counters.structuralValidationInvocations,
+    mutationInvocations: counters.mutationInvocations,
+  };
+}
+
 async function runM9StructuralPlan(
   options: Pick<
     NonNullable<Parameters<typeof executeHierarchicalSnapshotPlan>[2]>,
-    "structuralQuery" | "structuralChangePlan"
+    | "structuralQuery"
+    | "structuralChangePlan"
+    | "structuralChangePlanValidation"
   >,
 ) {
   const { context, listeners } = createInteractiveContext();

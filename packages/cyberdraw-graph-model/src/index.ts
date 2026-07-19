@@ -28,6 +28,11 @@ export {
   STRUCTURAL_CHANGE_PLAN_VERSION,
 } from "./structural-change-plan.js";
 export {
+  defaultStructuralChangePlanValidationLimits,
+  validateStructuralChangePlan,
+  STRUCTURAL_CHANGE_PLAN_VALIDATION_VERSION,
+} from "./structural-change-plan-validation.js";
+export {
   provisionalDiagramId,
   provisionalElementId,
   provisionalLayerId,
@@ -143,3 +148,18 @@ export type {
   StructuralProposalStatus,
   StructuralProposalType,
 } from "./structural-change-plan.js";
+export type {
+  StructuralChangePlanValidationDiagnostic,
+  StructuralChangePlanValidationDiagnosticCode,
+  StructuralChangePlanValidationInput,
+  StructuralChangePlanValidationLimits,
+  StructuralChangePlanValidationMode,
+  StructuralChangePlanValidationOutcome,
+  StructuralChangePlanValidationResult,
+  StructuralConflictValidationResult,
+  StructuralPlanConditionValidationStatus,
+  StructuralPreconditionValidationResult,
+  StructuralProposalValidationResult,
+  StructuralProposalValidationStatus,
+  StructuralRevisionEvidence,
+} from "./structural-change-plan-validation.js";
