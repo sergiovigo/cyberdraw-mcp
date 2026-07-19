@@ -242,6 +242,14 @@ API. M8.1 evidence is recorded in
 demonstrates real draw.io multi-step expansion from a resolvable scoped
 external terminal reference. The RFC remains Draft.
 
+M9 structural analysis evidence is recorded in
+`docs/cyberdraw/milestones/M9-internal-structural-analysis.md`. It adds a pure
+private analyzer over an already-built `DiagramSnapshot` and integrates it only
+into the internal `analyze-structure` flow. The analyzer reports deterministic
+broken-reference, cross-layer and orphan findings with coverage/completeness
+context. The RFC remains Draft and no public schema, public MCP tool,
+persistence, semantic diff, change plan or stable identity is accepted.
+
 ## Data Model Proposal
 
 Use normalized entities keyed by internal ID, plus explicit references. Prefer

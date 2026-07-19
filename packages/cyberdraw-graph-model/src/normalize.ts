@@ -369,6 +369,7 @@ function resolveElementReferences(
     element.refs.sourceExternalId,
     elementByPageAndExternalId,
     findings,
+    { preserveMissing: true },
   );
   const targetId = resolveExternalReference(
     element,
@@ -376,6 +377,7 @@ function resolveElementReferences(
     element.refs.targetExternalId,
     elementByPageAndExternalId,
     findings,
+    { preserveMissing: true },
   );
 
   return {
@@ -391,6 +393,7 @@ function resolveExternalReference(
   externalId: string | undefined,
   lookup: ReadonlyMap<string, readonly string[]>,
   findings: BrokenReferenceFinding[],
+  options: { readonly preserveMissing?: boolean } = {},
 ): string | undefined {
   if (!externalId) {
     return undefined;
@@ -412,7 +415,7 @@ function resolveExternalReference(
             ? "missing_parent"
             : "missing_layer";
   findings.push(finding(code, element, referenceType, externalId));
-  return undefined;
+  return matches.length === 0 && options.preserveMissing ? externalId : undefined;
 }
 
 function stripPending(element: PendingElement): GraphElement {

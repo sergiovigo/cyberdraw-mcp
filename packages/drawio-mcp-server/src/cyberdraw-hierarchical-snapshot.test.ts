@@ -64,6 +64,13 @@ describe("cyberdraw hierarchical snapshot executor", () => {
 
     const result = await execution;
     expect(result.stopReason).toBe("complete");
+    expect(result.structuralAnalysis).toMatchObject({
+      analysisVersion: "cyberdraw.structural-analysis.v1",
+      completeness: "complete-document",
+      counts: {
+        edgeCount: { value: 1, basis: "exact" },
+      },
+    });
     expect(result.graph?.elements.map((element) => element.drawioId)).toEqual([
       "a",
       "edge",
@@ -72,6 +79,69 @@ describe("cyberdraw hierarchical snapshot executor", () => {
     expect(result.metrics.scopesUsed).toEqual([
       runtimeSnapshotScopeKey({ kind: "document" }),
     ]);
+  });
+
+  it("executes internal analyze-structure with expansion and structural findings", async () => {
+    const { context, listeners, sent } = createInteractiveContext();
+    const execution = executeHierarchicalSnapshotPlan(
+      context,
+      {
+        kind: "analyze-structure",
+        layers: [{ pageId: "m9-page", layerIds: ["layer-a"] }],
+      },
+      {
+        inventorySnapshot: m9RuntimeSnapshot("focus"),
+        limits: { maxPlanSteps: 4, maxExpansionDepth: 2 },
+      },
+    );
+    await flushMicrotasks();
+
+    reply(listeners, "request-1", m9RuntimeSnapshot("focus"));
+    await flushMicrotasks();
+    expect(sent[0]).toMatchObject({
+      scope: { kind: "layers", pageId: "m9-page", layerIds: ["layer-a"] },
+    });
+    expect(sent[1]).toMatchObject({
+      scope: { kind: "layers", pageId: "m9-page", layerIds: ["layer-b"] },
+    });
+    reply(listeners, "request-2", m9RuntimeSnapshot("context"));
+
+    const result = await execution;
+    const findings = result.structuralAnalysis?.findings ?? [];
+    expect(result.stopReason).toBe("intent-satisfied");
+    expect(result.graph).toBeDefined();
+    expect(result.structuralAnalysis).toBeDefined();
+    expect(result.coverage.document).toBe(false);
+    expect(
+      result.plan.steps.some((step) => step.requestedScope.kind === "document"),
+    ).toBe(false);
+    expect(result.metrics.stepsExecuted).toBe(2);
+    expect(result.structuralAnalysis?.counts).toMatchObject({
+      edgeCount: { value: 2, basis: "observed" },
+      brokenReferenceCount: { value: 1, basis: "observed" },
+      crossLayerEdgeCount: { value: 1, basis: "observed" },
+      orphanElementCount: { value: 1, basis: "observed" },
+      unresolvedExternalReferenceCount: { value: 0, basis: "observed" },
+    });
+    expect(findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          findingType: "broken-reference",
+          status: "broken",
+          referenceType: "target",
+          referencedElementId: "missing-terminal",
+        }),
+        expect.objectContaining({
+          findingType: "cross-layer-edge",
+          relationClassification: "same-page-cross-layer",
+        }),
+        expect.objectContaining({
+          findingType: "orphan-element",
+          status: "confirmed-orphan",
+        }),
+      ]),
+    );
+    expect(JSON.stringify(findings)).not.toContain("m9 source label");
   });
 
   it("stops safely on stale snapshot revision", async () => {
@@ -107,6 +177,7 @@ describe("cyberdraw hierarchical snapshot executor", () => {
     const result = await execution;
     expect(result.stopReason).toBe("stale-snapshot");
     expect(result.graph).toBeUndefined();
+    expect(result.structuralAnalysis).toBeUndefined();
   });
 
   it("stops cross-scope expansion when document revision changes between steps", async () => {
@@ -490,6 +561,7 @@ describe("cyberdraw hierarchical snapshot executor", () => {
     );
     expect(steps.stopReason).toBe("max-steps-reached");
     expect(hard.stopReason).toBe("hard-limit-reached");
+    expect(hard.structuralAnalysis).toBeUndefined();
   });
 
   it("returns execution-error when a planned snapshot request fails", async () => {
@@ -545,6 +617,8 @@ describe("cyberdraw hierarchical snapshot executor", () => {
         "cyberdraw.runtimeSnapshot.v1",
         "cyberdraw.hierarchicalSnapshotPlan.v1",
         "hierarchical-snapshot-planner",
+        "analyze-structure",
+        "cyberdraw.analyzeStructure.v1",
       ]),
     );
   });
@@ -836,6 +910,170 @@ function runtimeSnapshot(options: {
     payload: {
       approximateJsonBytes: options.measuredJsonBytes ?? 1_000,
       measuredJsonBytes: options.measuredJsonBytes ?? 1_000,
+      softLimitBytes: 12 * 1024 * 1024,
+      hardLimitBytes: 16 * 1024 * 1024,
+    },
+    performance: {
+      extractionMs: 1,
+      serializationMs: 1,
+      approximateJsonBytes: 1_000,
+    },
+  };
+}
+
+function m9RuntimeSnapshot(kind: "focus" | "context"): RuntimeSnapshot {
+  const elements: RuntimeSnapshot["pages"][number]["elements"] =
+    kind === "focus"
+      ? [
+          {
+            id: "source-a",
+            pageId: "m9-page",
+            layerId: "layer-a",
+            parentId: "layer-a",
+            type: "vertex",
+            label: { format: "plain", text: "m9 source label" },
+          },
+          {
+            id: "orphan-a",
+            pageId: "m9-page",
+            layerId: "layer-a",
+            parentId: "layer-a",
+            type: "vertex",
+          },
+          {
+            id: "edge-cross",
+            pageId: "m9-page",
+            layerId: "layer-a",
+            parentId: "layer-a",
+            sourceId: "source-a",
+            targetId: "target-b",
+            type: "edge",
+          },
+          {
+            id: "edge-broken",
+            pageId: "m9-page",
+            layerId: "layer-a",
+            parentId: "layer-a",
+            sourceId: "source-a",
+            targetId: "missing-terminal",
+            type: "edge",
+          },
+        ]
+      : [
+          {
+            id: "target-b",
+            pageId: "m9-page",
+            layerId: "layer-b",
+            parentId: "layer-b",
+            type: "vertex",
+          },
+        ];
+  const scope: RuntimeSnapshotScope = {
+    kind: "layers",
+    pageId: "m9-page",
+    layerIds: [kind === "focus" ? "layer-a" : "layer-b"],
+  };
+  return {
+    schemaVersion: "cyberdraw.runtime-snapshot.v1",
+    contractVersion: 1,
+    document: {
+      id: "m9-doc",
+      pageCount: 1,
+      currentPageId: "m9-page",
+      capturedAt: "2026-07-17T00:00:00.000Z",
+      revisionSignals: {
+        documentId: "m9-doc",
+        pageIds: ["m9-page"],
+        scope,
+        requestedScope: scope,
+        resolvedScope: scope,
+        complete: true,
+        contentRevision:
+          kind === "focus"
+            ? "cyberdraw-content-v1:fnv1a64:00000000000000a1"
+            : "cyberdraw-content-v1:fnv1a64:00000000000000b1",
+        documentRevision: "cyberdraw-content-v1:fnv1a64:0000000000000009",
+      },
+    },
+    scope: {
+      requestedScope: scope,
+      resolvedScope: scope,
+      includedPages: ["m9-page"],
+      includedLayers: [
+        {
+          pageId: "m9-page",
+          layerIds: [kind === "focus" ? "layer-a" : "layer-b"],
+        },
+      ],
+      includedElementCount: elements.length,
+      contextElementCount: 0,
+      externalReferences:
+        kind === "focus"
+          ? [
+              {
+                pageId: "m9-page",
+                elementId: "edge-cross",
+                referenceType: "target",
+                referencedId: "target-b",
+                referencedPageId: "m9-page",
+                referencedLayerId: "layer-b",
+              },
+            ]
+          : [],
+      missingPageIds: [],
+      missingLayerIds: [],
+      includedContext: false,
+      requiresScopeExpansion: kind === "focus",
+      conclusive: true,
+    },
+    pages: [
+      {
+        id: "m9-page",
+        index: 0,
+        name: "M9 synthetic",
+        visible: true,
+        background: false,
+        layers: [
+          {
+            id: "layer-a",
+            name: "Layer A",
+            visible: true,
+            locked: false,
+            pageId: "m9-page",
+            index: 0,
+          },
+          {
+            id: "layer-b",
+            name: "Layer B",
+            visible: true,
+            locked: false,
+            pageId: "m9-page",
+            index: 1,
+          },
+        ],
+        elements,
+      },
+    ],
+    diagnostics: [],
+    completeness: { status: "complete" },
+    truncated: false,
+    limits: {
+      maxPages: 100,
+      maxLayersPerPage: 100,
+      maxElementsPerPage: 25_000,
+      maxLabelLength: 8_192,
+      maxStyleLength: 8_192,
+      maxMetadataKeys: 64,
+      maxMetadataStringLength: 8_192,
+      maxRawDepth: 4,
+      maxRawKeys: 64,
+      maxArrayItems: 1_000,
+      softSnapshotBytes: 12 * 1024 * 1024,
+      hardSnapshotBytes: 16 * 1024 * 1024,
+    },
+    payload: {
+      approximateJsonBytes: 1_000,
+      measuredJsonBytes: 1_000,
       softLimitBytes: 12 * 1024 * 1024,
       hardLimitBytes: 16 * 1024 * 1024,
     },

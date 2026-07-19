@@ -13,6 +13,10 @@ export {
 } from "./hierarchical-snapshot-planner.js";
 export { mergeScopedSnapshotResults } from "./scoped-snapshot-merge.js";
 export {
+  analyzeGraphStructure,
+  STRUCTURAL_ANALYSIS_VERSION,
+} from "./structural-analysis.js";
+export {
   provisionalDiagramId,
   provisionalElementId,
   provisionalLayerId,
@@ -69,3 +73,23 @@ export type {
   ScopedSnapshotMergeDiagnostic,
   ScopedSnapshotMergeResult,
 } from "./scoped-snapshot-merge.js";
+export type {
+  BrokenReferenceStatus,
+  CrossLayerRelationClassification,
+  OrphanStatus,
+  StructuralAnalysisCounts,
+  StructuralAnalysisCoverage,
+  StructuralAnalysisDiagnostic,
+  StructuralAnalysisInput,
+  StructuralAnalysisResult,
+  StructuralBrokenReferenceFinding,
+  StructuralCompleteness,
+  StructuralCount,
+  StructuralCountBasis,
+  StructuralCrossLayerFinding,
+  StructuralExternalReference,
+  StructuralFinding,
+  StructuralFindingConfidence,
+  StructuralFindingType,
+  StructuralOrphanFinding,
+} from "./structural-analysis.js";

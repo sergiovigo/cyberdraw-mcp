@@ -30,6 +30,7 @@ before CyberDraw-specific features are introduced.
 | [milestones/M7-real-environment-snapshot-benchmarks.md](milestones/M7-real-environment-snapshot-benchmarks.md) | M7 real draw.io browser benchmark evidence for scoped runtime snapshots                                          | Internal milestone evidence |
 | [milestones/M8-hierarchical-snapshot-planner.md](milestones/M8-hierarchical-snapshot-planner.md)               | M8 internal hierarchical planner/executor evidence for scoped runtime snapshots                                  | Internal milestone evidence |
 | [milestones/M8.1-real-external-reference-expansion.md](milestones/M8.1-real-external-reference-expansion.md)   | M8.1 real draw.io evidence for external-reference scope expansion                                                | Internal milestone evidence |
+| [milestones/M9-internal-structural-analysis.md](milestones/M9-internal-structural-analysis.md)                 | M9 private structural analysis vertical over scoped snapshots, merge and graph model                             | Internal milestone evidence |
 | [benchmarks/](benchmarks/)                                                                                     | Small aggregate M6 synthetic and M7 real-environment benchmark summaries                                         | Benchmark evidence          |
 | [diagrams/internal-graph-model.md](diagrams/internal-graph-model.md)                                           | Mermaid diagrams supporting RFC 0001                                                                             | Draft supporting diagrams   |
 | [adr/0001-fork-strategy.md](adr/0001-fork-strategy.md)                                                         | Decision to begin as a conservative fork                                                                         | Accepted ADR                |
@@ -74,7 +75,9 @@ Related root documents:
     scoped snapshots for internal analysis workflows.
 19. `milestones/M8.1-real-external-reference-expansion.md` for the real
     external-reference expansion evidence that completes M8.
-20. `adr/` when a lasting decision needs historical context.
+20. `milestones/M9-internal-structural-analysis.md` for private broken
+    reference, cross-layer and orphan analysis semantics.
+21. `adr/` when a lasting decision needs historical context.
 
 ## Question Map
 
@@ -98,6 +101,7 @@ Related root documents:
 | What benchmark evidence exists for snapshot scaling?            | `milestones/M6-runtime-snapshot-benchmarks.md`, `benchmarks/`, `adr/0004-runtime-snapshot-scaling-strategy.md`                                            |
 | What real draw.io runtime evidence exists for scoped snapshots? | `milestones/M7-real-environment-snapshot-benchmarks.md`, `benchmarks/m7-real-summary.md`                                                                  |
 | How does internal hierarchical snapshot planning work?          | `milestones/M8-hierarchical-snapshot-planner.md`, `milestones/M8.1-real-external-reference-expansion.md`, `adr/0004-runtime-snapshot-scaling-strategy.md` |
+| How does internal structural analysis work?                     | `milestones/M9-internal-structural-analysis.md`, `rfc/0001-internal-graph-model.md`, `adr/0003-internal-graph-model-architecture.md`                      |
 | What internal graph model architecture was accepted?            | `adr/0003-internal-graph-model-architecture.md`                                                                                                           |
 | Where are lasting decisions recorded?                           | `adr/`                                                                                                                                                    |
 | What third-party assets need review?                            | `../../THIRD_PARTY_NOTICES.md`                                                                                                                            |

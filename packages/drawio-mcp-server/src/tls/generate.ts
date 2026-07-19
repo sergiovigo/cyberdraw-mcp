@@ -1,4 +1,10 @@
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname } from "node:path";
 import forge from "node-forge";
 import type { SanEntry } from "./san.js";
@@ -122,9 +128,13 @@ export function writeMaterial(args: {
   mkdirSync(dirname(args.paths.caCert), { recursive: true, mode: 0o700 });
 
   writeFileSync(args.paths.caCert, args.ca.certPem, { mode: 0o644 });
+  chmodSync(args.paths.caCert, 0o644);
   writeFileSync(args.paths.caKey, args.ca.keyPem, { mode: 0o600 });
+  chmodSync(args.paths.caKey, 0o600);
   writeFileSync(args.paths.serverCert, args.leaf.certPem, { mode: 0o644 });
+  chmodSync(args.paths.serverCert, 0o644);
   writeFileSync(args.paths.serverKey, args.leaf.keyPem, { mode: 0o600 });
+  chmodSync(args.paths.serverKey, 0o600);
 
   const meta: PersistedMeta = {
     version: 1,
@@ -136,6 +146,7 @@ export function writeMaterial(args: {
   writeFileSync(args.paths.meta, JSON.stringify(meta, null, 2), {
     mode: 0o644,
   });
+  chmodSync(args.paths.meta, 0o644);
 }
 
 export function readMeta(paths: TlsFilePaths): PersistedMeta | null {
