@@ -17,6 +17,11 @@ export {
   STRUCTURAL_ANALYSIS_VERSION,
 } from "./structural-analysis.js";
 export {
+  defaultStructuralQueryLimits,
+  queryStructuralAnalysis,
+  STRUCTURAL_QUERY_VERSION,
+} from "./structural-query.js";
+export {
   provisionalDiagramId,
   provisionalElementId,
   provisionalLayerId,
@@ -93,3 +98,22 @@ export type {
   StructuralFindingType,
   StructuralOrphanFinding,
 } from "./structural-analysis.js";
+export type {
+  GetStructuralFindingQuery,
+  ListStructuralFindingsQuery,
+  StructuralAnalysisQuery,
+  StructuralAnalysisQueryInput,
+  StructuralAnalysisQueryResult,
+  StructuralCountsQuery,
+  StructuralCoverageRequirement,
+  StructuralFindingClassification,
+  StructuralFindingFilters,
+  StructuralQueryDiagnostic,
+  StructuralQueryDiagnosticCode,
+  StructuralQueryKind,
+  StructuralQueryLimits,
+  StructuralQueryOrder,
+  StructuralSummaryBucket,
+  StructuralSummaryGroupBy,
+  SummarizeStructuralFindingsQuery,
+} from "./structural-query.js";

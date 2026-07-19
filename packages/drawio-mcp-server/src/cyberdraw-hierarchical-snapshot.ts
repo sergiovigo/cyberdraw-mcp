@@ -4,6 +4,7 @@ import {
   fromRuntimeSnapshot,
   mergeScopedSnapshotResults,
   planHierarchicalSnapshot,
+  queryStructuralAnalysis,
   scopeKey,
   type DiagramInventory,
   type HierarchicalSnapshotIntent,
@@ -14,6 +15,8 @@ import {
   type SnapshotPlanLimits,
   type SnapshotPlanStep,
   type StructuralExternalReference,
+  type StructuralAnalysisQuery,
+  type StructuralQueryLimits,
 } from "cyberdraw-graph-model";
 import type {
   RuntimeSnapshot,
@@ -34,6 +37,12 @@ export type HierarchicalSnapshotExecutionOptions = {
   readonly replyTimeoutMs?: number;
   readonly supportedScopes?: readonly PlannerSnapshotScope["kind"][];
   readonly inventorySnapshot?: RuntimeSnapshot;
+  readonly structuralQuery?: StructuralAnalysisQuery;
+  readonly structuralQueryLimits?: Partial<StructuralQueryLimits>;
+  readonly instrumentation?: {
+    readonly onStructuralAnalysis?: () => void;
+    readonly onStructuralQuery?: () => void;
+  };
 };
 
 export async function executeHierarchicalSnapshotPlan(
@@ -265,44 +274,60 @@ export async function executeHierarchicalSnapshotPlan(
           : stopReason;
   const structuralAnalysis =
     intent.kind === "analyze-structure" && graph
-      ? analyzeGraphStructure({
-          graph,
-          coverage: {
-            ...coverageFromPlan(executedPlan, finalStopReason),
-            truncated: merge.snapshot.truncated === true,
-          },
-          externalReferences: toStructuralExternalReferences(
-            merge.snapshot.scope?.externalReferences,
-          ),
-          diagnostics: diagnostics.map((diagnostic) => ({
-            code: diagnostic.code,
-            severity: diagnostic.severity,
-            detail: diagnostic.detail,
-          })),
-          stopReason: finalStopReason,
-          revisionEvidence: {
-            documentId:
-              snapshots[0]?.document.revisionSignals.documentId ??
-              snapshots[0]?.document.id,
-            contentRevisions: revisionsObserved,
-            documentRevisions: snapshots
-              .map(
-                (snapshot) =>
-                  snapshot.document.revisionSignals.documentRevision,
-              )
-              .filter((revision): revision is string => revision !== undefined),
-            revisionCompatible: true,
-          },
-          limits: {
-            hardSnapshotBytes: snapshots[0]?.limits.hardSnapshotBytes,
-            softSnapshotBytes: snapshots[0]?.limits.softSnapshotBytes,
-            measuredBytes,
-            estimatedBytes: executedPlan.steps.reduce(
-              (sum, step) => sum + (step.estimate.bytes ?? 0),
-              0,
+      ? (() => {
+          options.instrumentation?.onStructuralAnalysis?.();
+          return analyzeGraphStructure({
+            graph,
+            coverage: {
+              ...coverageFromPlan(executedPlan, finalStopReason),
+              truncated: merge.snapshot.truncated === true,
+            },
+            externalReferences: toStructuralExternalReferences(
+              merge.snapshot.scope?.externalReferences,
             ),
-          },
-        })
+            diagnostics: diagnostics.map((diagnostic) => ({
+              code: diagnostic.code,
+              severity: diagnostic.severity,
+              detail: diagnostic.detail,
+            })),
+            stopReason: finalStopReason,
+            revisionEvidence: {
+              documentId:
+                snapshots[0]?.document.revisionSignals.documentId ??
+                snapshots[0]?.document.id,
+              contentRevisions: revisionsObserved,
+              documentRevisions: snapshots
+                .map(
+                  (snapshot) =>
+                    snapshot.document.revisionSignals.documentRevision,
+                )
+                .filter(
+                  (revision): revision is string => revision !== undefined,
+                ),
+              revisionCompatible: true,
+            },
+            limits: {
+              hardSnapshotBytes: snapshots[0]?.limits.hardSnapshotBytes,
+              softSnapshotBytes: snapshots[0]?.limits.softSnapshotBytes,
+              measuredBytes,
+              estimatedBytes: executedPlan.steps.reduce(
+                (sum, step) => sum + (step.estimate.bytes ?? 0),
+                0,
+              ),
+            },
+          });
+        })()
+      : undefined;
+  const structuralQueryResult =
+    structuralAnalysis && options.structuralQuery
+      ? (() => {
+          options.instrumentation?.onStructuralQuery?.();
+          return queryStructuralAnalysis({
+            analysis: structuralAnalysis,
+            query: options.structuralQuery,
+            limits: options.structuralQueryLimits,
+          });
+        })()
       : undefined;
   return executionResult(executedPlan, {
     stopReason: finalStopReason,
@@ -319,6 +344,7 @@ export async function executeHierarchicalSnapshotPlan(
     mergeDiagnostics: merge.diagnostics.length,
     graph,
     structuralAnalysis,
+    structuralQueryResult,
   });
 }
 
@@ -799,6 +825,7 @@ function executionResult(
     readonly mergeDiagnostics: number;
     readonly graph?: SnapshotPlanExecutionResult["graph"];
     readonly structuralAnalysis?: SnapshotPlanExecutionResult["structuralAnalysis"];
+    readonly structuralQueryResult?: SnapshotPlanExecutionResult["structuralQueryResult"];
   },
 ): SnapshotPlanExecutionResult {
   return {
@@ -806,6 +833,7 @@ function executionResult(
     coverage: coverageFromPlan(plan, state.stopReason),
     graph: state.graph,
     structuralAnalysis: state.structuralAnalysis,
+    structuralQueryResult: state.structuralQueryResult,
     stopReason: state.stopReason,
     diagnostics: state.diagnostics,
     metrics: {
