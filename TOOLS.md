@@ -53,6 +53,33 @@ Lists all currently connected Draw.io document instances.
 
 ## Diagram Inspection Tools
 
+### `cyberdraw_analyze_structure`
+
+Runs bounded CyberDraw structural analysis over the currently open diagram
+without modifying draw.io. The tool uses private runtime snapshots and internal
+M8-M12 analysis flows, then returns a filtered public response.
+
+*Modes*:
+- `analyze`: structural findings
+- `query`: filtered/paginated findings
+- `plan`: non-executable structural proposals
+- `validate`: validates the non-executable plan
+
+*Parameters*:
+- `mode`: `analyze`, `query`, `plan`, or `validate` (default `analyze`)
+- `scope`: optional `{ pageId, layerId }`; `layerId` requires `pageId`
+- `expansion`: optional bounded expansion controls
+- `query`: optional closed filters and pagination
+- `planning`: optional public policy and exact selected finding IDs
+- `validation`: optional validation mode for `validate`
+- `response`: optional include flags
+
+*Safety*: Read-only. The response includes
+`safety.readOnly: true`, `mutationAttempted: false`, and
+`mutationInvocations: 0`. Public proposals include `executable: false` and do
+not contain XML, commands, scripts, callbacks, patches, filesystem paths, graph
+dumps, labels, styles or raw internal objects.
+
 ### `get-selected-cell`
 
 Retrieves the currently selected cell on the target page.

@@ -793,7 +793,7 @@ export function createDrawioMcpApp(options?: {
           handler: unknown,
         ) => {
           const scopedParams =
-            name === "list-documents"
+            name === "list-documents" || name === "cyberdraw_analyze_structure"
               ? params
               : {
                   ...params,

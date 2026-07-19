@@ -53,6 +53,8 @@ diagramming work.
     changing private non-mutating structural change proposals over M9/M10 data.
 19. `docs/cyberdraw/milestones/M12-internal-change-plan-validation.md` when
     changing private validation of M11 structural change plans.
+20. `docs/cyberdraw/milestones/M13-public-read-only-structural-analysis.md`
+    when changing the public read-only structural analysis MCP tool.
 
 Read `AGENTS.md` before modifying anything. It contains repository-wide logging,
 navigation and command-output discipline.
@@ -179,10 +181,14 @@ direct shell commands and package scripts.
   `docs/cyberdraw/milestones/M11-internal-structural-change-planning.md`
 - Internal structural change plan validation evidence:
   `docs/cyberdraw/milestones/M12-internal-change-plan-validation.md`
+- Public read-only structural analysis evidence:
+  `docs/cyberdraw/milestones/M13-public-read-only-structural-analysis.md`
 - Planner and executor implementation:
   `packages/cyberdraw-graph-model/src/hierarchical-snapshot-planner.ts`,
   `packages/cyberdraw-graph-model/src/scoped-snapshot-merge.ts` and
   `packages/drawio-mcp-server/src/cyberdraw-hierarchical-snapshot.ts`
+- Public structural analysis MCP tool:
+  `packages/drawio-mcp-server/src/tools/cyberdraw-analyze-structure.ts`
 
 For architecture-level orientation, prefer `ARCHITECTURE.md` before reading
 source files.

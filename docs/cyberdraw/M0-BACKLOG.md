@@ -152,6 +152,13 @@ baseline. It is not an implementation plan for M0 itself.
   material. It recomputes deterministic IDs, checks closed preconditions,
   policy, coverage, revision and conflicts, and still adds no public MCP tool,
   endpoint, persistence, approval workflow or mutation executor.
+- M13 update:
+  `docs/cyberdraw/milestones/M13-public-read-only-structural-analysis.md` adds
+  the first public CyberDraw MCP tool, `cyberdraw_analyze_structure`, as a
+  read-only bounded wrapper over M8-M12. It returns filtered public DTOs,
+  non-executable proposals and validation summaries, while keeping RFC 0001
+  Draft and adding no mutation endpoint, persistence, XML editing, graph dump
+  or arbitrary policy language.
 - Effort: M.
 - Suggested milestone: Architecture Intelligence Foundation runtime integration
   hardening and compatibility evidence.
