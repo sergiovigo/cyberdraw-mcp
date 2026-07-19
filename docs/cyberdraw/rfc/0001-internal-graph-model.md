@@ -276,6 +276,14 @@ policy, revision, coverage and conflicts, but still does not apply plans or add
 public schema, public MCP tools, persistence, semantic diff, approval workflow,
 rollback executor, XML editing, draw.io command execution or stable identity.
 
+M13 public read-only structural analysis evidence is recorded in
+`docs/cyberdraw/milestones/M13-public-read-only-structural-analysis.md`. It adds
+one public MCP tool, `cyberdraw_analyze_structure`, as a bounded read-only
+wrapper over the private M8-M12 flow. It returns filtered public DTOs and
+non-executable proposals only. The RFC remains Draft; M13 does not publish the
+internal graph schemas, add persistence, stabilize identity or add mutation
+execution.
+
 ## Data Model Proposal
 
 Use normalized entities keyed by internal ID, plus explicit references. Prefer

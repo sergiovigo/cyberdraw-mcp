@@ -165,6 +165,7 @@ The server provides MCP tools for:
 
 - **Document discovery** - list connected Draw.io document instances and route later calls to a specific tab/file instance
 - **Diagram inspection** - read shapes, pages, layers, and cell properties
+- **CyberDraw structural analysis** - run bounded read-only structural analysis, queries, non-executable proposals, and plan validation through `cyberdraw_analyze_structure`
 - **Diagram modification** - add/edit/delete shapes, edges, and labels on a target page
 - **Page management** - list pages, inspect the current page, create pages, copy pages, and rename pages without forcing a visible page switch on supported runtimes
 - **Layer management** - create, switch, and organize layers

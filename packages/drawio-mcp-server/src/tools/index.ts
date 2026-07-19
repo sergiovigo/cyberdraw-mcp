@@ -2,6 +2,7 @@ import { ToolRegistrar } from "./types.js";
 import { registerAddCellOfShapeTool } from "./add-cell-of-shape.js";
 import { registerAddEdgeTool } from "./add-edge.js";
 import { registerAddRectangleTool } from "./add-rectangle.js";
+import { registerCyberdrawAnalyzeStructureTool } from "./cyberdraw-analyze-structure.js";
 import { registerCopyPageTool } from "./copy-page.js";
 import { registerCreateLayerTool } from "./create-layer.js";
 import { registerCreatePageTool } from "./create-page.js";
@@ -57,6 +58,7 @@ const registrars: ToolRegistrar[] = [
   registerCreatePageTool,
   registerCopyPageTool,
   registerRenamePageTool,
+  registerCyberdrawAnalyzeStructureTool,
 ];
 
 export function registerTools(...args: Parameters<ToolRegistrar>) {

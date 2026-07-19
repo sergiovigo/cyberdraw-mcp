@@ -985,6 +985,130 @@ describe("real environment/hierarchical snapshot planner", () => {
         mode: "full-internal",
       }).validationId,
     );
+
+    const listedTools = await context.client.listTools();
+    const publicTool = listedTools.tools.find(
+      (tool) => tool.name === "cyberdraw_analyze_structure",
+    );
+    expect(publicTool).toBeDefined();
+    expect(publicTool?.inputSchema.properties).toHaveProperty("mode");
+    expect(publicTool?.inputSchema.properties).not.toHaveProperty(
+      "target_document",
+    );
+
+    const publicAnalyze = await callToolJson<any>(
+      context,
+      "cyberdraw_analyze_structure",
+      {
+        mode: "analyze",
+        scope: { pageId: page.id, layerId: layerA.id },
+        expansion: { maxScopes: 4, maxDepth: 2, maxBytes: 2 * 1024 * 1024 },
+      },
+    );
+    const publicQuery = await callToolJson<any>(
+      context,
+      "cyberdraw_analyze_structure",
+      {
+        mode: "query",
+        scope: { pageId: page.id, layerId: layerA.id },
+        expansion: { maxScopes: 4, maxDepth: 2, maxBytes: 2 * 1024 * 1024 },
+        query: { findingTypes: ["broken-reference"], limit: 10 },
+      },
+    );
+    const publicPlan = await callToolJson<any>(
+      context,
+      "cyberdraw_analyze_structure",
+      {
+        mode: "plan",
+        scope: { pageId: page.id, layerId: layerA.id },
+        expansion: { maxScopes: 4, maxDepth: 2, maxBytes: 2 * 1024 * 1024 },
+        query: { findingTypes: ["broken-reference"], limit: 10 },
+        planning: { policy: "allow-detach-broken-terminal" },
+      },
+    );
+    const publicValidate = await callToolJson<any>(
+      context,
+      "cyberdraw_analyze_structure",
+      {
+        mode: "validate",
+        scope: { pageId: page.id, layerId: layerA.id },
+        expansion: { maxScopes: 4, maxDepth: 2, maxBytes: 2 * 1024 * 1024 },
+        query: { findingTypes: ["broken-reference"], limit: 10 },
+        planning: { policy: "allow-detach-broken-terminal" },
+        validation: { mode: "full-internal" },
+      },
+    );
+    expect(publicAnalyze.payload).toMatchObject({
+      version: "m13-v1",
+      mode: "analyze",
+      scope: {
+        expanded: true,
+        documentScopeUsed: false,
+        requested: { pageId: page.id, layerId: layerA.id },
+      },
+      safety: {
+        readOnly: true,
+        mutationAttempted: false,
+        mutationInvocations: 0,
+      },
+    });
+    expect(publicAnalyze.payload.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "broken-reference",
+          classification: "broken",
+          referencedElementId: "missing-terminal",
+        }),
+        expect.objectContaining({
+          type: "cross-layer-edge",
+          classification: "same-page-cross-layer",
+        }),
+        expect.objectContaining({
+          type: "orphan-element",
+          classification: "confirmed-orphan",
+        }),
+      ]),
+    );
+    expect(publicQuery.payload).toMatchObject({
+      mode: "query",
+      query: { outcome: "ok", totalMatched: 1, returned: 1 },
+    });
+    expect(publicPlan.payload.plan).toMatchObject({
+      executable: false,
+      proposalCount: 1,
+      proposals: [
+        expect.objectContaining({
+          executable: false,
+          proposalType: "detach-broken-terminal",
+          operationType: "detach-terminal",
+        }),
+      ],
+    });
+    expect(publicValidate.payload.validation).toMatchObject({
+      outcome: "valid-with-limitations",
+      planIntegrity: "valid",
+      revisionStatus: "matched",
+      coverageStatus: "matched",
+    });
+    for (const publicResult of [
+      publicAnalyze.payload,
+      publicQuery.payload,
+      publicPlan.payload,
+      publicValidate.payload,
+    ]) {
+      expect(publicResult.scope.documentScopeUsed).toBe(false);
+      expect(publicResult.coverage.document).toBe(false);
+      expect(publicResult.revision.compatible).toBe(true);
+      expect(publicResult.safety.mutationInvocations).toBe(0);
+      const serializedPublic = JSON.stringify(publicResult);
+      expect(serializedPublic).not.toContain("source-a");
+      expect(serializedPublic).not.toContain("target-b");
+      expect(serializedPublic).not.toContain("edge-cross");
+      expect(serializedPublic).not.toContain("<mxGraphModel");
+      expect(serializedPublic).not.toContain('operation":{"operationType');
+      expect(serializedPublic).not.toContain("provenance");
+      expect(serializedPublic).not.toContain("stopReason");
+    }
     expect(
       result.plan.steps.some((step) => step.requestedScope.kind === "document"),
     ).toBe(false);
