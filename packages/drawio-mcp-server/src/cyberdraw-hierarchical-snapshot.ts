@@ -1,5 +1,6 @@
 import {
   defaultSnapshotPlanLimits,
+  analyzeGraphStructure,
   fromRuntimeSnapshot,
   mergeScopedSnapshotResults,
   planHierarchicalSnapshot,
@@ -12,6 +13,7 @@ import {
   type SnapshotPlanExecutionResult,
   type SnapshotPlanLimits,
   type SnapshotPlanStep,
+  type StructuralExternalReference,
 } from "cyberdraw-graph-model";
 import type {
   RuntimeSnapshot,
@@ -249,19 +251,61 @@ export async function executeHierarchicalSnapshotPlan(
 
   const graph =
     snapshots.length > 0 ? fromRuntimeSnapshot(merge.snapshot) : undefined;
-  return executionResult(executedPlan, {
-    stopReason:
-      stopReason === "intent-satisfied"
-        ? executedPlan.steps.some(
-            (step) => step.requestedScope.kind === "document",
-          )
+  const finalStopReason =
+    stopReason === "intent-satisfied"
+      ? executedPlan.steps.some(
+          (step) => step.requestedScope.kind === "document",
+        )
+        ? "complete"
+        : "intent-satisfied"
+      : stopReason === "soft-limit-advisory"
+        ? stopReason
+        : stopReason === "complete" && snapshots.length > 0
           ? "complete"
-          : "intent-satisfied"
-        : stopReason === "soft-limit-advisory"
-          ? stopReason
-          : stopReason === "complete" && snapshots.length > 0
-            ? "complete"
-            : stopReason,
+          : stopReason;
+  const structuralAnalysis =
+    intent.kind === "analyze-structure" && graph
+      ? analyzeGraphStructure({
+          graph,
+          coverage: {
+            ...coverageFromPlan(executedPlan, finalStopReason),
+            truncated: merge.snapshot.truncated === true,
+          },
+          externalReferences: toStructuralExternalReferences(
+            merge.snapshot.scope?.externalReferences,
+          ),
+          diagnostics: diagnostics.map((diagnostic) => ({
+            code: diagnostic.code,
+            severity: diagnostic.severity,
+            detail: diagnostic.detail,
+          })),
+          stopReason: finalStopReason,
+          revisionEvidence: {
+            documentId:
+              snapshots[0]?.document.revisionSignals.documentId ??
+              snapshots[0]?.document.id,
+            contentRevisions: revisionsObserved,
+            documentRevisions: snapshots
+              .map(
+                (snapshot) =>
+                  snapshot.document.revisionSignals.documentRevision,
+              )
+              .filter((revision): revision is string => revision !== undefined),
+            revisionCompatible: true,
+          },
+          limits: {
+            hardSnapshotBytes: snapshots[0]?.limits.hardSnapshotBytes,
+            softSnapshotBytes: snapshots[0]?.limits.softSnapshotBytes,
+            measuredBytes,
+            estimatedBytes: executedPlan.steps.reduce(
+              (sum, step) => sum + (step.estimate.bytes ?? 0),
+              0,
+            ),
+          },
+        })
+      : undefined;
+  return executionResult(executedPlan, {
+    stopReason: finalStopReason,
     diagnostics,
     inventoryDurationMs,
     planningDurationMs,
@@ -274,7 +318,50 @@ export async function executeHierarchicalSnapshotPlan(
     revisionsObserved,
     mergeDiagnostics: merge.diagnostics.length,
     graph,
+    structuralAnalysis,
   });
+}
+
+function toStructuralExternalReferences(
+  value: unknown,
+): readonly StructuralExternalReference[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((entry): StructuralExternalReference | undefined => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        return undefined;
+      }
+      const raw = entry as Record<string, unknown>;
+      const referenceType =
+        raw.referenceType === "parent" ||
+        raw.referenceType === "source" ||
+        raw.referenceType === "target" ||
+        raw.referenceType === "edge" ||
+        raw.referenceType === "layer"
+          ? raw.referenceType
+          : undefined;
+      return {
+        ...(typeof raw.pageId === "string" ? { pageId: raw.pageId } : {}),
+        ...(typeof raw.elementId === "string"
+          ? { elementId: raw.elementId }
+          : {}),
+        ...(referenceType ? { referenceType } : {}),
+        ...(typeof raw.referencedId === "string"
+          ? { referencedId: raw.referencedId }
+          : {}),
+        ...(typeof raw.referencedPageId === "string"
+          ? { referencedPageId: raw.referencedPageId }
+          : {}),
+        ...(typeof raw.referencedLayerId === "string"
+          ? { referencedLayerId: raw.referencedLayerId }
+          : {}),
+      };
+    })
+    .filter(
+      (entry): entry is StructuralExternalReference => entry !== undefined,
+    );
 }
 
 function compareSnapshotCompatibility(
@@ -438,6 +525,16 @@ function inventoryScopeForIntent(
     return { kind: "selection" };
   }
   if (intent.kind === "inspect-pages" && intent.pageIds?.length) {
+    return { kind: "pages", pageIds: intent.pageIds };
+  }
+  if (intent.kind === "analyze-structure" && intent.layers?.[0] !== undefined) {
+    return {
+      kind: "layers",
+      pageId: intent.layers[0].pageId,
+      layerIds: intent.layers[0].layerIds,
+    };
+  }
+  if (intent.kind === "analyze-structure" && intent.pageIds?.length) {
     return { kind: "pages", pageIds: intent.pageIds };
   }
   if (intent.kind === "inspect-layers" && intent.layers?.[0]) {
@@ -701,43 +798,14 @@ function executionResult(
     readonly revisionsObserved: readonly string[];
     readonly mergeDiagnostics: number;
     readonly graph?: SnapshotPlanExecutionResult["graph"];
+    readonly structuralAnalysis?: SnapshotPlanExecutionResult["structuralAnalysis"];
   },
 ): SnapshotPlanExecutionResult {
   return {
     plan,
-    coverage: {
-      document: plan.steps.some(
-        (step) => step.requestedScope.kind === "document",
-      ),
-      pageIds: [
-        ...new Set(
-          plan.steps.flatMap((step) =>
-            step.requestedScope.kind === "pages"
-              ? step.requestedScope.pageIds
-              : step.requestedScope.kind === "layers"
-                ? [step.requestedScope.pageId]
-                : [],
-          ),
-        ),
-      ].sort(),
-      layerTargets: plan.steps.flatMap((step) =>
-        step.requestedScope.kind === "layers"
-          ? [
-              {
-                pageId: step.requestedScope.pageId,
-                layerIds: step.requestedScope.layerIds,
-              },
-            ]
-          : [],
-      ),
-      selection: plan.steps.some(
-        (step) => step.requestedScope.kind === "selection",
-      ),
-      conclusive:
-        state.stopReason === "complete" ||
-        state.stopReason === "intent-satisfied",
-    },
+    coverage: coverageFromPlan(plan, state.stopReason),
     graph: state.graph,
+    structuralAnalysis: state.structuralAnalysis,
     stopReason: state.stopReason,
     diagnostics: state.diagnostics,
     metrics: {
@@ -760,5 +828,41 @@ function executionResult(
       replans: 0,
       diagnosticsCount: state.diagnostics.length,
     },
+  };
+}
+
+function coverageFromPlan(
+  plan: SnapshotPlan,
+  stopReason: SnapshotPlanExecutionResult["stopReason"],
+): SnapshotPlanExecutionResult["coverage"] {
+  return {
+    document: plan.steps.some(
+      (step) => step.requestedScope.kind === "document",
+    ),
+    pageIds: [
+      ...new Set(
+        plan.steps.flatMap((step) =>
+          step.requestedScope.kind === "pages"
+            ? step.requestedScope.pageIds
+            : step.requestedScope.kind === "layers"
+              ? [step.requestedScope.pageId]
+              : [],
+        ),
+      ),
+    ].sort(),
+    layerTargets: plan.steps.flatMap((step) =>
+      step.requestedScope.kind === "layers"
+        ? [
+            {
+              pageId: step.requestedScope.pageId,
+              layerIds: step.requestedScope.layerIds,
+            },
+          ]
+        : [],
+    ),
+    selection: plan.steps.some(
+      (step) => step.requestedScope.kind === "selection",
+    ),
+    conclusive: stopReason === "complete" || stopReason === "intent-satisfied",
   };
 }

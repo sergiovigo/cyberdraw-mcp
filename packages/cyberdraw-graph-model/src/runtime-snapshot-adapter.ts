@@ -208,14 +208,10 @@ function toCanonicalElement(
     : parentExternalId;
   const sourceExternalId = partialSnapshot
     ? undefined
-    : externalReferenceOmitted(element, "source", externalReferences)
-      ? undefined
-      : safeString(element.sourceId, limits.maxStringLength);
+    : safeString(element.sourceId, limits.maxStringLength);
   const targetExternalId = partialSnapshot
     ? undefined
-    : externalReferenceOmitted(element, "target", externalReferences)
-      ? undefined
-      : safeString(element.targetId, limits.maxStringLength);
+    : safeString(element.targetId, limits.maxStringLength);
   const style = normalizeStyle(element, limits);
   const metadata = normalizeMetadata(element, limits);
   const geometry = normalizeGeometry(element, limits);

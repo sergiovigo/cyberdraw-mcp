@@ -44,6 +44,8 @@ diagramming work.
 15. `docs/cyberdraw/milestones/M8.1-real-external-reference-expansion.md` when
     changing hierarchical external-reference expansion or its real-environment
     evidence.
+16. `docs/cyberdraw/milestones/M9-internal-structural-analysis.md` when
+    changing private structural analysis findings, coverage or completeness.
 
 Read `AGENTS.md` before modifying anything. It contains repository-wide logging,
 navigation and command-output discipline.
@@ -162,6 +164,8 @@ direct shell commands and package scripts.
   `docs/cyberdraw/milestones/M8-hierarchical-snapshot-planner.md`
 - Real external-reference expansion evidence:
   `docs/cyberdraw/milestones/M8.1-real-external-reference-expansion.md`
+- Internal structural analysis evidence:
+  `docs/cyberdraw/milestones/M9-internal-structural-analysis.md`
 - Planner and executor implementation:
   `packages/cyberdraw-graph-model/src/hierarchical-snapshot-planner.ts`,
   `packages/cyberdraw-graph-model/src/scoped-snapshot-merge.ts` and

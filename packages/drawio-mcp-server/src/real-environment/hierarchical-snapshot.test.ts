@@ -441,6 +441,269 @@ describe("real environment/hierarchical snapshot planner", () => {
       logCountBefore,
     );
   }, 180000);
+
+  it("executes real internal structural analysis with expansion, broken reference and orphan finding", async () => {
+    await resetDiagram(context);
+    context.browserMessages.length = 0;
+    const logCountBefore = context.logger.entries.length;
+
+    const { payload: pagePayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string };
+    }>(context, "get-current-page", {});
+    expectToolSuccess(pagePayload);
+    const page = unwrapToolPayload<{ id: string }>(pagePayload);
+
+    const { payload: layerAPayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string; name: string };
+    }>(context, "create-layer", { name: "m9-layer-a" });
+    expectToolSuccess(layerAPayload);
+    const layerA = unwrapToolPayload<{ id: string; name: string }>(
+      layerAPayload,
+    );
+
+    const { payload: layerBPayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string; name: string };
+    }>(context, "create-layer", { name: "m9-layer-b" });
+    expectToolSuccess(layerBPayload);
+    const layerB = unwrapToolPayload<{ id: string; name: string }>(
+      layerBPayload,
+    );
+
+    const { payload: sourcePayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string };
+    }>(context, "add-rectangle", {
+      target_page: { id: page.id },
+      x: 90,
+      y: 120,
+      width: 130,
+      height: 70,
+      text: "source-a",
+    });
+    expectToolSuccess(sourcePayload);
+    const source = unwrapToolPayload<{ id: string }>(sourcePayload);
+
+    const { payload: orphanPayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string };
+    }>(context, "add-rectangle", {
+      target_page: { id: page.id },
+      x: 90,
+      y: 260,
+      width: 130,
+      height: 70,
+      text: "orphan-a",
+    });
+    expectToolSuccess(orphanPayload);
+    const orphan = unwrapToolPayload<{ id: string }>(orphanPayload);
+
+    const { payload: targetPayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string };
+    }>(context, "add-rectangle", {
+      target_page: { id: page.id },
+      x: 360,
+      y: 120,
+      width: 130,
+      height: 70,
+      text: "target-b",
+    });
+    expectToolSuccess(targetPayload);
+    const target = unwrapToolPayload<{ id: string }>(targetPayload);
+
+    await callToolJson(context, "move-cell-to-layer", {
+      target_page: { id: page.id },
+      cell_id: source.id,
+      target_layer_id: layerA.id,
+    });
+    await callToolJson(context, "move-cell-to-layer", {
+      target_page: { id: page.id },
+      cell_id: orphan.id,
+      target_layer_id: layerA.id,
+    });
+    await callToolJson(context, "move-cell-to-layer", {
+      target_page: { id: page.id },
+      cell_id: target.id,
+      target_layer_id: layerB.id,
+    });
+
+    const { payload: crossEdgePayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string };
+    }>(context, "add-edge", {
+      target_page: { id: page.id },
+      source_id: source.id,
+      target_id: target.id,
+      parent_id: layerA.id,
+      text: "edge-cross",
+    });
+    expectToolSuccess(crossEdgePayload);
+    const crossEdge = unwrapToolPayload<{ id: string }>(crossEdgePayload);
+
+    const { payload: brokenEdgePayload } = await callToolJson<{
+      success: boolean;
+      result: { id: string };
+    }>(context, "add-edge", {
+      target_page: { id: page.id },
+      source_id: source.id,
+      target_id: target.id,
+      parent_id: layerA.id,
+      text: "edge-broken",
+    });
+    expectToolSuccess(brokenEdgePayload);
+    const brokenEdge = unwrapToolPayload<{ id: string }>(brokenEdgePayload);
+    await callToolJson(context, "move-cell-to-layer", {
+      target_page: { id: page.id },
+      cell_id: crossEdge.id,
+      target_layer_id: layerA.id,
+    });
+    await callToolJson(context, "move-cell-to-layer", {
+      target_page: { id: page.id },
+      cell_id: brokenEdge.id,
+      target_layer_id: layerA.id,
+    });
+    await context.page.evaluate((edgeId: string) => {
+      const graph = (window as any).ui?.editor?.graph;
+      const model = graph?.getModel?.();
+      const edge = model?.getCell?.(edgeId);
+      if (!edge) {
+        throw new Error("M9 broken edge fixture missing edge");
+      }
+      model?.beginUpdate?.();
+      try {
+        edge.target = { id: "missing-terminal" };
+      } finally {
+        model?.endUpdate?.();
+      }
+    }, brokenEdge.id);
+
+    await selectCell(context.page, source.id);
+    const beforeState = await readEditorState(context);
+    const executionLogStart = context.logger.entries.length;
+
+    const result = await executeHierarchicalSnapshotPlan(
+      context.app.context,
+      {
+        kind: "analyze-structure",
+        layers: [{ pageId: page.id, layerIds: [layerA.id] }],
+      },
+      {
+        limits: { maxPlanSteps: 4, maxExpansionDepth: 2 },
+        runtimeLimits: { hardSnapshotBytes: 2 * 1024 * 1024 },
+      },
+    );
+
+    const findings = result.structuralAnalysis?.findings ?? [];
+    const crossLayer = findings.find(
+      (finding) =>
+        finding.findingType === "cross-layer-edge" &&
+        finding.relationClassification === "same-page-cross-layer",
+    );
+    const broken = findings.find(
+      (finding) =>
+        finding.findingType === "broken-reference" &&
+        finding.status === "broken" &&
+        finding.referencedElementId === "missing-terminal",
+    );
+    const confirmedOrphan = findings.find(
+      (finding) =>
+        finding.findingType === "orphan-element" &&
+        finding.status === "confirmed-orphan",
+    );
+    const edgeElement = result.graph?.elements.find(
+      (element) => element.drawioId === crossEdge.id && element.kind === "edge",
+    );
+    const brokenEdgeElement = result.graph?.elements.find(
+      (element) =>
+        element.drawioId === brokenEdge.id && element.kind === "edge",
+    );
+    const sourceElement = result.graph?.elements.find(
+      (element) => element.drawioId === source.id,
+    );
+    const targetElement = result.graph?.elements.find(
+      (element) => element.drawioId === target.id,
+    );
+    const executedLogMessages = context.logger.entries
+      .slice(executionLogStart)
+      .map((entry) => entry.message);
+
+    expect(result.plan.steps[0]?.requestedScope).toEqual({
+      kind: "layers",
+      pageId: page.id,
+      layerIds: [layerA.id],
+    });
+    expect(result.plan.steps[1]).toMatchObject({
+      ordinal: 2,
+      reason: "external-context-required",
+      requestedScope: {
+        kind: "layers",
+        pageId: page.id,
+        layerIds: [layerB.id],
+      },
+    });
+    expect(result.metrics.stepsExecuted).toBe(2);
+    expect(result.metrics.externalReferences).toBeGreaterThanOrEqual(1);
+    expect(result.metrics.scopesUsed).toEqual([
+      runtimeSnapshotScopeKey({
+        kind: "layers",
+        pageId: page.id,
+        layerIds: [layerA.id],
+      }),
+      runtimeSnapshotScopeKey({
+        kind: "layers",
+        pageId: page.id,
+        layerIds: [layerB.id],
+      }),
+    ]);
+    expect(result.stopReason).toBe("intent-satisfied");
+    expect(result.coverage.document).toBe(false);
+    expect(result.structuralAnalysis?.coverage.document).toBe(false);
+    expect(result.structuralAnalysis?.completeness).toBe(
+      "complete-target-scopes",
+    );
+    expect(result.structuralAnalysis?.revisionEvidence.revisionCompatible).toBe(
+      true,
+    );
+    expect(edgeElement?.kind).toBe("edge");
+    if (edgeElement?.kind !== "edge") {
+      throw new Error("expected M9 cross-layer edge");
+    }
+    expect(edgeElement.sourceId).toBe(sourceElement?.internalId);
+    expect(edgeElement.targetId).toBe(targetElement?.internalId);
+    expect(brokenEdgeElement?.kind).toBe("edge");
+    if (brokenEdgeElement?.kind !== "edge") {
+      throw new Error("expected M9 broken edge");
+    }
+    expect(brokenEdgeElement.targetId).toBe("missing-terminal");
+    expect(crossLayer).toBeDefined();
+    expect(broken).toBeDefined();
+    expect(confirmedOrphan).toBeDefined();
+    expect(result.structuralAnalysis?.counts).toMatchObject({
+      brokenReferenceCount: { value: 1, basis: "observed" },
+      crossLayerEdgeCount: { value: 1, basis: "observed" },
+      orphanElementCount: { value: 1, basis: "observed" },
+    });
+    expect(
+      result.plan.steps.some((step) => step.requestedScope.kind === "document"),
+    ).toBe(false);
+    expect(
+      executedLogMessages.some((message) => message.includes("scope=document")),
+    ).toBe(false);
+    expect(JSON.stringify(findings)).not.toContain("source-a");
+    expect(JSON.stringify(findings)).not.toContain("<mxGraphModel");
+
+    const afterState = await readEditorState(context);
+    expect(afterState).toEqual(beforeState);
+    await expectNoBrowserErrors(context, "hierarchical-structural-analysis");
+    await expectNoServerErrors(
+      context,
+      "hierarchical-structural-analysis",
+      logCountBefore,
+    );
+  }, 180000);
 });
 
 async function readEditorState(context: RealEnvironmentContext) {

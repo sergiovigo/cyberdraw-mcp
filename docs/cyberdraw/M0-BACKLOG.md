@@ -123,6 +123,12 @@ baseline. It is not an implementation plan for M0 itself.
   the remaining M8 gap with real draw.io evidence for multi-step expansion from
   a resolvable external terminal reference. It adds no public MCP tool,
   persistence, chunking, streaming or stable identity.
+- M9 update:
+  `docs/cyberdraw/milestones/M9-internal-structural-analysis.md` implements the
+  first private structural analysis vertical over M8 output. It adds pure graph
+  analysis for broken references, cross-layer edges, conservative orphans,
+  counts and coverage/completeness. It adds no public MCP tool, public schema,
+  persistence, semantic diff, change plan, mutation plan or stable identity.
 - Effort: M.
 - Suggested milestone: Architecture Intelligence Foundation runtime integration
   hardening and compatibility evidence.

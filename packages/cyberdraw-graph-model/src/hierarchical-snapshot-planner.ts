@@ -1,3 +1,4 @@
+import type { StructuralAnalysisResult } from "./structural-analysis.js";
 import type { DiagramSnapshot, JsonValue } from "./types.js";
 
 export const HIERARCHICAL_SNAPSHOT_PLANNER_VERSION =
@@ -195,6 +196,7 @@ export type SnapshotPlanExecutionResult = {
   readonly plan: SnapshotPlan;
   readonly coverage: SnapshotPlanCoverage;
   readonly graph?: DiagramSnapshot;
+  readonly structuralAnalysis?: StructuralAnalysisResult;
   readonly stopReason: SnapshotPlanStopReason;
   readonly diagnostics: readonly SnapshotPlanDiagnostic[];
   readonly metrics: {

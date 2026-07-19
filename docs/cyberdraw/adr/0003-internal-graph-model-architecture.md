@@ -171,6 +171,15 @@ selection scopes. Draft ADR 0004 proposes keeping scoped full snapshots as the
 primary M7 strategy and deferring chunking, streaming and incremental analysis
 until real-environment and identity evidence justify them.
 
+M9 structural-analysis update:
+`docs/cyberdraw/milestones/M9-internal-structural-analysis.md` adds the first
+private pure analyzer in `cyberdraw-graph-model` and wires it into the server's
+internal `analyze-structure` path after scoped execution, expansion, merge and
+graph-model adaptation. This remains within the ADR's private package
+architecture and does not add public MCP tools, public schemas, persistence,
+semantic diff, change plans, mutation plans, stable identity or a generic rule
+engine.
+
 This ADR explicitly does not accept:
 
 - the current provisional identity strategy as definitive;
