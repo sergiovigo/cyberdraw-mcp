@@ -39,6 +39,11 @@ before CyberDraw-specific features are introduced.
 | [milestones/m13/capability-matrix.md](milestones/m13/capability-matrix.md)                                       | M13 capability matrix for modes, scope, safety, limits and evidence                                              | Closure evidence            |
 | [milestones/m13/acceptance-matrix.md](milestones/m13/acceptance-matrix.md)                                       | M13 acceptance criteria mapped to implementation, tests, CI and real validation                                  | Closure evidence            |
 | [milestones/m13/closure-incidents.md](milestones/m13/closure-incidents.md)                                       | M13 closure incident register separating operational issues from product defects                                 | Closure evidence            |
+| [milestones/M14-public-structural-query-and-scope-controls.md](milestones/M14-public-structural-query-and-scope-controls.md) | M14 planned public query, count, summarize and bounded multi-scope controls                                      | PLANNED / DESIGN            |
+| [milestones/m14/contract-m14-v1.md](milestones/m14/contract-m14-v1.md)                                           | Planned m14-v1 public contract for bounded scope, coverage and sanitized query operations                        | Design specification        |
+| [milestones/m14/compatibility-matrix.md](milestones/m14/compatibility-matrix.md)                                 | Compatibility mapping between M13-compatible requests and M14-only capabilities                                  | Design specification        |
+| [milestones/m14/limits-model.md](milestones/m14/limits-model.md)                                                 | Conceptual configurable limits for M14 public multi-scope operations                                             | Design specification        |
+| [milestones/m14/reason-code-registry.md](milestones/m14/reason-code-registry.md)                                 | Initial public reason-code registry for M14 structured rejections and limitations                                | Design specification        |
 | [benchmarks/](benchmarks/)                                                                                     | Small aggregate M6 synthetic and M7 real-environment benchmark summaries                                         | Benchmark evidence          |
 | [diagrams/internal-graph-model.md](diagrams/internal-graph-model.md)                                           | Mermaid diagrams supporting RFC 0001                                                                             | Draft supporting diagrams   |
 | [adr/0001-fork-strategy.md](adr/0001-fork-strategy.md)                                                         | Decision to begin as a conservative fork                                                                         | Accepted ADR                |
@@ -47,6 +52,7 @@ before CyberDraw-specific features are introduced.
 | [adr/0004-runtime-snapshot-scaling-strategy.md](adr/0004-runtime-snapshot-scaling-strategy.md)                 | Accepted runtime snapshot scaling strategy after M7 real-environment evidence                                    | Accepted ADR                |
 | [adr/0005-m13-safe-default-scope.md](adr/0005-m13-safe-default-scope.md)                                         | M13 decision to default to active page/layer scope and never silently widen to document scope                    | Accepted ADR                |
 | [adr/0006-websocket-active-document-registry.md](adr/0006-websocket-active-document-registry.md)                 | Decision that each WebSocket connection owns exactly one active document at a time                               | Accepted ADR                |
+| [adr/0007-public-scope-coverage-and-dto-versioning-for-m14.md](adr/0007-public-scope-coverage-and-dto-versioning-for-m14.md) | Public scope, coverage and DTO versioning decision for M14                                                       | Accepted for M14 design     |
 
 Related root documents:
 
@@ -100,7 +106,15 @@ Related root documents:
     `milestones/m13/closure-incidents.md` for the formal M13 closure package.
 26. `adr/0005-m13-safe-default-scope.md` and
     `adr/0006-websocket-active-document-registry.md` for M13 closure decisions.
-27. `adr/` when a lasting decision needs historical context.
+27. `milestones/M14-public-structural-query-and-scope-controls.md` for the M14
+    design milestone before implementing public query and scope controls.
+28. `milestones/m14/contract-m14-v1.md`,
+    `milestones/m14/compatibility-matrix.md`,
+    `milestones/m14/limits-model.md` and
+    `milestones/m14/reason-code-registry.md` for the M14 design package.
+29. `adr/0007-public-scope-coverage-and-dto-versioning-for-m14.md` for the M14
+    public scope, coverage and DTO versioning decision.
+30. `adr/` when a lasting decision needs historical context.
 
 ## Question Map
 
@@ -134,6 +148,10 @@ Related root documents:
 | Which M13 validation incidents were found?                      | `milestones/m13/closure-incidents.md`                                                                                                                     |
 | Why does M13 not analyze document scope by default?             | `adr/0005-m13-safe-default-scope.md`                                                                                                                      |
 | How is the active document tracked per WebSocket connection?    | `adr/0006-websocket-active-document-registry.md`                                                                                                          |
+| What is planned for M14?                                        | `milestones/M14-public-structural-query-and-scope-controls.md`                                                                                            |
+| What is the planned m14-v1 contract?                            | `milestones/m14/contract-m14-v1.md`, `adr/0007-public-scope-coverage-and-dto-versioning-for-m14.md`                                                       |
+| How will M13 and M14 responses stay compatible?                 | `milestones/m14/compatibility-matrix.md`                                                                                                                  |
+| Which limits and reason codes are planned for M14?              | `milestones/m14/limits-model.md`, `milestones/m14/reason-code-registry.md`                                                                                |
 | What internal graph model architecture was accepted?            | `adr/0003-internal-graph-model-architecture.md`                                                                                                           |
 | Where are lasting decisions recorded?                           | `adr/`                                                                                                                                                    |
 | What third-party assets need review?                            | `../../THIRD_PARTY_NOTICES.md`                                                                                                                            |
