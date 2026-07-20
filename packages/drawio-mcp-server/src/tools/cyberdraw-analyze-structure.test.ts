@@ -9,6 +9,7 @@ import {
   analyzeStructurePublic,
   assertNoMutationInvocations,
   parseCyberdrawAnalyzeStructureInput,
+  type PublicM14StructuralResponse,
   TOOL_cyberdraw_analyze_structure,
 } from "./cyberdraw-analyze-structure.js";
 import { defaultConfig } from "../config.js";
@@ -18,6 +19,8 @@ import {
   type RuntimeSnapshot,
   type RuntimeSnapshotScope,
 } from "cyberdraw-runtime-contract";
+
+type TestInventoryKind = "default" | "no-visible-layer" | "stale" | "truncated";
 
 describe("cyberdraw_analyze_structure public tool", () => {
   it("accepts the minimal request and applies safe defaults", () => {
@@ -237,6 +240,435 @@ describe("cyberdraw_analyze_structure public tool", () => {
     expect(serialized).not.toContain('operation":{"operationType');
     expect(serialized).not.toContain("provenance");
     expect(serialized).not.toContain("fingerprint");
+  });
+
+  it.each([
+    ["analyze", { mode: "analyze" }],
+    ["query", { mode: "query", query: { findingTypes: ["broken-reference"] } }],
+    ["plan", { mode: "plan", query: { findingTypes: ["broken-reference"] } }],
+    [
+      "validate",
+      {
+        mode: "validate",
+        query: { findingTypes: ["broken-reference"] },
+        planning: { policy: "allow-detach-broken-terminal" },
+        validation: { mode: "full-internal" },
+      },
+    ],
+  ])("keeps M13 %s requests on m13-v1", async (_name, input) => {
+    const result = await runPublicMode(input);
+
+    expect(result.response.version).toBe("m13-v1");
+  });
+
+  it.each([
+    ["scope.pageIds", { mode: "query", scope: { pageIds: ["m9-page"] } }],
+    [
+      "scope.layerTargets",
+      {
+        mode: "query",
+        scope: {
+          layerTargets: [{ pageId: "m9-page", layerIds: ["layer-a"] }],
+        },
+      },
+    ],
+    ["query.operation count", { mode: "query", query: { operation: "count" } }],
+    [
+      "query.operation summarize",
+      { mode: "query", query: { operation: "summarize" } },
+    ],
+    [
+      "coverageRequirements",
+      { mode: "query", coverageRequirements: { nonStale: true } },
+    ],
+    ["limits", { mode: "query", limits: { maxFindings: 10 } }],
+  ])("returns m14-v1 for M14 trigger %s", async (_name, input) => {
+    const result = await runRawPublicMode(input);
+
+    expect(result.response.version).toBe("m14-v1");
+  });
+
+  it("executes M14 pageIds, layerTargets and mixed scopes without broadening", async () => {
+    const page = await runRawPublicMode({
+      mode: "query",
+      scope: { pageIds: ["m9-page"] },
+    });
+    const layers = await runRawPublicMode({
+      mode: "query",
+      scope: {
+        layerTargets: [{ pageId: "m9-page", layerIds: ["layer-a", "layer-b"] }],
+      },
+    });
+    const mixed = await runRawPublicMode({
+      mode: "query",
+      scope: {
+        pageIds: ["m14-page"],
+        layerTargets: [{ pageId: "m9-page", layerIds: ["layer-a"] }],
+      },
+    });
+
+    expect(page.response).toMatchObject({
+      requestedScope: { scopeType: "page", pageIds: ["m9-page"] },
+      executedScope: { document: false, pageIds: ["m9-page"] },
+    });
+    expect(sentScopes(page.sent)).toEqual(["selection", "pages:m9-page"]);
+    expect(layers.response.executedScope.layerTargets).toEqual([
+      { pageId: "m9-page", layerIds: ["layer-a", "layer-b"] },
+    ]);
+    expect(sentScopes(layers.sent)).toEqual([
+      "selection",
+      "layers:m9-page:layer-a,layer-b",
+    ]);
+    expect(mixed.response.executedScope.pageIds).toEqual([
+      "m14-page",
+      "m9-page",
+    ]);
+    expect(mixed.response.requestedScope.layerTargets).toEqual([
+      { pageId: "m9-page", layerIds: ["layer-a"] },
+    ]);
+    expect(mixed.response.executedScope.layerTargets).toEqual([
+      { pageId: "m9-page", layerIds: ["layer-a"] },
+      { pageId: "m9-page", layerIds: ["layer-b"] },
+    ]);
+    expect(sentScopes(mixed.sent)).toEqual([
+      "selection",
+      "pages:m14-page",
+      "layers:m9-page:layer-a",
+      "layers:m9-page:layer-b",
+    ]);
+    expect(JSON.stringify(mixed.response)).not.toContain("documentScopeUsed");
+  });
+
+  it("rejects M14 document scope before any snapshot request", async () => {
+    const { context, sent } = createInteractiveContext();
+    const response = await analyzeStructurePublic(context, {
+      mode: "analyze",
+      scope: { document: true },
+    });
+
+    expect(response).toMatchObject({
+      version: "m14-v1",
+      outcome: "rejected",
+      requestedScope: {
+        scopeType: "document",
+        rejectedReason: "document-scope-not-supported",
+      },
+      executedScope: { executed: false, pageIds: [], layerTargets: [] },
+      safety: {
+        readOnly: true,
+        mutationAttempted: false,
+        mutationInvocations: 0,
+      },
+    });
+    expect(sentScopes(sent)).toEqual([]);
+  });
+
+  it("rejects explicit invalid M14 page and layer without partial execution", async () => {
+    const page = await runRawPublicMode({
+      mode: "query",
+      scope: { pageIds: ["missing-page"] },
+    });
+    const mixedPage = await runRawPublicMode({
+      mode: "query",
+      scope: { pageIds: ["m9-page", "missing-page"] },
+    });
+    const layer = await runRawPublicMode({
+      mode: "query",
+      scope: {
+        layerTargets: [{ pageId: "m9-page", layerIds: ["missing-layer"] }],
+      },
+    });
+    const wrongPageLayer = await runRawPublicMode({
+      mode: "query",
+      scope: {
+        layerTargets: [{ pageId: "m14-page", layerIds: ["layer-a"] }],
+      },
+    });
+
+    expect(page.response).toMatchObject({
+      outcome: "rejected",
+      limitations: [{ code: "page-not-found" }],
+      executedScope: { executed: false },
+      revision: {
+        documentId: "m9-doc",
+        compatible: true,
+        contentRevisionCount: 1,
+        documentRevisionCount: 1,
+      },
+    });
+    expect(mixedPage.response).toMatchObject({
+      outcome: "rejected",
+      limitations: [{ code: "page-not-found" }],
+      executedScope: { executed: false },
+    });
+    expect(layer.response).toMatchObject({
+      outcome: "rejected",
+      limitations: [{ code: "layer-not-found" }],
+      executedScope: { executed: false },
+    });
+    expect(wrongPageLayer.response).toMatchObject({
+      outcome: "rejected",
+      limitations: [{ code: "layer-not-found" }],
+      executedScope: { executed: false },
+    });
+    expect(sentScopes(page.sent)).toEqual(["selection"]);
+    expect(sentScopes(mixedPage.sent)).toEqual(["selection"]);
+    expect(sentScopes(layer.sent)).toEqual(["selection"]);
+    expect(sentScopes(wrongPageLayer.sent)).toEqual(["selection"]);
+  });
+
+  it("rejects M14 duplicate, empty and too broad scopes before target execution", async () => {
+    const duplicate = await runRawPublicMode({
+      mode: "query",
+      scope: {
+        pageIds: ["m9-page"],
+        layerTargets: [{ pageId: "m9-page", layerIds: ["layer-a"] }],
+      },
+    });
+    const empty = await runRawPublicMode({
+      mode: "query",
+      scope: { pageIds: [] },
+    });
+    const tooBroad = await runRawPublicMode({
+      mode: "query",
+      scope: {
+        pageIds: Array.from({ length: 9 }, (_, index) => `page-${index}`),
+      },
+    });
+
+    expect(duplicate.response.limitations).toEqual([
+      { code: "duplicate-scope-target" },
+    ]);
+    expect(empty.response.limitations).toEqual([{ code: "empty-scope" }]);
+    expect(tooBroad.response.limitations).toEqual([
+      { code: "scope-too-broad" },
+    ]);
+    expect(sentScopes(duplicate.sent)).toEqual([]);
+    expect(sentScopes(empty.sent)).toEqual([]);
+    expect(sentScopes(tooBroad.sent)).toEqual([]);
+  });
+
+  it("returns sanitized bounded M14 count and summarize results", async () => {
+    const count = await runRawPublicMode({
+      mode: "query",
+      query: { operation: "count" },
+      limits: { maxFindings: 10 },
+    });
+    const summarize = await runRawPublicMode({
+      mode: "query",
+      query: { operation: "summarize", groupBy: "finding-type" },
+    });
+
+    expect(count.response.results).toMatchObject({
+      kind: "count",
+      totalFindings: expect.any(Number),
+      findingsByType: expect.any(Object),
+      findingsByClassification: expect.any(Object),
+      findingsByConfidence: expect.any(Object),
+      scopesInspected: expect.any(Object),
+      proposals: 0,
+      validationIssues: 0,
+    });
+    expect(JSON.stringify(count.response.results)).not.toContain("findingId");
+    expect(summarize.response.results).toMatchObject({
+      kind: "summary",
+      groupBy: "finding-type",
+      buckets: expect.any(Array),
+    });
+    const serialized = JSON.stringify(summarize.response);
+    expect(serialized).not.toContain("Layer A");
+    expect(serialized).not.toContain("<mxGraphModel");
+    expect(serialized).not.toContain("snapshot");
+    expect(serialized).not.toContain("graph");
+  });
+
+  it("applies M14 count filters before aggregation", async () => {
+    const count = await runRawPublicMode({
+      mode: "query",
+      query: {
+        operation: "count",
+        findingTypes: ["broken-reference"],
+      },
+      limits: { maxFindings: 10 },
+    });
+
+    expect(count.response.results).toMatchObject({
+      kind: "count",
+      totalFindings: 1,
+      findingsByType: { "broken-reference": 1 },
+      findingsByClassification: { broken: 1 },
+      findingsByConfidence: { confirmed: 1, contextual: 0, incomplete: 0 },
+    });
+  });
+
+  it("evaluates M14 coverage requirements without implying complete-document coverage", async () => {
+    const nonStale = await runRawPublicMode({
+      mode: "query",
+      scope: { pageIds: ["m9-page"] },
+      coverageRequirements: { nonStale: true },
+    });
+    const completeTargets = await runRawPublicMode({
+      mode: "query",
+      scope: {
+        layerTargets: [{ pageId: "m9-page", layerIds: ["layer-a"] }],
+      },
+      coverageRequirements: { completeTargetScopes: true },
+    });
+    const stale = await runRawPublicMode(
+      {
+        mode: "query",
+        scope: { pageIds: ["m9-page"] },
+        coverageRequirements: { nonStale: true },
+      },
+      { inventoryKind: "stale" },
+    );
+    const truncated = await runRawPublicMode(
+      {
+        mode: "query",
+        scope: { pageIds: ["m9-page"] },
+      },
+      { inventoryKind: "truncated" },
+    );
+
+    expect(nonStale.response.coverage).toMatchObject({
+      conclusive: true,
+      stale: false,
+      completeDocument: "unsupported",
+    });
+    expect(completeTargets.response.coverage.completeTargetScopes).toBe(true);
+    expect(stale.response).toMatchObject({
+      outcome: "rejected",
+      coverage: { stale: true },
+      limitations: expect.arrayContaining([{ code: "stale-coverage" }]),
+    });
+    expect(truncated.response).toMatchObject({
+      outcome: "partial",
+      coverage: { truncated: true },
+      limitations: expect.arrayContaining([{ code: "result-limit-reached" }]),
+    });
+  });
+
+  it("returns M14 ambiguous-document rejection before snapshot execution", async () => {
+    const { context, sent } = createInteractiveContext({
+      resolveTargetDocument: async () => {
+        throw new Error("Multiple Draw.io documents are connected");
+      },
+    });
+    const response = await analyzeStructurePublic(context, {
+      mode: "query",
+      query: { operation: "count" },
+    });
+
+    expect(response).toMatchObject({
+      version: "m14-v1",
+      outcome: "rejected",
+      limitations: [{ code: "ambiguous-document" }],
+      executedScope: { executed: false },
+    });
+    expect(sentScopes(sent)).toEqual([]);
+  });
+
+  it("rejects M14 default scope when active page is unavailable", async () => {
+    const { context, listeners, sent } = createInteractiveContext();
+    const responsePromise = analyzeStructurePublic(context, {
+      mode: "query",
+      coverageRequirements: { nonStale: true },
+    });
+    await flushMicrotasks();
+    reply(
+      listeners,
+      "request-1",
+      m9RuntimeSnapshot("no-active-page", { kind: "selection" }),
+    );
+
+    await expect(responsePromise).resolves.toMatchObject({
+      version: "m14-v1",
+      outcome: "rejected",
+      limitations: [{ code: "active-page-unavailable" }],
+      executedScope: { executed: false },
+    });
+    expect(sentScopes(sent)).toEqual(["selection"]);
+  });
+
+  it("rejects unsupported query operation forms and unknown fields before runtime", async () => {
+    const unsupported = await runRawPublicMode({
+      mode: "query",
+      query: { operation: "delete" },
+    });
+    const badGroup = await runRawPublicMode({
+      mode: "query",
+      query: { operation: "summarize", groupBy: "label" },
+    });
+    const { context, sent } = createInteractiveContext();
+
+    const countAsMode = await analyzeStructurePublic(context, {
+      mode: "count",
+    });
+    await expect(
+      analyzeStructurePublic(context, {
+        mode: "query",
+        scope: { pageIds: ["m9-page"] },
+        extra: true,
+      }),
+    ).rejects.toThrow("invalid cyberdraw_analyze_structure request");
+
+    expect(countAsMode).toMatchObject({
+      version: "m14-v1",
+      outcome: "rejected",
+      limitations: [{ code: "unsupported-query-operation" }],
+    });
+    expect(unsupported.response.limitations).toEqual([
+      { code: "unsupported-query-operation" },
+    ]);
+    expect(badGroup.response.limitations).toEqual([
+      { code: "unsupported-query-operation" },
+    ]);
+    expect(sentScopes(unsupported.sent)).toEqual([]);
+    expect(sentScopes(badGroup.sent)).toEqual([]);
+    expect(sentScopes(sent)).toEqual([]);
+  });
+
+  it("rejects invalid M14 inherited controls before runtime", async () => {
+    const inputs = [
+      {
+        mode: "query",
+        scope: { pageIds: ["m9-page"] },
+        expansion: { unknown: true },
+      },
+      {
+        mode: "query",
+        scope: { pageIds: ["m9-page"] },
+        query: { pageIds: [1] },
+      },
+      {
+        mode: "query",
+        scope: { pageIds: ["m9-page"] },
+        limits: { maxPages: 0 },
+      },
+      {
+        mode: "query",
+        scope: { pageIds: ["m9-page"] },
+        coverageRequirements: { nonStale: "true" },
+      },
+    ];
+
+    for (const input of inputs) {
+      const { context, sent } = createInteractiveContext();
+      const response = await analyzeStructurePublic(context, input);
+
+      expect(response).toMatchObject({
+        version: "m14-v1",
+        outcome: "rejected",
+        executedScope: { executed: false },
+        safety: {
+          readOnly: true,
+          mutationAttempted: false,
+          mutationInvocations: 0,
+        },
+      });
+      expect(JSON.stringify(response)).not.toContain("findings");
+      expect(sentScopes(sent)).toEqual([]);
+    }
   });
 
   it.each([
@@ -528,7 +960,7 @@ async function runPublicMode(
   input: Record<string, unknown>,
   options: {
     readonly scope?: { readonly pageId?: string; readonly layerId?: string };
-    readonly inventoryKind?: "default" | "no-visible-layer";
+    readonly inventoryKind?: TestInventoryKind;
   } = {},
 ) {
   const { context, listeners, sent } = createInteractiveContext();
@@ -543,10 +975,29 @@ async function runPublicMode(
   return { response, sent };
 }
 
+async function runRawPublicMode(
+  input: Record<string, unknown>,
+  options: {
+    readonly inventoryKind?: TestInventoryKind;
+  } = {},
+): Promise<{
+  readonly response: PublicM14StructuralResponse;
+  readonly sent: readonly unknown[];
+}> {
+  const { context, listeners, sent } = createInteractiveContext();
+  const responsePromise = analyzeStructurePublic(
+    context,
+    input,
+  ) as Promise<PublicM14StructuralResponse>;
+  await driveRuntimeSnapshotReplies(listeners, sent, options.inventoryKind);
+  const response = await responsePromise;
+  return { response, sent };
+}
+
 async function driveRuntimeSnapshotReplies(
   listeners: ReadonlyMap<string, BusListener<Record<string, unknown>>>,
   sent: readonly unknown[],
-  inventoryKind: "default" | "no-visible-layer" = "default",
+  inventoryKind: TestInventoryKind = "default",
 ) {
   let replied = 0;
   for (;;) {
@@ -698,7 +1149,7 @@ function testScopeKey(scope: RuntimeSnapshotScope): string {
 
 function m9RuntimeSnapshotForScope(
   requestedScope: RuntimeSnapshotScope,
-  inventoryKind: "default" | "no-visible-layer" = "default",
+  inventoryKind: TestInventoryKind = "default",
 ): RuntimeSnapshot {
   if (requestedScope.kind === "selection") {
     return m9RuntimeSnapshot("inventory", requestedScope, inventoryKind);
@@ -707,7 +1158,7 @@ function m9RuntimeSnapshotForScope(
     if (requestedScope.pageIds.includes("missing-page")) {
       return m9RuntimeSnapshot("missing-page", requestedScope);
     }
-    return m9RuntimeSnapshot("page", requestedScope);
+    return m9RuntimeSnapshot("page", requestedScope, inventoryKind);
   }
   if (requestedScope.kind === "layers") {
     if (requestedScope.layerIds.includes("missing-layer")) {
@@ -716,6 +1167,7 @@ function m9RuntimeSnapshotForScope(
     return m9RuntimeSnapshot(
       requestedScope.layerIds.includes("layer-b") ? "context" : "focus",
       requestedScope,
+      inventoryKind,
     );
   }
   throw new Error("unit test must not request document scope by default");
@@ -731,7 +1183,7 @@ function m9RuntimeSnapshot(
     | "missing-layer"
     | "no-active-page",
   requestedScope: RuntimeSnapshotScope,
-  inventoryKind: "default" | "no-visible-layer" = "default",
+  inventoryKind: TestInventoryKind = "default",
 ): RuntimeSnapshot {
   const elements: RuntimeSnapshot["pages"][number]["elements"] =
     kind === "inventory" ||
@@ -806,6 +1258,72 @@ function m9RuntimeSnapshot(
     requestedScope.kind === "selection"
       ? { kind: "selection", pageId: "m9-page" }
       : requestedScope;
+  const allPages: RuntimeSnapshot["pages"] = [
+    {
+      id: "m9-page",
+      index: 0,
+      name: "M9 synthetic",
+      visible: true,
+      background: false,
+      layers: [
+        {
+          id: "layer-a",
+          name: "Layer A",
+          visible: inventoryKind === "default",
+          locked: false,
+          pageId: "m9-page",
+          index: 0,
+        },
+        {
+          id: "layer-b",
+          name: "Layer B",
+          visible: inventoryKind === "default",
+          locked: false,
+          pageId: "m9-page",
+          index: 1,
+        },
+      ],
+      elements,
+    },
+    {
+      id: "m14-page",
+      index: 1,
+      name: "M14 synthetic",
+      visible: true,
+      background: false,
+      layers: [
+        {
+          id: "layer-c",
+          name: "Layer C",
+          visible: true,
+          locked: false,
+          pageId: "m14-page",
+          index: 0,
+        },
+      ],
+      elements:
+        requestedScope.kind === "pages" &&
+        requestedScope.pageIds.includes("m14-page")
+          ? [
+              {
+                id: "m14-node",
+                pageId: "m14-page",
+                layerId: "layer-c",
+                parentId: "layer-c",
+                type: "vertex",
+              },
+            ]
+          : [],
+    },
+  ];
+  const pages =
+    kind === "missing-page"
+      ? []
+      : requestedScope.kind === "pages"
+        ? allPages.filter((page) => requestedScope.pageIds.includes(page.id))
+        : requestedScope.kind === "layers"
+          ? allPages.filter((page) => page.id === requestedScope.pageId)
+          : allPages;
   const includedLayers =
     requestedScope.kind === "layers"
       ? [
@@ -815,57 +1333,22 @@ function m9RuntimeSnapshot(
           },
         ]
       : requestedScope.kind === "pages" && kind !== "missing-page"
-        ? [
-            {
-              pageId: "m9-page",
-              layerIds: ["layer-a", "layer-b"],
-            },
-          ]
+        ? pages.map((page) => ({
+            pageId: page.id,
+            layerIds: page.layers.map((layer) => layer.id),
+          }))
         : requestedScope.kind === "selection"
-          ? [
-              {
-                pageId: "m9-page",
-                layerIds: ["layer-a", "layer-b"],
-              },
-            ]
+          ? pages.map((page) => ({
+              pageId: page.id,
+              layerIds: page.layers.map((layer) => layer.id),
+            }))
           : [];
-  const pages =
-    kind === "missing-page"
-      ? []
-      : [
-          {
-            id: "m9-page",
-            index: 0,
-            name: "M9 synthetic",
-            visible: true,
-            background: false,
-            layers: [
-              {
-                id: "layer-a",
-                name: "Layer A",
-                visible: inventoryKind === "default",
-                locked: false,
-                pageId: "m9-page",
-                index: 0,
-              },
-              {
-                id: "layer-b",
-                name: "Layer B",
-                visible: inventoryKind === "default",
-                locked: false,
-                pageId: "m9-page",
-                index: 1,
-              },
-            ],
-            elements,
-          },
-        ];
   return {
     schemaVersion: "cyberdraw.runtime-snapshot.v1",
     contractVersion: 1,
     document: {
       id: "m9-doc",
-      pageCount: 1,
+      pageCount: allPages.length,
       currentPageId: kind === "no-active-page" ? undefined : "m9-page",
       capturedAt: "2026-07-17T00:00:00.000Z",
       revisionSignals: {
@@ -879,7 +1362,10 @@ function m9RuntimeSnapshot(
           kind === "focus"
             ? "cyberdraw-content-v1:fnv1a64:00000000000000a1"
             : "cyberdraw-content-v1:fnv1a64:00000000000000b1",
-        documentRevision: "cyberdraw-content-v1:fnv1a64:0000000000000009",
+        documentRevision:
+          inventoryKind === "stale" && kind !== "inventory"
+            ? "cyberdraw-content-v1:fnv1a64:0000000000000010"
+            : "cyberdraw-content-v1:fnv1a64:0000000000000009",
       },
     },
     scope: {
@@ -932,8 +1418,11 @@ function m9RuntimeSnapshot(
               },
             ]
           : [],
-    completeness: { status: "complete" },
-    truncated: false,
+    completeness:
+      inventoryKind === "truncated" && kind !== "inventory"
+        ? { status: "partial", reason: "hard-limit" }
+        : { status: "complete" },
+    truncated: inventoryKind === "truncated" && kind !== "inventory",
     limits: {
       maxPages: 100,
       maxLayersPerPage: 100,
