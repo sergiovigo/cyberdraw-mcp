@@ -22,6 +22,10 @@ export {
   STRUCTURAL_QUERY_VERSION,
 } from "./structural-query.js";
 export {
+  detectCyberdrawContractVersion,
+  validateCyberdrawPublicRequest,
+} from "./public-contract-model.js";
+export {
   defaultStructuralChangePlanLimits,
   defaultStructuralChangePlanPolicy,
   planStructuralChanges,
@@ -128,6 +132,26 @@ export type {
   StructuralSummaryGroupBy,
   SummarizeStructuralFindingsQuery,
 } from "./structural-query.js";
+export type {
+  CyberdrawContractVersionDetection,
+  CyberdrawCoverageRequirement,
+  CyberdrawCoverageRequirements,
+  CyberdrawLayerTarget,
+  CyberdrawM14ReasonCode,
+  CyberdrawNormalizedRequest,
+  CyberdrawNormalizedScope,
+  CyberdrawPageTarget,
+  CyberdrawPublicContractVersion,
+  CyberdrawPublicMode,
+  CyberdrawPublicQueryOperation,
+  CyberdrawPublicRequestAccepted,
+  CyberdrawPublicRequestRejected,
+  CyberdrawPublicRequestValidationResult,
+  CyberdrawPublicScopeModelLimits,
+  CyberdrawRequestedLimits,
+  CyberdrawRequestedScope,
+  CyberdrawValidationIssue,
+} from "./public-contract-model.js";
 export type {
   StructuralAbstractOperation,
   StructuralChangePlan,
