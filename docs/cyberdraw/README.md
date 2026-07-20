@@ -35,12 +35,18 @@ before CyberDraw-specific features are introduced.
 | [milestones/M11-internal-structural-change-planning.md](milestones/M11-internal-structural-change-planning.md) | M11 private deterministic proposal planning layer over M9 findings and M10 selections                            | Internal milestone evidence |
 | [milestones/M12-internal-change-plan-validation.md](milestones/M12-internal-change-plan-validation.md)         | M12 private deterministic validation layer for M11 structural change plans                                       | Internal milestone evidence |
 | [milestones/M13-public-read-only-structural-analysis.md](milestones/M13-public-read-only-structural-analysis.md) | M13 public read-only MCP tool over bounded M8-M12 structural analysis                                           | Public milestone evidence   |
+| [milestones/m13/closure.md](milestones/m13/closure.md)                                                           | Formal M13 closure record for public read-only structural analysis                                               | COMPLETE / CLOSED           |
+| [milestones/m13/capability-matrix.md](milestones/m13/capability-matrix.md)                                       | M13 capability matrix for modes, scope, safety, limits and evidence                                              | Closure evidence            |
+| [milestones/m13/acceptance-matrix.md](milestones/m13/acceptance-matrix.md)                                       | M13 acceptance criteria mapped to implementation, tests, CI and real validation                                  | Closure evidence            |
+| [milestones/m13/closure-incidents.md](milestones/m13/closure-incidents.md)                                       | M13 closure incident register separating operational issues from product defects                                 | Closure evidence            |
 | [benchmarks/](benchmarks/)                                                                                     | Small aggregate M6 synthetic and M7 real-environment benchmark summaries                                         | Benchmark evidence          |
 | [diagrams/internal-graph-model.md](diagrams/internal-graph-model.md)                                           | Mermaid diagrams supporting RFC 0001                                                                             | Draft supporting diagrams   |
 | [adr/0001-fork-strategy.md](adr/0001-fork-strategy.md)                                                         | Decision to begin as a conservative fork                                                                         | Accepted ADR                |
 | [adr/0002-runtime-and-baseline-policy.md](adr/0002-runtime-and-baseline-policy.md)                             | Node, pnpm and audit baseline policy                                                                             | Accepted ADR                |
 | [adr/0003-internal-graph-model-architecture.md](adr/0003-internal-graph-model-architecture.md)                 | Decision to adopt RFC 0001 Alternative C as a private server-first internal graph package architecture           | Accepted ADR                |
 | [adr/0004-runtime-snapshot-scaling-strategy.md](adr/0004-runtime-snapshot-scaling-strategy.md)                 | Accepted runtime snapshot scaling strategy after M7 real-environment evidence                                    | Accepted ADR                |
+| [adr/0005-m13-safe-default-scope.md](adr/0005-m13-safe-default-scope.md)                                         | M13 decision to default to active page/layer scope and never silently widen to document scope                    | Accepted ADR                |
+| [adr/0006-websocket-active-document-registry.md](adr/0006-websocket-active-document-registry.md)                 | Decision that each WebSocket connection owns exactly one active document at a time                               | Accepted ADR                |
 
 Related root documents:
 
@@ -89,7 +95,12 @@ Related root documents:
     of M11 plans before any future execution phase.
 24. `milestones/M13-public-read-only-structural-analysis.md` for the first
     public read-only structural analysis MCP tool.
-25. `adr/` when a lasting decision needs historical context.
+25. `milestones/m13/closure.md`, `milestones/m13/capability-matrix.md`,
+    `milestones/m13/acceptance-matrix.md` and
+    `milestones/m13/closure-incidents.md` for the formal M13 closure package.
+26. `adr/0005-m13-safe-default-scope.md` and
+    `adr/0006-websocket-active-document-registry.md` for M13 closure decisions.
+27. `adr/` when a lasting decision needs historical context.
 
 ## Question Map
 
@@ -118,6 +129,11 @@ Related root documents:
 | How are internal structural change proposals planned?           | `milestones/M11-internal-structural-change-planning.md`, `milestones/M10-internal-structural-queries.md`, `milestones/M9-internal-structural-analysis.md` |
 | How are internal structural change plans validated?             | `milestones/M12-internal-change-plan-validation.md`, `milestones/M11-internal-structural-change-planning.md`                                              |
 | What public read-only structural analysis tool exists?          | `milestones/M13-public-read-only-structural-analysis.md`, `../../TOOLS.md`                                                                                 |
+| Is M13 formally closed?                                         | `milestones/m13/closure.md`, `milestones/m13/acceptance-matrix.md`                                                                                        |
+| What M13 capabilities and limits are public?                    | `milestones/m13/capability-matrix.md`, `milestones/M13-public-read-only-structural-analysis.md`                                                           |
+| Which M13 validation incidents were found?                      | `milestones/m13/closure-incidents.md`                                                                                                                     |
+| Why does M13 not analyze document scope by default?             | `adr/0005-m13-safe-default-scope.md`                                                                                                                      |
+| How is the active document tracked per WebSocket connection?    | `adr/0006-websocket-active-document-registry.md`                                                                                                          |
 | What internal graph model architecture was accepted?            | `adr/0003-internal-graph-model-architecture.md`                                                                                                           |
 | Where are lasting decisions recorded?                           | `adr/`                                                                                                                                                    |
 | What third-party assets need review?                            | `../../THIRD_PARTY_NOTICES.md`                                                                                                                            |
