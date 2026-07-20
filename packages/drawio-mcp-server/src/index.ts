@@ -1026,7 +1026,7 @@ export function createDrawioMcpApp(options?: {
           if (json?.__control === "document-state") {
             const document = normalizeDocumentState(json.document);
             if (document) {
-              entry.documents.set(document.id, document);
+              entry.documents = new Map([[document.id, document]]);
             }
             entry.runtime_capabilities = json.runtime ?? null;
             const snapshotCapability = findRuntimeSnapshotCapability(
