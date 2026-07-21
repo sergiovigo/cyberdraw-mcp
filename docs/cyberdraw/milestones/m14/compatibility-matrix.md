@@ -2,7 +2,11 @@
 
 ## Status
 
-PLANNED / DESIGN.
+IMPLEMENTED / CLOSED.
+
+This matrix records the final M14 compatibility surface after PRs #22-#25.
+M13-compatible requests remain on `m13-v1`; recognized M14 capabilities select
+`m14-v1` before runtime execution.
 
 | Request type                                    | Response version                                   | Behavior                                                 | M13 compatibility                                         | Limitations                                    |
 | ----------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------- |

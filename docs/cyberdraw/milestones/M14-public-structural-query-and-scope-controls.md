@@ -2,10 +2,29 @@
 
 ## Status
 
-PLANNED / DESIGN.
+COMPLETE / CLOSED.
 
-M14.0 defines the design for the next public CyberDraw MCP milestone after M13.
-It does not implement code, tests or runtime behavior.
+M14 is implemented in `main`, validated by automated and real-environment
+evidence, and formally closed by M14.5. The original design remains preserved
+below as historical context; the implemented result is summarized in
+[`m14/formal-closure-m14.md`](m14/formal-closure-m14.md).
+
+Delivery commits:
+
+- M14.0: `775ce7c` — `docs(m14): define public query and scope controls` (PR
+  #22).
+- M14.1: `2beed6a` — `feat(m14): add pure public query and scope model` (PR
+  #23).
+- M14.2: `1911a62` — `feat(m14): integrate public mcp contract` (PR #24).
+- M14.3: completed by absorption into M14.2; no separate code or documentation
+  change was required.
+- M14.4: `dcfb59d` — `fix(m14): resolve explicit multi-page scopes in real
+  runtime` (PR #25).
+- M14.5: documentation and formal closure.
+
+Final validation verdict: PASS WITH LIMITATIONS. The HTTP real-environment path
+passed. HTTPS/Caddy validation remains a harness limitation, not a public M14
+contract failure.
 
 ## Objective
 
@@ -98,6 +117,13 @@ M14 should not add persistence or a second source of truth. The draw.io runtime
 remains authoritative. The internal graph model remains reconstructable and
 discardable for one bounded snapshot-derived analysis run.
 
+The implemented runtime keeps this architecture: the server selects the public
+contract version from request shape before execution, validates through the pure
+public contract model, rejects invalid M14 requests before snapshots when
+possible, resolves explicit targets atomically, runs the existing hierarchical
+snapshot path, and maps sanitized responses separately for `m13-v1` and
+`m14-v1`.
+
 ## Public Contract
 
 The public tool remains:
@@ -173,8 +199,10 @@ do not infer complete-document coverage.
 ## Limits
 
 M14 requires configurable limits for pages, layers, findings, proposals,
-expansion steps and execution time. Initial values are design proposals, not
-accepted implementation constants, and must be validated before implementation.
+expansion steps and execution time. Implemented limits narrow requested values
+against server-side caps and report limit hits through structured limitations.
+M14 does not require `effectiveLimits` in every public response; that reporting
+choice remains intentionally open.
 
 The limit model is recorded in
 [`m14/limits-model.md`](m14/limits-model.md).
@@ -195,15 +223,21 @@ The limit model is recorded in
 
 ### M14.0: Design And Contracts
 
+Status: completed by PR #22 (`775ce7c`).
+
 Document the milestone, ADR, `m14-v1` contract, compatibility matrix, limit
 model and reason-code registry.
 
 ### M14.1: Scope Model
 
+Status: completed by PR #23 (`2beed6a`).
+
 Implement public input parsing for explicit multi-page, multi-layer and bounded
 page/layer combination scopes. Reject document scope structurally.
 
 ### M14.2: Query Operations
+
+Status: completed by PR #24 (`1911a62`).
 
 Expose sanitized `count` and `summarize` query operations through `mode:
 "query"` and the existing internal M10 query layer without adding free-form
@@ -211,16 +245,30 @@ search, labels or raw graph output.
 
 ### M14.3: Server Contract And Safety
 
+Status: completed by absorption into PR #24 (`1911a62`); no separate branch or
+PR was required.
+
 Wire `m14-v1` response mapping, version selection, safety counters, privacy
 filters, result limits and structured reason codes.
 
 ### M14.4: Real-Environment Validation
 
+Status: completed by PR #25 (`dcfb59d`) with PASS WITH LIMITATIONS.
+
 Validate default, explicit page, explicit layer, multi-page, multi-layer,
 rejected document scope, stale coverage and limit behavior through real MCP
 calls against Draw.io.
 
+Evidence is recorded in
+[`m14/real-environment-validation-m14.4.md`](m14/real-environment-validation-m14.4.md).
+The primary HTTP real-environment validation passed. HTTPS/Caddy validation
+remains limited by the existing harness URL scheme mismatch: 13 suites passed
+and 2 suites failed because tests constructed direct `http://localhost` URLs
+while `HARNESS_HTTPS=1` was enabled.
+
 ### M14.5: Documentation And Closure
+
+Status: completed by this documentation closure.
 
 Update CyberDraw docs, tool inventory, onboarding and closure evidence after
 implementation and CI validation.
@@ -240,30 +288,52 @@ does not mix docs-only design with runtime behavior.
 
 ## Acceptance Criteria
 
-M14 can be accepted when:
+M14 acceptance status:
 
-- M13-compatible requests still return `m13-v1`;
-- M14-only requests return `m14-v1`;
-- `cyberdraw_analyze_structure` remains the only public CyberDraw tool;
-- default scope remains current page/layer and never document scope;
-- explicit page, layer, multi-page and multi-layer scopes are bounded;
-- document scope is structurally rejected before execution;
-- `count` and `summarize` query operations are sanitized and bounded;
-- `plan` and `validate` remain read-only and non-executable;
-- mutation counters remain zero;
-- coverage and limitations distinguish inspected scope from complete-document
-  coverage;
-- Node.js 22.x and 24.x CI lanes pass;
-- real MCP validation covers the new public contract.
+- M13-compatible requests still return `m13-v1`: completed.
+- M14-only requests return `m14-v1`: completed.
+- `cyberdraw_analyze_structure` remains the only public CyberDraw tool:
+  completed.
+- Default scope remains current page/layer and never document scope: completed.
+- Explicit page, layer, multi-page and multi-layer scopes are bounded:
+  completed.
+- Document scope is structurally rejected before execution: completed.
+- `count` and `summarize` query operations are sanitized and bounded:
+  completed.
+- `plan` and `validate` remain read-only and non-executable: completed.
+- Mutation counters remain zero: completed.
+- Coverage and limitations distinguish inspected scope from complete-document
+  coverage: completed.
+- Node.js 22.x and 24.x CI lanes pass: completed.
+- Real MCP validation covers the new public contract: completed with the
+  HTTPS/Caddy harness limitation documented above.
 
 ## Closure Criteria
 
-M14 can close only after:
+M14 closure status:
 
-- implementation is merged;
-- CI passes for the server workflow;
-- real MCP validation is recorded;
-- M14 docs and index entries are updated;
-- reason codes and limits are documented as implemented;
-- no code path applies CyberDraw structural proposals;
-- no document scope execution exists.
+- Implementation is merged: completed by PRs #23, #24 and #25.
+- CI passes for the server workflow: completed on Node.js 22.x and 24.x.
+- Real MCP validation is recorded: completed in
+  [`m14/real-environment-validation-m14.4.md`](m14/real-environment-validation-m14.4.md).
+- M14 docs and index entries are updated: completed by M14.5.
+- Reason codes and limits are documented as implemented: completed in
+  [`m14/reason-code-registry.md`](m14/reason-code-registry.md) and
+  [`m14/limits-model.md`](m14/limits-model.md).
+- No code path applies CyberDraw structural proposals: completed; public plans
+  remain non-executable.
+- No document scope execution exists: completed; `scope.document` is rejected
+  with `document-scope-not-supported`.
+
+## Final Result
+
+M14 is COMPLETE / CLOSED. It extends the single public read-only MCP tool
+`cyberdraw_analyze_structure` with request-driven `m14-v1`, explicit bounded
+multi-page and multi-layer scope controls, sanitized `count` and `summarize`
+query operations, coverage requirements, structured reason codes and preserved
+M13 compatibility.
+
+The closure verdict is PASS WITH LIMITATIONS because HTTPS/Caddy
+real-environment validation remains limited by the existing harness. This
+limitation does not change the M14 contract and must remain visible until the
+harness is corrected in later work.

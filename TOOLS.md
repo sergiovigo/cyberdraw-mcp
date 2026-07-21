@@ -57,19 +57,30 @@ Lists all currently connected Draw.io document instances.
 
 Runs bounded CyberDraw structural analysis over the currently open diagram
 without modifying draw.io. The tool uses private runtime snapshots and internal
-M8-M12 analysis flows, then returns a filtered public response.
+M8-M12 analysis flows, then returns a filtered public response. The public
+contract is request-versioned: M13-compatible requests return `m13-v1`, while
+requests using M14-only scope, coverage, limit or aggregate query controls
+return `m14-v1`.
 
 *Modes*:
 - `analyze`: structural findings
-- `query`: filtered/paginated findings
+- `query`: filtered/paginated findings, or M14 aggregate `count`/`summarize`
+  operations through `query.operation`
 - `plan`: non-executable structural proposals
 - `validate`: validates the non-executable plan
 
 *Parameters*:
 - `mode`: `analyze`, `query`, `plan`, or `validate` (default `analyze`)
-- `scope`: optional `{ pageId, layerId }`; `layerId` requires `pageId`
+- `scope`: optional M13-compatible `{ pageId, layerId }`; `layerId` requires
+  `pageId`. M14 also accepts bounded `pageIds` and page-qualified
+  `layerTargets`. `scope.document` is rejected with
+  `document-scope-not-supported`.
 - `expansion`: optional bounded expansion controls
-- `query`: optional closed filters and pagination
+- `query`: optional closed filters, pagination, and M14 `operation: "count"` or
+  `operation: "summarize"` under `mode: "query"`
+- `coverageRequirements`: optional M14 coverage requirements such as
+  `nonStale` or `completeTargetScopes`
+- `limits`: optional M14 requested limits that can only narrow server-side caps
 - `planning`: optional public policy and exact selected finding IDs
 - `validation`: optional validation mode for `validate`
 - `response`: optional include flags
@@ -78,7 +89,9 @@ M8-M12 analysis flows, then returns a filtered public response.
 `safety.readOnly: true`, `mutationAttempted: false`, and
 `mutationInvocations: 0`. Public proposals include `executable: false` and do
 not contain XML, commands, scripts, callbacks, patches, filesystem paths, graph
-dumps, labels, styles or raw internal objects.
+dumps, labels, styles, raw snapshots, planner internals or raw internal
+objects. M14 does not execute complete-document scope and never silently
+broadens an invalid explicit target.
 
 ### `get-selected-cell`
 

@@ -2,10 +2,11 @@
 
 ## Status
 
-PLANNED / DESIGN.
+IMPLEMENTED / CLOSED.
 
-This document specifies the intended public `m14-v1` contract for
-`cyberdraw_analyze_structure`. It is not implemented yet.
+This document specifies the public `m14-v1` contract implemented for
+`cyberdraw_analyze_structure` by M14.2 and validated by M14.4. M14.5 preserves
+this contract as the final closed M14 public DTO specification.
 
 ## Version Negotiation
 
@@ -33,7 +34,7 @@ Normative M14 activation fields:
 
 ## Input
 
-Top-level input remains a closed object. M14 design fields:
+Top-level input remains a closed object. M14 fields:
 
 - `mode`: `analyze`, `query`, `plan` or `validate`.
 - `scope`: default, inherited M13 page/layer scope, explicit M14 page IDs,
@@ -150,7 +151,7 @@ Coverage requirement behavior:
 
 ## Limits
 
-Limits must be configurable. M14 must bound:
+Limits must be configurable. M14 bounds:
 
 - pages;
 - layers;
@@ -160,7 +161,9 @@ Limits must be configurable. M14 must bound:
 - execution time;
 - response bytes.
 
-Initial values remain open decisions until implementation evidence exists.
+Exact numeric defaults are implementation configuration, not portable contract
+guarantees. Client-requested limits only narrow the effective server-side caps.
+M14 does not require `effectiveLimits` in every public response.
 
 ## Response
 
@@ -263,7 +266,7 @@ Any nonzero mutation counter is a read-only invariant failure.
 
 ## Reason Codes
 
-Initial reason codes are defined in
+Implemented reason codes are defined in
 [`reason-code-registry.md`](reason-code-registry.md).
 
 ## Examples

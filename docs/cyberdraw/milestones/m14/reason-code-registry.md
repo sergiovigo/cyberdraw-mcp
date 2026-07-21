@@ -2,11 +2,11 @@
 
 ## Status
 
-PLANNED / DESIGN.
+IMPLEMENTED / CLOSED.
 
-M14 reason codes are stable public strings for structured rejections,
-limitations and diagnostics. They must not include labels, XML, paths,
-hostnames, stack traces or environment values.
+M14 reason codes are stable public strings implemented for structured
+rejections, limitations and diagnostics. They must not include labels, XML,
+paths, hostnames, stack traces or environment values.
 
 | Code                           | Exact condition                                                                        | Category       | Effect                         | Retry path                                | Related fields                          | Future compatibility                                       |
 | ------------------------------ | -------------------------------------------------------------------------------------- | -------------- | ------------------------------ | ----------------------------------------- | --------------------------------------- | ---------------------------------------------------------- |
