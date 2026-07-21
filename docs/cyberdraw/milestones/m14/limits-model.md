@@ -2,21 +2,22 @@
 
 ## Status
 
-PLANNED / DESIGN.
+IMPLEMENTED / CLOSED WITH OPEN REPORTING DECISIONS.
 
-M14 requires configurable limits. Values below are proposed initial design
-values only when existing M13 evidence gives a safe reference point. They are
-not implementation constants until validated by tests and real-environment
-evidence.
+M14 implements configurable public bounds for pages, layers, findings,
+proposals, expansion steps and execution time. Values below remain contract
+guidance rather than portable client guarantees; exact numeric caps are server
+configuration and may be tightened without changing the public DTO. The open
+decision about always exposing `effectiveLimits` remains intentionally open.
 
-| Limit               | Required configurable limit | Client request field       | Proposed initial value                                                                          | Absolute safety maximum                                        | Effective limit in response     | Open decision                                                                 |
+| Limit               | Required configurable limit | Client request field       | Implemented contract guidance                                                                   | Absolute safety maximum                    | Effective limit in response | Remaining decision                                                               |
 | ------------------- | --------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------- |
-| Max pages           | Yes                         | `limits.maxPages`          | Same order as M13 `expansion.maxScopes` default when pages are the requested unit               | Required, value not fixed until implementation evidence exists | Open; do not assume in examples | Exact number must be chosen during implementation after real fixture evidence |
-| Max layers          | Yes                         | `limits.maxLayers`         | Same order as M13 `expansion.maxScopes` default when layers are the requested unit              | Required, value not fixed until implementation evidence exists | Open; do not assume in examples | Exact number must account for page/layer combinations                         |
-| Max findings        | Yes                         | `limits.maxFindings`       | Reuse M13 public findings cap unless M14 evidence justifies a lower cap for multi-scope queries | Required, value not fixed until implementation evidence exists | Open; do not assume in examples | Decide whether `count` and `summarize` need separate bucket caps              |
-| Max proposals       | Yes                         | `limits.maxProposals`      | Reuse M13 public proposals cap for plan/validate                                                | Required, value not fixed until implementation evidence exists | Open; do not assume in examples | Decide whether M14 multi-scope plans should use a lower initial cap           |
-| Max expansion steps | Yes                         | `limits.maxExpansionSteps` | Reuse M13 expansion defaults for depth/scopes as the initial ceiling                            | Required, value not fixed until implementation evidence exists | Open; do not assume in examples | Decide whether explicit multi-scope requests should reduce expansion depth    |
-| Max execution time  | Yes                         | `limits.maxExecutionTime`  | Reuse M13 timeout as an upper bound                                                             | Required, value not fixed until implementation evidence exists | Open; do not assume in examples | Decide whether M14 aggregate operations need a shorter timeout                |
+| Max pages           | Yes                         | `limits.maxPages`          | Requested page counts are bounded and may only narrow server caps                               | Required, value not fixed as contract text | Optional; do not assume     | Exact configured number remains deployment-specific                              |
+| Max layers          | Yes                         | `limits.maxLayers`         | Requested layer counts are bounded and may only narrow server caps                              | Required, value not fixed as contract text | Optional; do not assume     | Exact configured number remains deployment-specific                              |
+| Max findings        | Yes                         | `limits.maxFindings`       | Public findings and aggregate populations are bounded                                           | Required, value not fixed as contract text | Optional; do not assume     | Bucket-specific reporting can evolve without exposing raw findings               |
+| Max proposals       | Yes                         | `limits.maxProposals`      | Public plan and validation proposals are capped and remain non-executable                       | Required, value not fixed as contract text | Optional; do not assume     | Exact configured number remains deployment-specific                              |
+| Max expansion steps | Yes                         | `limits.maxExpansionSteps` | Expansion remains bounded by inherited hierarchical runtime controls                            | Required, value not fixed as contract text | Optional; do not assume     | Exact configured number remains deployment-specific                              |
+| Max execution time  | Yes                         | `limits.maxExecutionTime`  | Runtime timeout is bounded by server-side execution controls                                    | Required, value not fixed as contract text | Optional; do not assume     | Timeout enforcement remains best-effort within the existing runtime architecture |
 
 ## Required Behaviors
 
@@ -32,11 +33,9 @@ evidence.
   caps only. This remains an open design decision and is not required by the
   examples.
 
-## Open Decisions
+## Remaining Open Decisions
 
-- Exact numeric defaults for pages and layers.
-- Whether pages and layers share one combined target count or separate caps.
-- Whether `count` may inspect more findings internally than `query` returns.
-- Whether `summarize` needs a lower grouping bucket cap than M10 internal
-  defaults.
-- Whether M14 should expose effective limits in every `m14-v1` response.
+- Exact numeric defaults remain deployment configuration rather than contract
+  constants.
+- Whether M14 should expose effective limits in every `m14-v1` response remains
+  open; clients must not require that field.
