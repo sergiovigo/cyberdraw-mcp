@@ -41,7 +41,10 @@ import type {
   SnapshotPlanExecutionResult,
   HierarchicalSnapshotIntent,
 } from "cyberdraw-graph-model";
-import type { RuntimeSnapshot } from "cyberdraw-runtime-contract";
+import type {
+  RuntimeSnapshot,
+  RuntimeSnapshotScope,
+} from "cyberdraw-runtime-contract";
 
 export const TOOL_cyberdraw_analyze_structure = "cyberdraw_analyze_structure";
 
@@ -810,7 +813,7 @@ async function resolveM14AnalysisIntent(
     snapshot = await requestCyberdrawRuntimeSnapshotMeasured(
       context,
       {
-        scope: { kind: "selection" },
+        scope: inventoryScopeForM14Request(request.normalizedScope),
         limits: { hardSnapshotBytes: expansionControls({}).maxBytes },
       },
       { replyTimeoutMs: DEFAULT_TIMEOUT_MS },
@@ -842,6 +845,48 @@ async function resolveM14AnalysisIntent(
     intent: intentForM14Scope(resolved.scope),
     snapshot,
   };
+}
+
+function inventoryScopeForM14Request(
+  scope: CyberdrawNormalizedScope,
+): RuntimeSnapshotScope {
+  if (scope.kind === "page") {
+    return {
+      kind: "pages",
+      pageIds: scope.pageTargets.map((target) => target.pageId),
+    };
+  }
+  if (scope.kind === "layer") {
+    return inventoryScopeForLayerTargets(scope.layerTargets);
+  }
+  if (scope.kind === "mixed") {
+    return {
+      kind: "pages",
+      pageIds: [
+        ...new Set([
+          ...scope.pageTargets.map((target) => target.pageId),
+          ...scope.layerTargets.map((target) => target.pageId),
+        ]),
+      ].sort(),
+    };
+  }
+  return { kind: "selection" };
+}
+
+function inventoryScopeForLayerTargets(
+  layerTargets: readonly { pageId: string; layerIds: readonly string[] }[],
+): RuntimeSnapshotScope {
+  const pageIds = [...new Set(layerTargets.map((target) => target.pageId))];
+  if (pageIds.length === 1) {
+    return {
+      kind: "layers",
+      pageId: pageIds[0]!,
+      layerIds: [
+        ...new Set(layerTargets.flatMap((target) => target.layerIds)),
+      ].sort(),
+    };
+  }
+  return { kind: "pages", pageIds: pageIds.sort() };
 }
 
 function resolveM14ExecutableScope(
