@@ -311,12 +311,12 @@ describe("cyberdraw_analyze_structure public tool", () => {
       requestedScope: { scopeType: "page", pageIds: ["m9-page"] },
       executedScope: { document: false, pageIds: ["m9-page"] },
     });
-    expect(sentScopes(page.sent)).toEqual(["selection", "pages:m9-page"]);
+    expect(sentScopes(page.sent)).toEqual(["pages:m9-page", "pages:m9-page"]);
     expect(layers.response.executedScope.layerTargets).toEqual([
       { pageId: "m9-page", layerIds: ["layer-a", "layer-b"] },
     ]);
     expect(sentScopes(layers.sent)).toEqual([
-      "selection",
+      "layers:m9-page:layer-a,layer-b",
       "layers:m9-page:layer-a,layer-b",
     ]);
     expect(mixed.response.executedScope.pageIds).toEqual([
@@ -331,7 +331,7 @@ describe("cyberdraw_analyze_structure public tool", () => {
       { pageId: "m9-page", layerIds: ["layer-b"] },
     ]);
     expect(sentScopes(mixed.sent)).toEqual([
-      "selection",
+      "pages:m14-page,m9-page",
       "pages:m14-page",
       "layers:m9-page:layer-a",
       "layers:m9-page:layer-b",
@@ -411,10 +411,12 @@ describe("cyberdraw_analyze_structure public tool", () => {
       limitations: [{ code: "layer-not-found" }],
       executedScope: { executed: false },
     });
-    expect(sentScopes(page.sent)).toEqual(["selection"]);
-    expect(sentScopes(mixedPage.sent)).toEqual(["selection"]);
-    expect(sentScopes(layer.sent)).toEqual(["selection"]);
-    expect(sentScopes(wrongPageLayer.sent)).toEqual(["selection"]);
+    expect(sentScopes(page.sent)).toEqual(["pages:missing-page"]);
+    expect(sentScopes(mixedPage.sent)).toEqual(["pages:m9-page,missing-page"]);
+    expect(sentScopes(layer.sent)).toEqual(["layers:m9-page:missing-layer"]);
+    expect(sentScopes(wrongPageLayer.sent)).toEqual([
+      "layers:m14-page:layer-a",
+    ]);
   });
 
   it("rejects M14 duplicate, empty and too broad scopes before target execution", async () => {
@@ -1017,7 +1019,7 @@ async function driveRuntimeSnapshotReplies(
     reply(
       listeners,
       message.__request_id,
-      m9RuntimeSnapshotForScope(message.scope, inventoryKind),
+      m9RuntimeSnapshotForScope(message.scope, inventoryKind, replied),
     );
     replied += 1;
   }
@@ -1150,15 +1152,25 @@ function testScopeKey(scope: RuntimeSnapshotScope): string {
 function m9RuntimeSnapshotForScope(
   requestedScope: RuntimeSnapshotScope,
   inventoryKind: TestInventoryKind = "default",
+  requestIndex = 0,
 ): RuntimeSnapshot {
+  const effectiveInventoryKind =
+    requestIndex === 0 &&
+    (inventoryKind === "stale" || inventoryKind === "truncated")
+      ? "default"
+      : inventoryKind;
   if (requestedScope.kind === "selection") {
-    return m9RuntimeSnapshot("inventory", requestedScope, inventoryKind);
+    return m9RuntimeSnapshot(
+      "inventory",
+      requestedScope,
+      effectiveInventoryKind,
+    );
   }
   if (requestedScope.kind === "pages") {
     if (requestedScope.pageIds.includes("missing-page")) {
       return m9RuntimeSnapshot("missing-page", requestedScope);
     }
-    return m9RuntimeSnapshot("page", requestedScope, inventoryKind);
+    return m9RuntimeSnapshot("page", requestedScope, effectiveInventoryKind);
   }
   if (requestedScope.kind === "layers") {
     if (requestedScope.layerIds.includes("missing-layer")) {
@@ -1167,7 +1179,7 @@ function m9RuntimeSnapshotForScope(
     return m9RuntimeSnapshot(
       requestedScope.layerIds.includes("layer-b") ? "context" : "focus",
       requestedScope,
-      inventoryKind,
+      effectiveInventoryKind,
     );
   }
   throw new Error("unit test must not request document scope by default");
