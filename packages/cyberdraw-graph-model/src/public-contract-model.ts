@@ -148,6 +148,21 @@ const QUERY_KEYS = new Set([
   "offset",
   "limit",
 ]);
+const EXPANSION_KEYS = new Set([
+  "enabled",
+  "maxScopes",
+  "maxDepth",
+  "maxBytes",
+]);
+const PLANNING_KEYS = new Set(["policy", "selectedFindingIds"]);
+const VALIDATION_KEYS = new Set(["mode"]);
+const RESPONSE_KEYS = new Set([
+  "includeFindings",
+  "includeSummary",
+  "includePlan",
+  "includeValidation",
+  "includeDiagnostics",
+]);
 const COVERAGE_KEYS = new Set(["minimum", "nonStale", "completeTargetScopes"]);
 const LIMIT_KEYS = new Set([
   "maxPages",
@@ -160,6 +175,57 @@ const LIMIT_KEYS = new Set([
 const PUBLIC_MODES = new Set(["analyze", "query", "plan", "validate"]);
 const QUERY_OPERATIONS = new Set(["list", "count", "summarize"]);
 const M14_QUERY_OPERATIONS = new Set(["count", "summarize"]);
+const PLANNING_POLICIES = new Set([
+  "conservative",
+  "review-only",
+  "allow-detach-broken-terminal",
+  "allow-delete-confirmed-orphan",
+]);
+const VALIDATION_MODES = new Set([
+  "integrity-only",
+  "analysis-correlated",
+  "full-internal",
+]);
+const FINDING_TYPES = new Set([
+  "broken-reference",
+  "cross-layer-edge",
+  "orphan-element",
+]);
+const CLASSIFICATIONS = new Set([
+  "broken",
+  "unresolved",
+  "ambiguous",
+  "outside-coverage",
+  "external-context-not-loaded",
+  "same-page-cross-layer",
+  "cross-page-edge",
+  "unresolved-cross-layer-candidate",
+  "context-only-endpoint",
+  "confirmed-orphan",
+  "possible-orphan",
+  "excluded-from-orphan-analysis",
+]);
+const CONFIDENCES = new Set(["confirmed", "contextual", "incomplete"]);
+const QUERY_ORDERS = new Set(["canonical", "finding-type", "page-layer", "finding-id"]);
+const STRING_ARRAY_QUERY_KEYS = [
+  "pageIds",
+  "layerIds",
+  "findingIds",
+  "reasonCodes",
+  "elementIds",
+  "sourceIds",
+  "targetIds",
+  "referencedIds",
+] as const;
+const SUMMARY_GROUPS = new Set([
+  "finding-type",
+  "classification",
+  "reason-code",
+  "page",
+  "layer",
+  "completeness",
+  "coverage",
+]);
 
 export function detectCyberdrawContractVersion(
   input: unknown,
@@ -196,10 +262,10 @@ export function validateCyberdrawPublicRequest(
 
   const mode = normalizeMode(root.mode, issues);
   const query = normalizeQuery(root.query, mode, issues);
-  validateOpaqueRecord(root.expansion, "expansion", issues);
-  validateOpaqueRecord(root.planning, "planning", issues);
-  validateOpaqueRecord(root.validation, "validation", issues);
-  validateOpaqueRecord(root.response, "response", issues);
+  validateExpansion(root.expansion, issues);
+  validatePlanning(root.planning, issues);
+  validateValidation(root.validation, issues);
+  validateResponse(root.response, issues);
   validateModeCombinations(root, mode, issues);
 
   const scope = normalizeScope(root.scope, config, issues);
@@ -327,6 +393,7 @@ function normalizeQuery(
     return undefined;
   }
   rejectUnknownKeys(query, QUERY_KEYS, ["query"], issues);
+  validateQueryFilters(query, issues);
   const operation = query.operation ?? "list";
   if (typeof operation !== "string" || !QUERY_OPERATIONS.has(operation)) {
     issues.push(
@@ -348,7 +415,57 @@ function normalizeQuery(
     );
     return undefined;
   }
+  if (query.groupBy !== undefined) {
+    if (
+      typeof query.groupBy !== "string" ||
+      !SUMMARY_GROUPS.has(query.groupBy)
+    ) {
+      issues.push(
+        issue(
+          ["query", "groupBy"],
+          "query.groupBy is not supported",
+          "unsupported-query-operation",
+        ),
+      );
+      return undefined;
+    }
+    if (operation !== "summarize") {
+      issues.push(
+        issue(
+          ["query", "groupBy"],
+          "query.groupBy requires summarize operation",
+          "unsupported-query-operation",
+        ),
+      );
+      return undefined;
+    }
+  }
   return { operation: operation as CyberdrawPublicQueryOperation };
+}
+
+function validateQueryFilters(
+  query: Record<string, unknown>,
+  issues: CyberdrawValidationIssue[],
+): void {
+  validateStringArray(query.findingTypes, ["query", "findingTypes"], issues, FINDING_TYPES);
+  validateStringArray(
+    query.classifications,
+    ["query", "classifications"],
+    issues,
+    CLASSIFICATIONS,
+  );
+  validateStringArray(query.confidences, ["query", "confidences"], issues, CONFIDENCES);
+  for (const key of STRING_ARRAY_QUERY_KEYS) {
+    validateStringArray(query[key], ["query", key], issues);
+  }
+  if (
+    query.order !== undefined &&
+    (typeof query.order !== "string" || !QUERY_ORDERS.has(query.order))
+  ) {
+    issues.push(issue(["query", "order"], "query.order is not supported"));
+  }
+  validateNonNegativeInteger(query.offset, ["query", "offset"], issues);
+  validateNonNegativeInteger(query.limit, ["query", "limit"], issues);
 }
 
 function normalizeScope(
@@ -742,6 +859,162 @@ function normalizeRequestedLimits(
   return normalized;
 }
 
+function validateExpansion(
+  value: unknown,
+  issues: CyberdrawValidationIssue[],
+): void {
+  const raw = validateClosedRecord(value, "expansion", EXPANSION_KEYS, issues);
+  if (!raw) {
+    return;
+  }
+  if (raw.enabled !== undefined && typeof raw.enabled !== "boolean") {
+    issues.push(issue(["expansion", "enabled"], "enabled must be boolean"));
+  }
+  validateNonNegativeInteger(raw.maxScopes, ["expansion", "maxScopes"], issues);
+  validateNonNegativeInteger(raw.maxDepth, ["expansion", "maxDepth"], issues);
+  validatePositiveInteger(raw.maxBytes, ["expansion", "maxBytes"], issues);
+}
+
+function validatePlanning(
+  value: unknown,
+  issues: CyberdrawValidationIssue[],
+): void {
+  const raw = validateClosedRecord(value, "planning", PLANNING_KEYS, issues);
+  if (!raw) {
+    return;
+  }
+  if (
+    raw.policy !== undefined &&
+    (typeof raw.policy !== "string" || !PLANNING_POLICIES.has(raw.policy))
+  ) {
+    issues.push(issue(["planning", "policy"], "policy is not supported"));
+  }
+  if (raw.selectedFindingIds !== undefined) {
+    validateStringArray(
+      raw.selectedFindingIds,
+      ["planning", "selectedFindingIds"],
+      issues,
+    );
+  }
+}
+
+function validateValidation(
+  value: unknown,
+  issues: CyberdrawValidationIssue[],
+): void {
+  const raw = validateClosedRecord(value, "validation", VALIDATION_KEYS, issues);
+  if (!raw) {
+    return;
+  }
+  if (
+    raw.mode !== undefined &&
+    (typeof raw.mode !== "string" || !VALIDATION_MODES.has(raw.mode))
+  ) {
+    issues.push(issue(["validation", "mode"], "validation mode is not supported"));
+  }
+}
+
+function validateResponse(
+  value: unknown,
+  issues: CyberdrawValidationIssue[],
+): void {
+  const raw = validateClosedRecord(value, "response", RESPONSE_KEYS, issues);
+  if (!raw) {
+    return;
+  }
+  for (const key of RESPONSE_KEYS) {
+    if (raw[key] !== undefined && typeof raw[key] !== "boolean") {
+      issues.push(issue(["response", key], `${key} must be boolean`));
+    }
+  }
+}
+
+function validateClosedRecord(
+  value: unknown,
+  field: string,
+  allowed: ReadonlySet<string>,
+  issues: CyberdrawValidationIssue[],
+): Record<string, unknown> | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!safeRecord(value)) {
+    issues.push(issue([field], `${field} must be an object`));
+    return undefined;
+  }
+  const raw = value as Record<string, unknown>;
+  const initialIssueCount = issues.length;
+  validatePlainRecord(raw, [field], issues);
+  if (issues.length > initialIssueCount) {
+    return undefined;
+  }
+  rejectUnknownKeys(raw, allowed, [field], issues);
+  return raw;
+}
+
+function validateNonNegativeInteger(
+  value: unknown,
+  path: readonly (string | number)[],
+  issues: CyberdrawValidationIssue[],
+): void {
+  if (value === undefined) {
+    return;
+  }
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
+    issues.push(issue(path, "value must be a non-negative integer"));
+  }
+}
+
+function validatePositiveInteger(
+  value: unknown,
+  path: readonly (string | number)[],
+  issues: CyberdrawValidationIssue[],
+): void {
+  if (value === undefined) {
+    return;
+  }
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value <= 0) {
+    issues.push(issue(path, "value must be a positive integer"));
+  }
+}
+
+function validateStringArray(
+  value: unknown,
+  path: readonly (string | number)[],
+  issues: CyberdrawValidationIssue[],
+  allowed?: ReadonlySet<string>,
+): void {
+  if (value === undefined) {
+    return;
+  }
+  if (!Array.isArray(value)) {
+    issues.push(issue(path, "value must be an array"));
+    return;
+  }
+  const seen = new Set<string>();
+  value.forEach((entry, index) => {
+    const entryPath = [...path, index];
+    if (typeof entry !== "string") {
+      issues.push(issue(entryPath, "identifier must be a string"));
+      return;
+    }
+    const trimmed = entry.trim();
+    if (trimmed.length === 0) {
+      issues.push(issue(entryPath, "identifier cannot be blank"));
+      return;
+    }
+    if (allowed && !allowed.has(trimmed)) {
+      issues.push(issue(entryPath, "value is not supported"));
+      return;
+    }
+    if (seen.has(trimmed)) {
+      issues.push(issue(entryPath, "duplicate identifier"));
+      return;
+    }
+    seen.add(trimmed);
+  });
+}
+
 function normalizeIdArray(
   value: unknown,
   path: readonly (string | number)[],
@@ -794,20 +1067,6 @@ function normalizeOptionalId(
     return undefined;
   }
   return trimmed;
-}
-
-function validateOpaqueRecord(
-  value: unknown,
-  field: string,
-  issues: CyberdrawValidationIssue[],
-): void {
-  if (value !== undefined && !safeRecord(value)) {
-    issues.push(issue([field], `${field} must be an object`));
-    return;
-  }
-  if (safeRecord(value)) {
-    validatePlainRecord(value, [field], issues);
-  }
 }
 
 function rejectUnknownKeys(

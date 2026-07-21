@@ -363,6 +363,112 @@ describe("M14 public query semantics", () => {
       validateCyberdrawPublicRequest({ mode: "query", query: [] }).ok,
     ).toBe(false);
   });
+
+  it("rejects invalid query filter values", () => {
+    const inputs = [
+      { query: { findingTypes: ["not-a-finding"] } },
+      { query: { classifications: ["not-a-classification"] } },
+      { query: { confidences: ["certain"] } },
+      { query: { pageIds: [1] } },
+      { query: { layerIds: [""] } },
+      { query: { findingIds: ["finding-a", "finding-a"] } },
+      { query: { order: "random" } },
+      { query: { offset: -1 } },
+      { query: { limit: 1.5 } },
+    ];
+
+    for (const input of inputs) {
+      expect(
+        validateCyberdrawPublicRequest({
+          mode: "query",
+          scope: { pageIds: ["page-a"] },
+          ...input,
+        }).ok,
+      ).toBe(false);
+    }
+  });
+
+  it("rejects unsupported summarize grouping before runtime integration", () => {
+    const badGroup = validateCyberdrawPublicRequest({
+      mode: "query",
+      query: { operation: "summarize", groupBy: "label" },
+    });
+    const misplacedGroup = validateCyberdrawPublicRequest({
+      mode: "query",
+      query: { operation: "count", groupBy: "finding-type" },
+    });
+
+    expect(badGroup.ok).toBe(false);
+    expect(misplacedGroup.ok).toBe(false);
+    expect(badGroup.issues.map((entry) => entry.reasonCode)).toContain(
+      "unsupported-query-operation",
+    );
+    expect(misplacedGroup.issues.map((entry) => entry.reasonCode)).toContain(
+      "unsupported-query-operation",
+    );
+  });
+});
+
+describe("M14 inherited control validation", () => {
+  it("rejects unknown inherited control fields", () => {
+    const inputs = [
+      { mode: "query", scope: { pageIds: ["page-a"] }, expansion: { x: 1 } },
+      {
+        mode: "plan",
+        scope: { pageIds: ["page-a"] },
+        planning: { x: 1 },
+      },
+      {
+        mode: "validate",
+        scope: { pageIds: ["page-a"] },
+        validation: { x: 1 },
+      },
+      { mode: "query", scope: { pageIds: ["page-a"] }, response: { x: 1 } },
+    ];
+
+    for (const input of inputs) {
+      expect(validateCyberdrawPublicRequest(input).ok).toBe(false);
+    }
+  });
+
+  it("rejects invalid inherited control values", () => {
+    const inputs = [
+      {
+        mode: "query",
+        scope: { pageIds: ["page-a"] },
+        expansion: { enabled: "true" },
+      },
+      {
+        mode: "query",
+        scope: { pageIds: ["page-a"] },
+        expansion: { maxBytes: 0 },
+      },
+      {
+        mode: "plan",
+        scope: { pageIds: ["page-a"] },
+        planning: { policy: "execute" },
+      },
+      {
+        mode: "plan",
+        scope: { pageIds: ["page-a"] },
+        planning: { selectedFindingIds: [1] },
+      },
+      {
+        mode: "validate",
+        scope: { pageIds: ["page-a"] },
+        validation: { mode: "execute" },
+      },
+      {
+        mode: "query",
+        scope: { pageIds: ["page-a"] },
+        response: { includeFindings: "yes" },
+      },
+    ];
+
+    for (const input of inputs) {
+      expect(validateCyberdrawPublicRequest(input).ok).toBe(false);
+    }
+  });
 });
 
 describe("M14 coverage requirement validation", () => {

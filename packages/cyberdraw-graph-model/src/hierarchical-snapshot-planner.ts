@@ -375,7 +375,8 @@ export function planHierarchicalSnapshot(
     case "analyze-structure":
       if (input.intent.pageIds?.length) {
         addPages(input, addStep, addDiagnostic);
-      } else if (input.intent.layers?.length) {
+      }
+      if (input.intent.layers?.length) {
         for (const target of input.intent.layers) {
           addStep(
             {
@@ -386,7 +387,8 @@ export function planHierarchicalSnapshot(
             "explicit-layer-target",
           );
         }
-      } else {
+      }
+      if (!input.intent.pageIds?.length && !input.intent.layers?.length) {
         addDocumentOrFallback(input, addStep, addDiagnostic);
       }
       break;
