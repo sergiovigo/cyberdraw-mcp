@@ -46,6 +46,7 @@ before CyberDraw-specific features are introduced.
 | [milestones/m14/compatibility-matrix.md](milestones/m14/compatibility-matrix.md)                                 | Compatibility mapping between M13-compatible requests and M14-only capabilities                                  | Implemented matrix          |
 | [milestones/m14/limits-model.md](milestones/m14/limits-model.md)                                                 | Configurable limits for M14 public multi-scope operations                                                        | Implemented with open reporting decision |
 | [milestones/m14/reason-code-registry.md](milestones/m14/reason-code-registry.md)                                 | Public reason-code registry for M14 structured rejections and limitations                                        | Implemented registry        |
+| [milestones/M15-prompt-to-diagram-mvp.md](milestones/M15-prompt-to-diagram-mvp.md)                               | Planned prompt-to-diagram MVP design using client-generated Mermaid and draw.io import                           | PLANNED / DESIGN            |
 | [benchmarks/](benchmarks/)                                                                                     | Small aggregate M6 synthetic and M7 real-environment benchmark summaries                                         | Benchmark evidence          |
 | [diagrams/internal-graph-model.md](diagrams/internal-graph-model.md)                                           | Mermaid diagrams supporting RFC 0001                                                                             | Draft supporting diagrams   |
 | [adr/0001-fork-strategy.md](adr/0001-fork-strategy.md)                                                         | Decision to begin as a conservative fork                                                                         | Accepted ADR                |
@@ -120,7 +121,9 @@ Related root documents:
     package.
 30. `adr/0007-public-scope-coverage-and-dto-versioning-for-m14.md` for the M14
     public scope, coverage and DTO versioning decision.
-31. `adr/` when a lasting decision needs historical context.
+31. `milestones/M15-prompt-to-diagram-mvp.md` for the planned
+    prompt-to-diagram MVP design and Mermaid reuse decision.
+32. `adr/` when a lasting decision needs historical context.
 
 ## Question Map
 
