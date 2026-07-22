@@ -49,7 +49,7 @@ Notes:
 
 Lists all currently connected Draw.io document instances.
 
-*Returns*: Array of document objects with `id`, `title`, `mode`, `hash`, `file_url`, `page_count`, and `current_page`
+_Returns_: Array of document objects with `id`, `title`, `mode`, `hash`, `file_url`, `page_count`, and `current_page`
 
 ## Diagram Inspection Tools
 
@@ -62,14 +62,16 @@ contract is request-versioned: M13-compatible requests return `m13-v1`, while
 requests using M14-only scope, coverage, limit or aggregate query controls
 return `m14-v1`.
 
-*Modes*:
+_Modes_:
+
 - `analyze`: structural findings
 - `query`: filtered/paginated findings, or M14 aggregate `count`/`summarize`
   operations through `query.operation`
 - `plan`: non-executable structural proposals
 - `validate`: validates the non-executable plan
 
-*Parameters*:
+_Parameters_:
+
 - `mode`: `analyze`, `query`, `plan`, or `validate` (default `analyze`)
 - `scope`: optional M13-compatible `{ pageId, layerId }`; `layerId` requires
   `pageId`. M14 also accepts bounded `pageIds` and page-qualified
@@ -85,7 +87,7 @@ return `m14-v1`.
 - `validation`: optional validation mode for `validate`
 - `response`: optional include flags
 
-*Safety*: Read-only. The response includes
+_Safety_: Read-only. The response includes
 `safety.readOnly: true`, `mutationAttempted: false`, and
 `mutationInvocations: 0`. Public proposals include `executable: false` and do
 not contain XML, commands, scripts, callbacks, patches, filesystem paths, graph
@@ -97,40 +99,44 @@ broadens an invalid explicit target.
 
 Retrieves the currently selected cell on the target page.
 
-*Parameters*:
+_Parameters_:
+
 - `target_page`: Page selector for the page to inspect
 
-*Returns*: JSON object containing cell properties (ID, geometry, style, value, etc.)
+_Returns_: JSON object containing cell properties (ID, geometry, style, value, etc.)
 
 ### `get-shape-categories`
 
 Retrieves available shape categories from the diagram's library. Categories cover the curated `general` set plus every vendor palette drawio ships — AWS (`mxgraph.aws4.*`), GCP (`mxgraph.gcp2.*`), Azure (`mxgraph.azure2.*`), Cisco19 (`mxgraph.cisco19.*`), and CiscoSafe (`mxgraph.cisco_safe.*`) — discovered at runtime from drawio's loaded sidebar, so the catalog always matches the editor version in use.
 
-*Returns*: Array of category objects with their IDs and names
+_Returns_: Array of category objects with their IDs and names
 
 ### `get-shapes-in-category`
 
 Retrieves all shapes in a specified category from the diagram's library.
 
-*Parameters*:
+_Parameters_:
+
 - `category_id`: Identifier of the category to retrieve shapes from
 
-*Returns*: Array of shape objects with their properties and styles
+_Returns_: Array of shape objects with their properties and styles
 
 ### `get-shape-by-name`
 
 Retrieves a specific shape by its name from all available shapes (general + AWS / GCP / Azure / Cisco19 / CiscoSafe vendors discovered at runtime).
 
-*Parameters*:
+_Parameters_:
+
 - `shape_name`: Name of the shape to retrieve (e.g. `mxgraph.gcp2.cloud_functions`, `mxgraph.cisco19.router`, `mxgraph.cisco_safe.capability`)
 
-*Returns*: Shape object including its category and style information
+_Returns_: Shape object including its category and style information
 
 ### `list-paged-model`
 
 Retrieves a paginated view of all cells (vertices and edges) on the target page. This tool provides access to the complete model data with essential fields only, sanitized to remove circular dependencies and excessive data. Allows filtering based on multiple criteria and attribute boolean logic.
 
-*Parameters*:
+_Parameters_:
+
 - `target_page`: Page selector for the page to inspect
 - `page`: Zero-based result page for pagination
 - `page_size`: Maximum number of returned cells
@@ -153,7 +159,8 @@ Creates a new rectangle shape on the target page with customizable properties:
 
 Creates a connection between two cells (vertices). When source and target are the same shape (self-connector), a loop edge style is automatically applied so the line is visible and selectable.
 
-*Parameters*:
+_Parameters_:
+
 - `target_page`: Page selector for the page to modify
 - `source_id`: ID of the source cell
 - `target_id`: ID of the target cell
@@ -166,7 +173,8 @@ Creates a connection between two cells (vertices). When source and target are th
 
 Removes a specified cell from the diagram.
 
-*Parameters*:
+_Parameters_:
+
 - `target_page`: Page selector for the page to modify
 - `cell_id`: ID of the cell to delete
 
@@ -174,7 +182,8 @@ Removes a specified cell from the diagram.
 
 Adds a new cell of a specific shape type from the diagram's library.
 
-*Parameters*:
+_Parameters_:
+
 - `target_page`: Page selector for the page to modify
 - `shape_name`: Name of the shape to create
 - `x`, `y`: Position coordinates (optional)
@@ -187,7 +196,8 @@ Adds a new cell of a specific shape type from the diagram's library.
 
 Applies a library shape's style to an existing cell.
 
-*Parameters*:
+_Parameters_:
+
 - `target_page`: Page selector for the page to modify
 - `cell_id`: ID of the cell whose appearance should change
 - `shape_name`: Name of the library shape whose style should be applied
@@ -196,7 +206,8 @@ Applies a library shape's style to an existing cell.
 
 Stores or updates a custom attribute on a cell.
 
-*Parameters*:
+_Parameters_:
+
 - `target_page`: Page selector for the page to modify
 - `cell_id`: ID of the cell to update
 - `key`: Attribute name to set
@@ -206,7 +217,8 @@ Stores or updates a custom attribute on a cell.
 
 Updates an existing vertex/shape cell in place by ID.
 
-*Parameters*:
+_Parameters_:
+
 - `target_page`: Page selector for the page to modify
 - `cell_id`: ID of the cell whose properties should change (required)
 - `text`, `x`, `y`, `width`, `height`, `style`: Optional fields to update on the cell; omitted properties stay as-is
@@ -215,7 +227,8 @@ Updates an existing vertex/shape cell in place by ID.
 
 Updates an existing edge connection between cells by ID.
 
-*Parameters*:
+_Parameters_:
+
 - `target_page`: Page selector for the page to modify
 - `cell_id`: ID of the edge cell to update (required)
 - `text`: Optional edge label text
@@ -227,12 +240,13 @@ Updates an existing edge connection between cells by ID.
 
 Sets the parent of a cell, making it a child of the specified parent cell. This allows creating hierarchical relationships where moving the parent also moves its children.
 
-*Parameters*:
+_Parameters_:
+
 - `target_page`: Page selector for the page to modify
 - `cell_id`: ID of the cell to reparent
 - `parent_id`: ID of the new parent cell
 
-*Returns*: Confirmation with cell_id and parent_id
+_Returns_: Confirmation with cell_id and parent_id
 
 ## Page Management Tools
 
@@ -240,95 +254,103 @@ Sets the parent of a cell, making it a child of the specified parent cell. This 
 
 Lists all pages in the target/current Draw.io document.
 
-*Returns*: Array of page objects with `index`, `id`, `name`, and `is_current`
+_Returns_: Array of page objects with `index`, `id`, `name`, and `is_current`
 
 ### `get-current-page`
 
 Returns metadata for the currently visible page in the target/current Draw.io document.
 
-*Returns*: Page object with `index`, `id`, `name`, and `is_current`
+_Returns_: Page object with `index`, `id`, `name`, and `is_current`
 
 ### `create-page`
 
 Creates a new blank page and appends it to the target/current document. On supported draw.io runtimes, this does not switch the visible page.
 
-*Parameters*:
+_Parameters_:
+
 - `name`: Name for the new page
 
-*Returns*: Metadata for the created page
+_Returns_: Metadata for the created page
 
 ### `copy-page`
 
 Creates a copy of an existing page in the target/current document and appends the copy to the end of the page list. When possible, the previously visible page is restored after the copy is created.
 
-*Parameters*:
+_Parameters_:
+
 - `page`: Source page selector for the page to copy. Use exactly one of `{ index }` or `{ id }`
 - `name`: Optional name for the copied page
 
-*Returns*: Metadata for the copied page
+_Returns_: Metadata for the copied page
 
 ### `rename-page`
 
 Renames a page in the target/current document without switching the visible page.
 
-*Parameters*:
+_Parameters_:
+
 - `page`: Page selector for the page to rename. Use exactly one of `{ index }` or `{ id }`
 - `name`: New page name
 
-*Returns*: Metadata for the renamed page
+_Returns_: Metadata for the renamed page
 
 ## Layer Management Tools
 
-*Available since v1.7.0*
+_Available since v1.7.0_
 
 ### `list-layers`
 
 Lists all available layers on the target page with their IDs and names.
 
-*Parameters*:
+_Parameters_:
+
 - `target_page`: Page selector for the page to inspect
 
-*Returns*: Array of layer objects with properties (ID, name, visibility, locked status)
+_Returns_: Array of layer objects with properties (ID, name, visibility, locked status)
 
 ### `set-active-layer`
 
 Sets the active layer for creating new elements. All subsequent element creation will happen in this layer.
 
-*Parameters*:
+_Parameters_:
+
 - `target_page`: Page selector for the page to modify
 - `layer_id`: ID of the layer to set as active
 
-*Returns*: Information about the newly active layer
+_Returns_: Information about the newly active layer
 
 ### `move-cell-to-layer`
 
 Moves a cell from its current layer to a target layer.
 
-*Parameters*:
+_Parameters_:
+
 - `target_page`: Page selector for the page to modify
 - `cell_id`: ID of the cell to move
 - `target_layer_id`: ID of the target layer where the cell will be moved
 
-*Returns*: Confirmation of the move operation
+_Returns_: Confirmation of the move operation
 
 ### `get-active-layer`
 
 Gets the currently active layer information for the target page.
 
-*Parameters*:
+_Parameters_:
+
 - `target_page`: Page selector for the page to inspect
 
-*Returns*: Information about the current active layer (ID and name)
+_Returns_: Information about the current active layer (ID and name)
 
 ### `create-layer`
 
 Creates a new layer on the target page.
 
-*Parameters*:
+_Parameters_:
+
 - `target_page`: Page selector for the page to modify
 - `name`: Name for the new layer
 
-*Returns*: Information about the newly created layer
+_Returns_: Information about the newly created layer
 
 ## Diagram Import/Export Tools
 
@@ -337,11 +359,13 @@ Creates a new layer on the target page.
 Export the target page or current diagram as SVG, PNG, or XML. Returns the diagram data as base64 (PNG) or text (SVG/XML). Optionally saves to a file.
 
 Notes:
+
 - Page and diagram exports for off-page targets run without switching the visible browser page.
 - Selection-only exports still use the visible page because selection is a UI-bound concept in Draw.io.
 - PNG exports with `embed_xml=true` also use the visible page because Draw.io's embedded PNG export path is still UI-bound.
 
-*Parameters*:
+_Parameters_:
+
 - `target_page`: Page selector for the page context used by the export
 - `format`: Export format: svg for vector graphics, png for raster image, xml for raw diagram data
 - `scale`: Zoom factor for the export (1 = 100%, default: 1)
@@ -356,29 +380,54 @@ Notes:
 - `size`: What to export: 'selection' for selected cells only, 'page' for the target page, 'diagram' for the entire model (default: diagram)
 - `output_path`: Trusted-client absolute file path to save the exported file. The parent must exist and be a directory. Existing destination directories and symbolic links are rejected; existing regular files may be overwritten with the server process permissions.
 
-*Returns*: Export result with format, mimeType, data (base64 for PNG, text for SVG/XML), dimensions, and optional warning
+_Returns_: Export result with format, mimeType, data (base64 for PNG, text for SVG/XML), dimensions, and optional warning
 
 ### `import-diagram`
 
 Import a diagram from XML, SVG with embedded XML, or PNG with embedded XML into the current Draw.io instance.
 
-*Parameters*:
+_Parameters_:
+
 - `target_page`: Required for `replace` and `add`; optional for `new-page`
 - `data`: The diagram data: raw XML string, or base64-encoded SVG/PNG with embedded XML
 - `format`: Input format: xml for raw Draw.io XML, svg for SVG with embedded XML, png for PNG with embedded XML
 - `mode`: Import mode: replace clears current diagram and loads new one, add merges imported cells into current diagram, new-page creates a new page with imported diagram (default: replace)
 - `filename`: Optional original filename for context
 
-*Returns*: Import result with success status, message, and optional page/cell counts
+_Returns_: Import result with success status, message, and optional page/cell counts
 
 ### `import-mermaid`
 
 Import a Mermaid diagram into a Draw.io page. The conversion runs inside the Draw.io editor using its bundled Mermaid pipeline. Native mode converts supported Mermaid diagrams into mxGraph cells; embed mode creates a single image cell with Mermaid source preserved for Draw.io re-editing.
 
-*Parameters*:
+_Parameters_:
+
 - `target_page`: Required for `replace` and `add`; optional for `new-page`
 - `mermaid_source`: Raw Mermaid syntax
 - `mode`: Import mode: native converts to mxGraph cells when supported, embed preserves Mermaid source in an image cell (default: native)
 - `insert_mode`: How to merge the converted XML: replace, add, or new-page (default: add)
 
-*Returns*: Import result with success status, message, converted mode, optional cell count, and converted XML
+_Returns_: Import result with success status, message, converted mode, optional cell count, and converted XML
+
+### `cyberdraw_create_diagram`
+
+Create a bounded draw.io flowchart from client-generated Mermaid. This M15.1
+wrapper validates a narrow request, creates a new page through the existing
+native Mermaid import path, and returns sanitized `m15-v1` metadata without XML.
+
+_Parameters_:
+
+- `format`: Required literal `mermaid`
+- `mermaidType`: Required literal `flowchart`
+- `insertMode`: Required literal `new-page`
+- `mermaid`: Required Mermaid source beginning with a supported `flowchart`
+  directive
+- `limits.maxBytes`: Required positive byte limit, capped by the server
+- `target_document`: Optional document selector, required when multiple draw.io
+  documents are connected
+- `title`: Optional new page title
+
+_Returns_: `m15-v1` response with `outcome`, created page metadata on success,
+structured reason codes on rejection/failure, and explicit mutation safety
+counters. The response never includes XML, raw cells, raw graph data, snapshots
+or stack traces.

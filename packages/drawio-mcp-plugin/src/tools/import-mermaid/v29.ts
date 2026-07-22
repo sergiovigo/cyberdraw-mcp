@@ -19,7 +19,13 @@ export function import_mermaid(
 
   const enableParser = mode === "native";
   return new Promise((resolve) => {
-    const { onXml, onError } = runInsertFlow(ui, mode, insertMode, resolve);
+    const { onXml, onError } = runInsertFlow(
+      ui,
+      mode,
+      insertMode,
+      resolve,
+      source ? (options.filename as string | undefined) : undefined,
+    );
     try {
       ui.parseMermaidDiagram(
         source,

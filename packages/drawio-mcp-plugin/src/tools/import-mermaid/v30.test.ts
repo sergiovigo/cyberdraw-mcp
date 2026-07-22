@@ -12,6 +12,7 @@ jest.unstable_mockModule("../../drawio-tools.js", () => ({
 
 // Dynamic import after mock registration (ESM top-level await)
 const { import_mermaid } = await import("./v30.js");
+const { import_diagram } = await import("../../drawio-tools.js");
 
 const FLOWCHART = "graph TD\nA[Start] --> B[Stop]";
 
@@ -73,7 +74,36 @@ describe("import_mermaid v30", () => {
       mode: "native",
       insert_mode: "add",
     })) as any;
-    expect(parseMermaidDiagram).toHaveBeenCalledWith(FLOWCHART, undefined, expect.any(Function), expect.any(Function), expect.any(Function));
+    expect(parseMermaidDiagram).toHaveBeenCalledWith(
+      FLOWCHART,
+      undefined,
+      expect.any(Function),
+      expect.any(Function),
+      expect.any(Function),
+    );
     expect(result.mode).toBe("native");
+  });
+
+  it("passes filename through to the existing import path", async () => {
+    const parseMermaidDiagram = jest.fn(
+      (_source: string, _config: unknown, success: (xml: string) => void) => {
+        success("<mxGraphModel><root/></mxGraphModel>");
+      },
+    );
+    const ui = makeUi({ parseMermaidDiagram });
+    await import_mermaid(ui, {
+      mermaid_source: FLOWCHART,
+      mode: "native",
+      insert_mode: "new-page",
+      filename: "Web Architecture",
+    });
+
+    expect(import_diagram).toHaveBeenLastCalledWith(
+      ui,
+      expect.objectContaining({
+        mode: "new-page",
+        filename: "Web Architecture",
+      }),
+    );
   });
 });

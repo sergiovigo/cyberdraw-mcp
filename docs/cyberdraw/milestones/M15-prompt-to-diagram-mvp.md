@@ -1,6 +1,6 @@
 # M15 - Prompt-to-Diagram MVP
 
-Status: PLANNED / DESIGN
+Status: M15.1 IMPLEMENTED / MVP IN PROGRESS
 
 M15 defines a small demonstrable path from a user's natural-language diagram
 request to a visible draw.io diagram. It is not a general diagram generation
@@ -56,14 +56,14 @@ server to call an LLM.
 
 ## Existing Capabilities
 
-| Capability | Tool / location | Mutates | Existing validation | Output | Evidence | M15 reuse |
-| --- | --- | --- | --- | --- | --- | --- |
-| Mermaid import | `import-mermaid`, `packages/drawio-mcp-server/src/tools/import-mermaid.ts` | Yes | Zod input shape; `target_page` required for `add` and `replace` | Success payload with converted mode, cell count and XML | `packages/drawio-mcp-server/src/real-environment/import-mermaid.test.ts` | Runtime materialization path |
-| Draw.io Mermaid conversion | `packages/drawio-mcp-plugin/src/tools/import-mermaid/` | Yes | Plugin validates non-empty source; dispatches by draw.io version | Native or embed result | `v29.test.ts`, `v30.test.ts` | Conversion engine |
-| Page/document routing | `default_tool`, `target_document`, `target_page` | N/A | Fail-closed multiple-document routing; exact page selector | Routed tool calls | `TOOLS.md`, document targeting tests | Target resolution |
-| Page creation import mode | `insert_mode: "new-page"` | Yes | `target_page` optional only for new page | New draw.io page | real-environment Mermaid test | Demo-friendly insertion |
-| Existing primitives | `add-cell-of-shape`, `add-edge`, `edit-cell`, `delete-cell-by-id`, `set-cell-parent` | Yes | Per-tool schemas | Cell/edge results | real-environment suites | Not first MVP path |
-| M14 verification | `cyberdraw_analyze_structure` | No | M13/M14 public contract | Sanitized structural response | M14 closure evidence | Optional post-import verification |
+| Capability                 | Tool / location                                                                      | Mutates | Existing validation                                              | Output                                                  | Evidence                                                                 | M15 reuse                         |
+| -------------------------- | ------------------------------------------------------------------------------------ | ------- | ---------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------ | --------------------------------- |
+| Mermaid import             | `import-mermaid`, `packages/drawio-mcp-server/src/tools/import-mermaid.ts`           | Yes     | Zod input shape; `target_page` required for `add` and `replace`  | Success payload with converted mode, cell count and XML | `packages/drawio-mcp-server/src/real-environment/import-mermaid.test.ts` | Runtime materialization path      |
+| Draw.io Mermaid conversion | `packages/drawio-mcp-plugin/src/tools/import-mermaid/`                               | Yes     | Plugin validates non-empty source; dispatches by draw.io version | Native or embed result                                  | `v29.test.ts`, `v30.test.ts`                                             | Conversion engine                 |
+| Page/document routing      | `default_tool`, `target_document`, `target_page`                                     | N/A     | Fail-closed multiple-document routing; exact page selector       | Routed tool calls                                       | `TOOLS.md`, document targeting tests                                     | Target resolution                 |
+| Page creation import mode  | `insert_mode: "new-page"`                                                            | Yes     | `target_page` optional only for new page                         | New draw.io page                                        | real-environment Mermaid test                                            | Demo-friendly insertion           |
+| Existing primitives        | `add-cell-of-shape`, `add-edge`, `edit-cell`, `delete-cell-by-id`, `set-cell-parent` | Yes     | Per-tool schemas                                                 | Cell/edge results                                       | real-environment suites                                                  | Not first MVP path                |
+| M14 verification           | `cyberdraw_analyze_structure`                                                        | No      | M13/M14 public contract                                          | Sanitized structural response                           | M14 closure evidence                                                     | Optional post-import verification |
 
 ## Current Mermaid Tool Audit
 
@@ -130,12 +130,12 @@ Mermaid is the MVP intermediate representation because:
 
 ## Alternatives
 
-| Option | Description | Time to MVP | Security | Determinism | Testability | Risk | Recommendation |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| A | Use `import-mermaid` directly | Small | Weak response sanitization because XML is returned | Draw.io-dependent | Already has real tests | Public output leaks XML | Useful immediate demo only |
-| B | Add `cyberdraw_create_diagram` wrapper over Mermaid | Small/medium | Stronger closed schema and sanitized output | Same runtime, narrower contract | Unit + real tests focused on MVP | Small duplication around import | Recommended |
-| C | Server receives prompt and calls LLM | Large | Adds secrets, network, provider and injection surfaces | Low without complex evals | Harder and flaky | High scope creep | Not M15 MVP |
-| D | Structured nodes/edges with `add-cell-of-shape` + `add-edge` | Medium/large | Controllable but broad mutation surface | Higher if layout is constrained | Many more cases | Becomes diagram editor platform | Later option, not MVP |
+| Option | Description                                                  | Time to MVP  | Security                                               | Determinism                     | Testability                      | Risk                            | Recommendation             |
+| ------ | ------------------------------------------------------------ | ------------ | ------------------------------------------------------ | ------------------------------- | -------------------------------- | ------------------------------- | -------------------------- |
+| A      | Use `import-mermaid` directly                                | Small        | Weak response sanitization because XML is returned     | Draw.io-dependent               | Already has real tests           | Public output leaks XML         | Useful immediate demo only |
+| B      | Add `cyberdraw_create_diagram` wrapper over Mermaid          | Small/medium | Stronger closed schema and sanitized output            | Same runtime, narrower contract | Unit + real tests focused on MVP | Small duplication around import | Recommended                |
+| C      | Server receives prompt and calls LLM                         | Large        | Adds secrets, network, provider and injection surfaces | Low without complex evals       | Harder and flaky                 | High scope creep                | Not M15 MVP                |
+| D      | Structured nodes/edges with `add-cell-of-shape` + `add-edge` | Medium/large | Controllable but broad mutation surface                | Higher if layout is constrained | Many more cases                  | Becomes diagram editor platform | Later option, not MVP      |
 
 Recommended M15 path: Option B.
 
@@ -146,7 +146,7 @@ For M15.1 this recommendation is fixed, not provisional:
 - accept Mermaid input only, not a natural-language prompt;
 - accept only Mermaid flowcharts;
 - call `import-mermaid` internally with native mode and `insert_mode:
-  "new-page"`;
+"new-page"`;
 - return sanitized metadata only.
 
 M15.1 does not support embed mode, `replace`, `add`, sequence diagrams, a full
@@ -154,7 +154,7 @@ Mermaid parser, server-side LLM calls or new external dependencies.
 
 ## Proposed Public Contract
 
-Recommended new public tool for M15.1:
+Implemented public tool for M15.1:
 
 `cyberdraw_create_diagram`
 
@@ -218,10 +218,9 @@ Fields explicitly deferred out of M15.1:
 Implementation route:
 
 1. validate the closed schema;
-2. apply `maxBytes` and any conservative simple node/edge heuristic selected
-   for M15.1;
+2. apply `maxBytes`;
 3. call existing `import-mermaid` with native mode and `insert_mode:
-   "new-page"`;
+"new-page"`;
 4. map the result to a sanitized `m15-v1` response.
 
 Output:
@@ -515,7 +514,7 @@ Dependencies: M14 closure and existing Mermaid import evidence.
 
 ### M15.1 - Minimal MVP Implementation
 
-Objective: add `cyberdraw_create_diagram` as the minimal end-to-end MVP:
+Objective: implemented `cyberdraw_create_diagram` as the minimal end-to-end MVP:
 closed schema, simple limits, delegation to existing `import-mermaid` and a
 sanitized `m15-v1` response.
 
@@ -535,12 +534,11 @@ Acceptance:
 
 - Mermaid-only input;
 - `format: "mermaid"`, `mermaidType: "flowchart"` and `insertMode:
-  "new-page"` are the only accepted values;
+"new-page"` are the only accepted values;
 - `target_page`, embed mode, `add`, `replace`, sequence diagrams and server-side
   prompt interpretation are rejected or absent from the schema;
 - `limits.maxBytes` is required and enforced before runtime;
-- `maxNodes` and `maxEdges` are implemented only if a conservative simple
-  heuristic is sufficient; otherwise they remain deferred;
+- `maxNodes` and `maxEdges` remain deferred;
 - no XML output;
 - reason codes are limited to the initial seven-code list;
 - mutation report.
