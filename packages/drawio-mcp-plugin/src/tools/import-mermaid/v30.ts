@@ -19,7 +19,13 @@ export function import_mermaid(
   }
 
   return new Promise((resolve) => {
-    const { onXml, onError } = runInsertFlow(ui, mode, insertMode, resolve);
+    const { onXml, onError } = runInsertFlow(
+      ui,
+      mode,
+      insertMode,
+      resolve,
+      source ? (options.filename as string | undefined) : undefined,
+    );
     try {
       if (mode === "embed" && typeof ui.parseMermaidImage === "function") {
         ui.parseMermaidImage(source, onXml, onError);

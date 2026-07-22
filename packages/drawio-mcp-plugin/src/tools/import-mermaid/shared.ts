@@ -4,6 +4,7 @@ export type ImportMermaidOptions = {
   mermaid_source: string;
   mode?: "native" | "embed";
   insert_mode?: "replace" | "add" | "new-page";
+  filename?: string;
 };
 
 export type ImportMermaidResult =
@@ -16,9 +17,7 @@ export type ImportMermaidResult =
     }
   | { success: false; message: string };
 
-export function validateOptions(
-  options: Record<string, unknown>,
-):
+export function validateOptions(options: Record<string, unknown>):
   | {
       source: string;
       mode: "native" | "embed";
@@ -45,6 +44,7 @@ export function runInsertFlow(
   mode: "native" | "embed",
   insertMode: "replace" | "add" | "new-page",
   resolve: (result: ImportMermaidResult) => void,
+  filename?: string,
 ): {
   onXml: (xml: string) => void;
   onError: (err: any) => void;
@@ -66,6 +66,7 @@ export function runInsertFlow(
         data: xml,
         format: "xml",
         mode: insertMode,
+        filename,
       });
       if (!importResult.success) {
         settle({
