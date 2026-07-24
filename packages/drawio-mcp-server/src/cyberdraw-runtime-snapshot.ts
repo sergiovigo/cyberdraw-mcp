@@ -143,11 +143,24 @@ function formatSnapshotError(error: unknown): string {
   if (error && typeof error === "object") {
     const message = (error as { readonly message?: unknown }).message;
     if (typeof message === "string" && message.length > 0) {
-      return message.slice(0, 500);
+      return sanitizeSnapshotErrorMessage(message).slice(0, 500);
     }
   }
   if (typeof error === "string") {
-    return error.slice(0, 500);
+    return sanitizeSnapshotErrorMessage(error).slice(0, 500);
   }
   return "Runtime snapshot extraction failed";
+}
+
+function sanitizeSnapshotErrorMessage(message: string): string {
+  if (containsSensitiveRuntimeErrorText(message)) {
+    return "Runtime snapshot extraction failed";
+  }
+  return message;
+}
+
+function containsSensitiveRuntimeErrorText(value: string): boolean {
+  return /<\s*(?:mxGraphModel|mxfile|mxCell)\b|https?:\/\/|file:\/\/|\/home\/|[A-Za-z]:\\|(?:^|\n)\s*at\s+|\bError:/i.test(
+    value,
+  );
 }

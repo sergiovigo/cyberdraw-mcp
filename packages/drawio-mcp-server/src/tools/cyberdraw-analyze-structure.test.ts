@@ -956,6 +956,24 @@ describe("cyberdraw_analyze_structure public tool", () => {
       await app?.close();
     }
   });
+
+  it("sanitizes raw runtime plugin errors before returning public MCP errors", async () => {
+    const { context, listeners } = createInteractiveContext();
+    const request = analyzeStructurePublic(context, { mode: "analyze" });
+    await flushMicrotasks();
+    listeners.get("cyberdraw.runtimeSnapshot.v1.request-1")?.({
+      __event: "cyberdraw.runtimeSnapshot.v1.request-1",
+      success: false,
+      error: {
+        message:
+          "Error: failed at /home/user/project/file.ts\n<mxGraphModel><mxCell /></mxGraphModel>",
+      },
+    });
+
+    await expect(request).rejects.toThrow("Runtime snapshot extraction failed");
+    await expect(request).rejects.not.toThrow("<mxGraphModel");
+    await expect(request).rejects.not.toThrow("/home/user");
+  });
 });
 
 async function runPublicMode(

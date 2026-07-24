@@ -2397,7 +2397,22 @@ function publicErrorMessage(error: unknown): string {
   if (message.includes("Multiple Draw.io documents")) {
     return "runtime unavailable: multiple active diagrams are connected";
   }
-  return `cyberdraw_analyze_structure failed: ${message.slice(0, 300)}`;
+  return `cyberdraw_analyze_structure failed: ${sanitizePublicErrorDetail(
+    message,
+  ).slice(0, 300)}`;
+}
+
+function sanitizePublicErrorDetail(message: string): string {
+  if (containsSensitivePublicErrorText(message)) {
+    return "internal runtime analysis failed";
+  }
+  return message;
+}
+
+function containsSensitivePublicErrorText(value: string): boolean {
+  return /<\s*(?:mxGraphModel|mxfile|mxCell)\b|https?:\/\/|file:\/\/|\/home\/|[A-Za-z]:\\|(?:^|\n)\s*at\s+|\bError:/i.test(
+    value,
+  );
 }
 
 function publicValidationErrorMessage(

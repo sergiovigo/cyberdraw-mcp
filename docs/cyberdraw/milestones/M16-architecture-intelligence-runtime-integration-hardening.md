@@ -2,11 +2,14 @@
 
 ## Status
 
-PROPOSED / NOT STARTED.
+IN PROGRESS.
 
 This is a design document for the recommended next CyberDraw milestone after
 M15. It does not implement runtime behavior, add MCP tools, change public
 contracts or reopen M13, M14 or M15.
+
+M16.1/M16.2 evidence is being recorded in
+[`m16/compatibility-matrix.md`](m16/compatibility-matrix.md). M16 is not closed.
 
 ## Objective
 
@@ -100,6 +103,10 @@ M16 should close that risk without expanding the product surface.
 | Timeout/error classification | Sanitized deterministic outcome, no hidden retries |
 | Real draw.io browser evidence | HTTP-local proof, with HTTPS/Caddy separated unless actually executed |
 
+The current in-progress matrix is recorded in
+[`m16/compatibility-matrix.md`](m16/compatibility-matrix.md). It maps each case
+to the implementation path and exact automated or real-environment evidence.
+
 ## Real-Environment Evidence Required
 
 M16 should reuse the existing HTTP-local real-environment harness before adding
@@ -137,6 +144,15 @@ claim.
 - Any defect fix is minimal, documented and covered by a regression test.
 - Residual limitations are recorded explicitly.
 
+Current M16 gap handling:
+
+- Added focused server-path regression evidence for malformed and oversize
+  runtime snapshot replies.
+- Fixed a runtime error sanitization defect where a plugin `success:false`
+  message could carry XML, stack or local path detail into Architecture
+  Intelligence callers.
+- Kept public M13/M14/M15 contracts unchanged.
+
 ## Exit Criteria
 
 - `docs/cyberdraw/milestones/m16/compatibility-matrix.md` or equivalent evidence
@@ -148,6 +164,10 @@ claim.
 - HTTPS/Caddy and cross-version draw.io limitations are either proven or left as
   visible limitations.
 - No deferred capability is implemented accidentally.
+
+M16 is not yet complete. Closure still requires the full validation matrix,
+including package builds, lint, unit suites, real-environment suites, plugin
+tests, extension builds and dependency audit results.
 
 ## Explicit Deferrals
 

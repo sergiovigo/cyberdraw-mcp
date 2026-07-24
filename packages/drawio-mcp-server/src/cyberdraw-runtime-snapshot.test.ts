@@ -159,6 +159,48 @@ describe("cyberdraw runtime snapshot internal channel", () => {
     );
   });
 
+  it("rejects malformed and oversize runtime responses before trusting payloads", async () => {
+    const malformed = requestWithSingleReply({
+      success: true,
+      result: {
+        stale: true,
+        xml: "<mxGraphModel><mxCell /></mxGraphModel>",
+      },
+    });
+    await expect(malformed).rejects.toThrow(
+      "Runtime snapshot schema version is unsupported",
+    );
+
+    const tooLarge = snapshot();
+    const oversize = requestWithSingleReply({
+      success: true,
+      result: {
+        ...tooLarge,
+        payload: {
+          ...tooLarge.payload,
+          measuredJsonBytes: tooLarge.limits.hardSnapshotBytes + 1,
+        },
+      },
+    });
+    await expect(oversize).rejects.toThrow(
+      "Runtime snapshot payload exceeds hard limit",
+    );
+  });
+
+  it("sanitizes plugin runtime errors before exposing them to callers", async () => {
+    const request = requestWithSingleReply({
+      success: false,
+      error: {
+        message:
+          "Error: failed at /home/user/project/file.ts\n<mxGraphModel><mxCell /></mxGraphModel>",
+      },
+    });
+
+    await expect(request).rejects.toThrow("Runtime snapshot extraction failed");
+    await expect(request).rejects.not.toThrow("<mxGraphModel");
+    await expect(request).rejects.not.toThrow("/home/user");
+  });
+
   it("ignores a late timed-out reply and resolves the next request by request id", async () => {
     jest.useFakeTimers();
     const listeners = new Map<string, BusListener<Record<string, unknown>>>();
@@ -236,6 +278,31 @@ describe("cyberdraw runtime snapshot internal channel", () => {
     expect(sent).toHaveLength(1);
   });
 });
+
+function requestWithSingleReply(reply: Record<string, unknown>) {
+  const listeners = new Map<string, BusListener<Record<string, unknown>>>();
+  const sent: unknown[] = [];
+  const context = createTestContext({
+    sent,
+    generate: () => "request-1",
+    onReply: (eventName, listener) => {
+      listeners.set(eventName, listener);
+      return () => {
+        listeners.delete(eventName);
+      };
+    },
+    runtimeCapabilities: createRuntimeCapabilities(),
+  });
+
+  const request = requestCyberdrawRuntimeSnapshot(context, {});
+  void flushMicrotasks().then(() => {
+    listeners.get("cyberdraw.runtimeSnapshot.v1.request-1")?.({
+      __event: "cyberdraw.runtimeSnapshot.v1.request-1",
+      ...reply,
+    });
+  });
+  return request;
+}
 
 function createTestContext(options: {
   readonly sent: unknown[];
