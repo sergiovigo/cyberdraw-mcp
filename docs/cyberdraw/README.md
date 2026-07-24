@@ -46,7 +46,8 @@ before CyberDraw-specific features are introduced.
 | [milestones/m14/compatibility-matrix.md](milestones/m14/compatibility-matrix.md)                                             | Compatibility mapping between M13-compatible requests and M14-only capabilities                                  | Implemented matrix                       |
 | [milestones/m14/limits-model.md](milestones/m14/limits-model.md)                                                             | Configurable limits for M14 public multi-scope operations                                                        | Implemented with open reporting decision |
 | [milestones/m14/reason-code-registry.md](milestones/m14/reason-code-registry.md)                                             | Public reason-code registry for M14 structured rejections and limitations                                        | Implemented registry                     |
-| [milestones/M15-prompt-to-diagram-mvp.md](milestones/M15-prompt-to-diagram-mvp.md)                                           | Prompt-to-diagram MVP using client-generated Mermaid and draw.io import                                          | M15.2 implemented                        |
+| [milestones/M15-prompt-to-diagram-mvp.md](milestones/M15-prompt-to-diagram-mvp.md)                                           | Prompt-to-diagram MVP using client-generated Mermaid and draw.io import                                          | COMPLETE / CLOSED                        |
+| [milestones/m15/reproducible-demo-m15.3.md](milestones/m15/reproducible-demo-m15.3.md)                                       | M15.3 HTTP-local reproducible demo and closure evidence                                                          | PASS WITH LIMITATIONS                    |
 | [benchmarks/](benchmarks/)                                                                                                   | Small aggregate M6 synthetic and M7 real-environment benchmark summaries                                         | Benchmark evidence                       |
 | [diagrams/internal-graph-model.md](diagrams/internal-graph-model.md)                                                         | Mermaid diagrams supporting RFC 0001                                                                             | Draft supporting diagrams                |
 | [adr/0001-fork-strategy.md](adr/0001-fork-strategy.md)                                                                       | Decision to begin as a conservative fork                                                                         | Accepted ADR                             |
@@ -121,8 +122,10 @@ Related root documents:
     package.
 30. `adr/0007-public-scope-coverage-and-dto-versioning-for-m14.md` for the M14
     public scope, coverage and DTO versioning decision.
-31. `milestones/M15-prompt-to-diagram-mvp.md` for the planned
-    prompt-to-diagram MVP design and Mermaid reuse decision.
+31. `milestones/M15-prompt-to-diagram-mvp.md` and
+    `milestones/m15/reproducible-demo-m15.3.md` for the closed
+    prompt-to-diagram MVP, client-generated Mermaid boundary and HTTP-local
+    demo evidence.
 32. `adr/` when a lasting decision needs historical context.
 
 ## Question Map
@@ -161,6 +164,7 @@ Related root documents:
 | What is the implemented m14-v1 contract?                        | `milestones/m14/contract-m14-v1.md`, `adr/0007-public-scope-coverage-and-dto-versioning-for-m14.md`                                                       |
 | How do M13 and M14 responses stay compatible?                   | `milestones/m14/compatibility-matrix.md`                                                                                                                  |
 | Which limits and reason codes are implemented for M14?          | `milestones/m14/limits-model.md`, `milestones/m14/reason-code-registry.md`                                                                                |
+| Is M15 prompt-to-diagram closed?                                | `milestones/M15-prompt-to-diagram-mvp.md`, `milestones/m15/reproducible-demo-m15.3.md`, `../../TOOLS.md`                                                  |
 | What internal graph model architecture was accepted?            | `adr/0003-internal-graph-model-architecture.md`                                                                                                           |
 | Where are lasting decisions recorded?                           | `adr/`                                                                                                                                                    |
 | What third-party assets need review?                            | `../../THIRD_PARTY_NOTICES.md`                                                                                                                            |

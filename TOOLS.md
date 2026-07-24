@@ -432,3 +432,6 @@ structured reason codes on rejection/failure, and explicit mutation safety
 counters. The response never includes XML, raw cells, raw graph data, snapshots
 or stack traces. Runtime hardening maps ambiguous post-import verification to
 `atomic: "unknown"` and never retries the mutating import.
+
+_M15.3 demo_: The reproducible HTTP-local demo is documented in
+`docs/cyberdraw/milestones/m15/reproducible-demo-m15.3.md`.
