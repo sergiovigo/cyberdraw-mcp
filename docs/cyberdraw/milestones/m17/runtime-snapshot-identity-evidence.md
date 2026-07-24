@@ -152,7 +152,7 @@ M17.2 still does not guarantee:
 
 ## ADR 0008 Readiness
 
-Status: READY FOR DRAFT.
+Status at M17.2 completion: READY FOR DRAFT.
 
 The pure model plus REAL LOCAL HTTP evidence are enough to draft ADR 0008 around
 a narrow internal policy:
@@ -164,6 +164,10 @@ a narrow internal policy:
 
 The evidence is not yet broad enough for an accepted durable ADR covering
 imports, reloads, true page moves, clone/copy behavior or global identity.
+
+M17.3 later used this evidence to accept ADR 0008 only for the narrower scoped
+internal identity policy, with those broader domains explicitly left as
+non-guarantees.
 
 ## Remaining Work For M17.3
 

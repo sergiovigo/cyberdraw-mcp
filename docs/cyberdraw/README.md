@@ -52,7 +52,8 @@ before CyberDraw-specific features are introduced.
 | [milestones/m16/compatibility-matrix.md](milestones/m16/compatibility-matrix.md)                                             | Final M16 compatibility matrix across runtime contract, scopes, stale/revision, errors and real evidence         | Closure evidence                         |
 | [milestones/m16/real-environment-evidence.md](milestones/m16/real-environment-evidence.md)                                   | M16.3 REAL LOCAL HTTP evidence and limitations                                                                   | PASS WITH LIMITATIONS                    |
 | [milestones/m16/formal-closure-m16.md](milestones/m16/formal-closure-m16.md)                                                 | Formal M16 closure record for Architecture Intelligence runtime integration hardening                            | COMPLETE / CLOSED                        |
-| [milestones/M17-architecture-intelligence-stable-identity-foundation.md](milestones/M17-architecture-intelligence-stable-identity-foundation.md)       | Proposed internal stable identity foundation for Architecture Intelligence snapshot correlation                  | PROPOSED / NOT STARTED                   |
+| [milestones/M17-architecture-intelligence-stable-identity-foundation.md](milestones/M17-architecture-intelligence-stable-identity-foundation.md)       | Closed internal scoped identity foundation for Architecture Intelligence snapshot correlation                    | COMPLETE / CLOSED                        |
+| [milestones/m17/formal-closure-m17.md](milestones/m17/formal-closure-m17.md)                                                 | Formal M17 closure record for scoped internal identity policy                                                    | PASS WITH LIMITATIONS                    |
 | [benchmarks/](benchmarks/)                                                                                                   | Small aggregate M6 synthetic and M7 real-environment benchmark summaries                                         | Benchmark evidence                       |
 | [diagrams/internal-graph-model.md](diagrams/internal-graph-model.md)                                                         | Mermaid diagrams supporting RFC 0001                                                                             | Draft supporting diagrams                |
 | [adr/0001-fork-strategy.md](adr/0001-fork-strategy.md)                                                                       | Decision to begin as a conservative fork                                                                         | Accepted ADR                             |
@@ -62,6 +63,7 @@ before CyberDraw-specific features are introduced.
 | [adr/0005-m13-safe-default-scope.md](adr/0005-m13-safe-default-scope.md)                                                     | M13 decision to default to active page/layer scope and never silently widen to document scope                    | Accepted ADR                             |
 | [adr/0006-websocket-active-document-registry.md](adr/0006-websocket-active-document-registry.md)                             | Decision that each WebSocket connection owns exactly one active document at a time                               | Accepted ADR                             |
 | [adr/0007-public-scope-coverage-and-dto-versioning-for-m14.md](adr/0007-public-scope-coverage-and-dto-versioning-for-m14.md) | Public scope, coverage and DTO versioning decision for M14                                                       | Accepted for M14 design                  |
+| [adr/0008-architecture-intelligence-scoped-identity-policy.md](adr/0008-architecture-intelligence-scoped-identity-policy.md)  | Scoped internal identity policy for Architecture Intelligence snapshot correlation                               | Accepted ADR                             |
 
 Related root documents:
 
@@ -137,10 +139,12 @@ Related root documents:
     `milestones/m16/formal-closure-m16.md` for the closed Architecture
     Intelligence runtime integration hardening milestone, compatibility matrix,
     REAL LOCAL HTTP evidence and residual limitations.
-33. `milestones/M17-architecture-intelligence-stable-identity-foundation.md`
-    for the proposed internal stable identity foundation milestone. M17 is not
-    implementation-started and does not add persistence, semantic diff,
-    mutation, public graph identity or public schemas.
+33. `milestones/M17-architecture-intelligence-stable-identity-foundation.md`,
+    `milestones/m17/formal-closure-m17.md` and
+    `adr/0008-architecture-intelligence-scoped-identity-policy.md` for the
+    closed internal scoped identity foundation milestone. M17 does not add
+    persistence, semantic diff, mutation, public graph identity or public
+    schemas.
 34. `adr/` when a lasting decision needs historical context.
 
 ## Question Map
@@ -181,7 +185,7 @@ Related root documents:
 | Which limits and reason codes are implemented for M14?          | `milestones/m14/limits-model.md`, `milestones/m14/reason-code-registry.md`                                                                                |
 | Is M15 prompt-to-diagram closed?                                | `milestones/M15-prompt-to-diagram-mvp.md`, `milestones/m15/reproducible-demo-m15.3.md`, `../../TOOLS.md`                                                  |
 | Is M16 Architecture Intelligence runtime integration hardening closed? | `milestones/M16-architecture-intelligence-runtime-integration-hardening.md`, `milestones/m16/formal-closure-m16.md`, `milestones/m16/compatibility-matrix.md`, `milestones/m16/real-environment-evidence.md` |
-| What is the proposed M17 stable identity foundation?            | `milestones/M17-architecture-intelligence-stable-identity-foundation.md`, `adr/0003-internal-graph-model-architecture.md`, `adr/0004-runtime-snapshot-scaling-strategy.md` |
+| What scoped identity policy did M17 accept?                     | `milestones/M17-architecture-intelligence-stable-identity-foundation.md`, `milestones/m17/formal-closure-m17.md`, `adr/0008-architecture-intelligence-scoped-identity-policy.md` |
 | What internal graph model architecture was accepted?            | `adr/0003-internal-graph-model-architecture.md`                                                                                                           |
 | Where are lasting decisions recorded?                           | `adr/`                                                                                                                                                    |
 | What third-party assets need review?                            | `../../THIRD_PARTY_NOTICES.md`                                                                                                                            |

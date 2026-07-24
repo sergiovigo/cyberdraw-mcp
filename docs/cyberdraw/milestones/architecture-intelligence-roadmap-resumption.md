@@ -12,12 +12,12 @@ The recommendation in this document was accepted as M16. M16 is closed by
 `docs/cyberdraw/milestones/m16/formal-closure-m16.md` with PASS WITH
 LIMITATIONS.
 
-Post-M16 roadmap note: the next proposed Architecture Intelligence milestone is
-`docs/cyberdraw/milestones/M17-architecture-intelligence-stable-identity-foundation.md`.
-M17 is PROPOSED / NOT STARTED and covers internal snapshot-correlation identity
-foundation work only. Semantic diff, persistence, mutation execution,
-approval, rollback, transactions, public graph identity and incremental analysis
-remain after identity and are not numbered here.
+Post-M16 roadmap note: M17 is now closed by
+`docs/cyberdraw/milestones/m17/formal-closure-m17.md` with PASS WITH
+LIMITATIONS. ADR 0008 accepts a scoped internal identity policy only. Semantic
+diff, persistence, mutation execution, approval, rollback, transactions, public
+graph identity and incremental analysis remain after identity and are not
+numbered here.
 
 ## Context
 
@@ -315,9 +315,9 @@ M16 closed the runtime integration hardening risk. The next roadmap proposal is:
 
 M17 - Architecture Intelligence Stable Identity Foundation
 
-M17 should define and evidence an internal identity policy for correlating graph
-entities between snapshots within explicit limits. It should not implement
-semantic diff, persistence, mutation execution, approval, rollback,
-transactions, public graph identity, public graph schema, public MCP tools or
-incremental analysis. Those domains remain future work after the identity
-foundation is decided.
+M17 closed as PASS WITH LIMITATIONS. It defines and evidences a scoped internal
+identity policy for correlating graph entities between snapshots within
+explicit limits. It did not implement semantic diff, persistence, mutation
+execution, approval, rollback, transactions, public graph identity, public graph
+schema, public MCP tools or incremental analysis. Those domains remain future
+work after the scoped identity foundation.
