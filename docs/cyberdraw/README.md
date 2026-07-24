@@ -52,6 +52,7 @@ before CyberDraw-specific features are introduced.
 | [milestones/m16/compatibility-matrix.md](milestones/m16/compatibility-matrix.md)                                             | Final M16 compatibility matrix across runtime contract, scopes, stale/revision, errors and real evidence         | Closure evidence                         |
 | [milestones/m16/real-environment-evidence.md](milestones/m16/real-environment-evidence.md)                                   | M16.3 REAL LOCAL HTTP evidence and limitations                                                                   | PASS WITH LIMITATIONS                    |
 | [milestones/m16/formal-closure-m16.md](milestones/m16/formal-closure-m16.md)                                                 | Formal M16 closure record for Architecture Intelligence runtime integration hardening                            | COMPLETE / CLOSED                        |
+| [milestones/M17-architecture-intelligence-stable-identity-foundation.md](milestones/M17-architecture-intelligence-stable-identity-foundation.md)       | Proposed internal stable identity foundation for Architecture Intelligence snapshot correlation                  | PROPOSED / NOT STARTED                   |
 | [benchmarks/](benchmarks/)                                                                                                   | Small aggregate M6 synthetic and M7 real-environment benchmark summaries                                         | Benchmark evidence                       |
 | [diagrams/internal-graph-model.md](diagrams/internal-graph-model.md)                                                         | Mermaid diagrams supporting RFC 0001                                                                             | Draft supporting diagrams                |
 | [adr/0001-fork-strategy.md](adr/0001-fork-strategy.md)                                                                       | Decision to begin as a conservative fork                                                                         | Accepted ADR                             |
@@ -136,7 +137,11 @@ Related root documents:
     `milestones/m16/formal-closure-m16.md` for the closed Architecture
     Intelligence runtime integration hardening milestone, compatibility matrix,
     REAL LOCAL HTTP evidence and residual limitations.
-33. `adr/` when a lasting decision needs historical context.
+33. `milestones/M17-architecture-intelligence-stable-identity-foundation.md`
+    for the proposed internal stable identity foundation milestone. M17 is not
+    implementation-started and does not add persistence, semantic diff,
+    mutation, public graph identity or public schemas.
+34. `adr/` when a lasting decision needs historical context.
 
 ## Question Map
 
@@ -176,6 +181,7 @@ Related root documents:
 | Which limits and reason codes are implemented for M14?          | `milestones/m14/limits-model.md`, `milestones/m14/reason-code-registry.md`                                                                                |
 | Is M15 prompt-to-diagram closed?                                | `milestones/M15-prompt-to-diagram-mvp.md`, `milestones/m15/reproducible-demo-m15.3.md`, `../../TOOLS.md`                                                  |
 | Is M16 Architecture Intelligence runtime integration hardening closed? | `milestones/M16-architecture-intelligence-runtime-integration-hardening.md`, `milestones/m16/formal-closure-m16.md`, `milestones/m16/compatibility-matrix.md`, `milestones/m16/real-environment-evidence.md` |
+| What is the proposed M17 stable identity foundation?            | `milestones/M17-architecture-intelligence-stable-identity-foundation.md`, `adr/0003-internal-graph-model-architecture.md`, `adr/0004-runtime-snapshot-scaling-strategy.md` |
 | What internal graph model architecture was accepted?            | `adr/0003-internal-graph-model-architecture.md`                                                                                                           |
 | Where are lasting decisions recorded?                           | `adr/`                                                                                                                                                    |
 | What third-party assets need review?                            | `../../THIRD_PARTY_NOTICES.md`                                                                                                                            |

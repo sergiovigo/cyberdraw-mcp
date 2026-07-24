@@ -170,8 +170,16 @@ baseline. It is not an implementation plan for M0 itself.
   timeout real-plugin fault injection as explicit limitations. It adds no public
   MCP tool, public contract change, mutation executor, persistence, semantic
   diff, rollback or stable global identity.
+- M17 planning update:
+  `docs/cyberdraw/milestones/M17-architecture-intelligence-stable-identity-foundation.md`
+  formalizes the next proposed Architecture Intelligence milestone as stable
+  identity foundation work. M17 is PROPOSED / NOT STARTED and is limited to
+  defining, testing and evidencing an internal snapshot-correlation identity
+  policy. It does not add public graph identity, stable global identity,
+  persistence keys, mutation identifiers, semantic diff contracts, public MCP
+  tools or public schemas.
 - Effort: M.
-- Suggested milestone: M16 (closed with limitations).
+- Suggested milestone: M17 (proposed stable identity foundation).
 
 ### M0-P1-001: Complete third-party license inventory
 
