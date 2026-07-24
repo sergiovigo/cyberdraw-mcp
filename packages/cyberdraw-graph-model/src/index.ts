@@ -37,10 +37,24 @@ export {
   STRUCTURAL_CHANGE_PLAN_VALIDATION_VERSION,
 } from "./structural-change-plan-validation.js";
 export {
+  createPrivateIdentitySignature,
+  matchStableIdentity,
   provisionalDiagramId,
   provisionalElementId,
   provisionalLayerId,
   provisionalPageId,
+} from "./identity.js";
+export type {
+  IdentityCandidateMatch,
+  IdentityConflictCode,
+  IdentityMatchOutcome,
+  IdentityMatchReasonCode,
+  IdentityMatchResult,
+  PrivateIdentitySignature,
+  PrivateIdentitySignatureInput,
+  PrivateIdentitySignatureOptions,
+  StableIdentityEntityType,
+  StableIdentityEvidence,
 } from "./identity.js";
 export { normalizeDiagram } from "./normalize.js";
 export {
