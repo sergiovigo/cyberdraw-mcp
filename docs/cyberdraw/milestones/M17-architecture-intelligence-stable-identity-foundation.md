@@ -12,6 +12,10 @@ does not create ADR 0008.
 M17.1 pure model and fixture evidence is complete. Current evidence is recorded
 in `docs/cyberdraw/milestones/m17/pure-identity-model-and-fixtures.md`.
 
+M17.2 runtime snapshot evidence is complete with limitations. Current evidence
+is recorded in
+`docs/cyberdraw/milestones/m17/runtime-snapshot-identity-evidence.md`.
+
 M17 remains open. It does not add public MCP tools, public schemas,
 persistence, semantic diff, mutation execution, approval, rollback or stable
 global identity.
@@ -234,6 +238,8 @@ Expected evidence:
 
 ### M17.2 - Runtime Snapshot Identity Evidence
 
+Status: COMPLETE WITH LIMITATIONS.
+
 Use real runtime snapshots to test whether the selected policy behaves honestly
 against draw.io-edited diagrams.
 
@@ -244,6 +250,14 @@ Expected evidence:
 - real layer/page movement where practical;
 - import or clone behavior if reproducible;
 - clear limitation record for cases the harness cannot prove.
+- evidence in
+  `docs/cyberdraw/milestones/m17/runtime-snapshot-identity-evidence.md`.
+
+M17.2 proved the narrow REAL LOCAL HTTP identity subset for repeated snapshots,
+geometry moves, label edits, layer moves, layer renames, unchanged edges, edge
+endpoint changes, delete/recreate no-match behavior and scoped external
+reference evidence. It did not prove stable identity across runtime reload,
+import/reimport, true page moves or arbitrary clone/copy operations.
 
 ### M17.3 - ADR Decision And Closure
 
