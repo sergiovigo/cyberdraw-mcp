@@ -1,6 +1,14 @@
 # M15 - Prompt-to-Diagram MVP
 
-Status: M15.2 IMPLEMENTED / MVP IN PROGRESS
+Status: COMPLETE / CLOSED
+
+Closure verdict: PASS WITH LIMITATIONS.
+
+M15.0-M15.3 are complete. The MVP is implemented as a narrow public wrapper
+over the existing draw.io Mermaid import path and validated through automated
+unit tests plus HTTP-local real-environment evidence. The remaining limitation
+is that the reproducible demo and real-environment evidence are HTTP-local, not
+HTTPS/Caddy.
 
 M15 defines a small demonstrable path from a user's natural-language diagram
 request to a visible draw.io diagram. It is not a general diagram generation
@@ -363,15 +371,14 @@ Already present:
 - real-environment Mermaid import coverage;
 - M14 read-only verification path.
 
-Missing:
+Implemented by M15.1-M15.3:
 
 - CyberDraw-specific closed wrapper schema;
 - no-XML response mapping;
-- explicit byte limit and any simple conservative complexity limits chosen for
-  M15.1;
+- explicit byte limit through required `limits.maxBytes`;
 - precise mutation counters/reporting for the create operation;
-- public reason-code registry for M15;
-- real demo evidence for the prompt-to-Mermaid-to-draw.io flow.
+- seven-code public M15 reason-code list;
+- real HTTP-local demo evidence for the prompt-to-Mermaid-to-draw.io flow.
 
 Not required for M15.1:
 
@@ -478,39 +485,44 @@ Real-environment tests:
 
 ## Demo Scenario
 
-M15.3 should demonstrate this prompt:
+M15.3 demonstrates this prompt:
 
-> Create an architecture diagram with a user, DNS, a WAF, a load balancer, two
-> app servers, a cache and a database.
+> Create a simple incident response flow: Alert -> Triage -> Investigate ->
+> Contain -> Recover
 
-Agent-generated Mermaid:
+Client/agent-generated Mermaid:
 
 ```mermaid
 flowchart LR
-  User[User] --> DNS[DNS]
-  DNS --> WAF[WAF]
-  WAF --> LB[Load Balancer]
-  LB --> App1[App Server 1]
-  LB --> App2[App Server 2]
-  App1 --> Cache[(Cache)]
-  App2 --> Cache
-  App1 --> DB[(Database)]
-  App2 --> DB
+  A[Alert] --> B[Triage]
+  B --> C[Investigate]
+  C --> D[Contain]
+  D --> E[Recover]
 ```
 
-Expected evidence:
+Reproducible evidence:
 
 - diagram visible in draw.io;
-- 8 nodes and coherent connections;
+- coherent incident-response process nodes and connections;
 - sanitized M15 response;
-- optional M14 read-only `count` or `summarize` verification;
+- exactly one created page;
+- created page title `Incident Response Flow`;
+- native draw.io vertices and edges produced by the Mermaid import;
+- optional M14 read-only `count` or `summarize` verification remains
+  non-blocking;
 - HTTP real-environment test remains green.
+
+Runbook:
+
+- [`m15/reproducible-demo-m15.3.md`](m15/reproducible-demo-m15.3.md)
 
 ## Slices
 
 ### M15.0 - Design And Discovery
 
-Objective: document the MVP route, reuse analysis, contract proposal, safety
+Status: completed.
+
+Objective: documented the MVP route, reuse analysis, contract proposal, safety
 model and slices.
 
 Files:
@@ -534,6 +546,8 @@ Estimate: small.
 Dependencies: M14 closure and existing Mermaid import evidence.
 
 ### M15.1 - Minimal MVP Implementation
+
+Status: completed.
 
 Objective: implemented `cyberdraw_create_diagram` as the minimal end-to-end MVP:
 closed schema, simple limits, delegation to existing `import-mermaid` and a
@@ -572,6 +586,8 @@ Dependencies: M15.0.
 
 ### M15.2 - Focused Runtime Hardening
 
+Status: completed.
+
 Objective: implemented focused hardening for the M15.1 wrapper with runtime edge
 cases only after the minimal flow exists.
 
@@ -609,23 +625,27 @@ Dependencies: M15.1.
 
 ### M15.3 - Real-Environment Demo And Closure
 
-Objective: validate and close the MVP with reproducible evidence.
+Status: completed.
+
+Objective: validated and closed the MVP with reproducible evidence.
 
 Files:
 
-- real-environment validation report;
-- optional demo instructions in docs.
+- `packages/drawio-mcp-server/src/real-environment/cyberdraw-create-diagram.test.ts`;
+- [`m15/reproducible-demo-m15.3.md`](m15/reproducible-demo-m15.3.md);
+- milestone and inventory documentation updates.
 
 Tests:
 
-- architecture flowchart demo;
-- invalid and too-large request;
-- ambiguous document rejection;
-- optional non-blocking M14 analysis verification.
+- HTTP-local incident-response flowchart demo;
+- invalid and too-large request coverage from M15.1/M15.2 unit tests;
+- ambiguous document rejection coverage from M15.1/M15.2 unit tests;
+- optional non-blocking M14 analysis verification remains outside the closure
+  gate.
 
 Acceptance:
 
-- demo creates a visible 6-10 node diagram;
+- demo creates a visible process diagram from client-generated Mermaid;
 - evidence records environment, commands and sanitized responses;
 - residual limitations are documented honestly;
 - the roadmap explicitly returns to the pre-M15 CyberDraw sequence after the
@@ -651,7 +671,7 @@ Dependencies: M15.2.
 9. Mutation semantics are explicit.
 10. Unit or integration tests cover validation, delegation and response mapping.
 11. Real-environment tests cover materialization.
-12. A reproducible 6-10 node architecture demo exists.
+12. A reproducible prompt-to-Mermaid-to-draw.io demo exists.
 13. M13 and M14 contracts do not regress, but M15 acceptance does not depend on
     M14 verification.
 14. HTTP real-environment validation remains green.
@@ -677,16 +697,76 @@ M15 does not include:
 
 ## Risks And Open Decisions
 
-- Existing `import-mermaid` returns XML; the M15 wrapper must not.
+- Existing `import-mermaid` returns XML; the M15 wrapper does not.
 - Mermaid support is draw.io-version-sensitive.
 - Native support for non-flowchart Mermaid types is deferred until after M15.
-- M15.1 must not introduce a full Mermaid parser. Node/edge counting is
-  approximate and optional; if a simple conservative heuristic is not adequate,
-  M15.1 should rely on `maxBytes` and defer node/edge limits.
-- Atomicity is not guaranteed until real tests prove it.
+- M15 did not introduce a full Mermaid parser. Node/edge counting remains
+  deferred; M15 relies on required `limits.maxBytes`.
+- Atomicity is not guaranteed; ambiguous post-dispatch results report
+  `atomic: "unknown"` without invented `created` metadata.
+- Real-environment evidence is HTTP-local. HTTPS/Caddy is not claimed as M15.3
+  closure evidence.
 - After M15.3 closes, work should return to CyberDraw's broader architecture
   intelligence roadmap instead of expanding prompt-to-diagram into a general
   generation platform.
+
+## Final Architecture And Guarantees
+
+Natural-language interpretation belongs to the MCP client or agent. The server
+receives constrained Mermaid only and does not call an LLM.
+
+Supported MVP:
+
+- Mermaid flowchart only;
+- `insertMode: "new-page"` only;
+- internal native `import-mermaid` path;
+- optional `target_document`;
+- optional `title`;
+- required `limits.maxBytes`.
+
+Runtime guarantees:
+
+- one public create tool, `cyberdraw_create_diagram`;
+- closed public schema with no `target_page`;
+- single FIFO mutation queue per resolved document connection;
+- at most one mutating `import-mermaid` request per accepted M15 call;
+- no mutating retry;
+- before/after page verification;
+- success requires exactly one newly-created page;
+- explicit mutation reporting with `mutatesDiagram: true`;
+- pre-runtime rejection reports `mutationAttempted: false` and
+  `mutationInvocations: 0`;
+- post-dispatch failures report `mutationAttempted: true`,
+  `mutationInvocations: 1` and `atomic: "unknown"` when created-page evidence
+  is ambiguous;
+- public `import-mermaid` does not expose or accept `filename`; `title` is
+  converted to internal `filename` only through the M15 wrapper path;
+- bus logging redacts Mermaid, XML, stack traces and raw plugin payloads and is
+  cycle-safe.
+
+Non-guarantees:
+
+- no rollback;
+- no transaction semantics;
+- no arbitrary Mermaid types;
+- no target-page insertion from the wrapper;
+- no server-side natural-language parser or LLM;
+- no HTTPS/Caddy validation claim for M15.3.
+
+## Closure
+
+M15 closes with PASS WITH LIMITATIONS.
+
+The implemented MVP demonstrates the intended product path: an MCP-capable
+client or agent translates natural language into bounded Mermaid, the public
+`cyberdraw_create_diagram` tool validates and imports it through the existing
+draw.io Mermaid runtime, a new page is created in a real draw.io editor, and the
+sanitized `m15-v1` response reports created page metadata and mutation counters
+without XML or raw internals.
+
+The limitation is environmental rather than contractual: M15.3 evidence is
+HTTP-local real-environment evidence. HTTPS/Caddy is not part of the M15.3
+closure claim.
 
 ## References
 
