@@ -2,16 +2,19 @@
 
 ## Status
 
-PROPOSED / NOT STARTED for implementation.
+IN PROGRESS.
 
-M17.0 discovery is IN PROGRESS. Current evidence is recorded in
+M17.0 discovery is complete. Current evidence is recorded in
 `docs/cyberdraw/milestones/m17/identity-discovery.md`. That evidence proposes a
 candidate policy for M17.1, but it does not accept a durable identity policy and
 does not create ADR 0008.
 
-This milestone is planning-only until implementation is explicitly started. It
-does not add runtime behavior, public MCP tools, public schemas, persistence,
-semantic diff, mutation execution, approval, rollback or stable global identity.
+M17.1 pure model and fixture evidence is complete. Current evidence is recorded
+in `docs/cyberdraw/milestones/m17/pure-identity-model-and-fixtures.md`.
+
+M17 remains open. It does not add public MCP tools, public schemas,
+persistence, semantic diff, mutation execution, approval, rollback or stable
+global identity.
 
 ## Objective
 
@@ -199,6 +202,8 @@ must not be exposed as a public stable graph schema.
 
 ### M17.0 - Identity Discovery And Candidate Policy
 
+Status: COMPLETE.
+
 Audit the current provisional policy, collect known identity failure modes and
 document candidate policies with explicit tradeoffs.
 
@@ -213,6 +218,8 @@ Deliverables:
 
 ### M17.1 - Pure Identity Model And Fixtures
 
+Status: COMPLETE for pure package evidence.
+
 Implement only if M17.0 is accepted. Add pure deterministic identity correlation
 model and fixtures in `cyberdraw-graph-model`.
 
@@ -222,6 +229,8 @@ Expected evidence:
 - reordered input determinism;
 - moved, cloned, duplicate, missing and rewritten-ID cases;
 - explicit ambiguous/no-match behavior.
+- evidence in
+  `docs/cyberdraw/milestones/m17/pure-identity-model-and-fixtures.md`.
 
 ### M17.2 - Runtime Snapshot Identity Evidence
 
