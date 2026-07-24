@@ -2,7 +2,12 @@
 
 ## Status
 
-PROPOSED / NOT STARTED.
+PROPOSED / NOT STARTED for implementation.
+
+M17.0 discovery is IN PROGRESS. Current evidence is recorded in
+`docs/cyberdraw/milestones/m17/identity-discovery.md`. That evidence proposes a
+candidate policy for M17.1, but it does not accept a durable identity policy and
+does not create ADR 0008.
 
 This milestone is planning-only until implementation is explicitly started. It
 does not add runtime behavior, public MCP tools, public schemas, persistence,
@@ -203,6 +208,8 @@ Deliverables:
 - identity domain definition;
 - initial fixture plan;
 - decision on whether an ADR is likely needed.
+- discovery evidence in
+  `docs/cyberdraw/milestones/m17/identity-discovery.md`.
 
 ### M17.1 - Pure Identity Model And Fixtures
 
