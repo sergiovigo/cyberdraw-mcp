@@ -411,7 +411,7 @@ _Returns_: Import result with success status, message, converted mode, optional 
 
 ### `cyberdraw_create_diagram`
 
-Create a bounded draw.io flowchart from client-generated Mermaid. This M15.1
+Create a bounded draw.io flowchart from client-generated Mermaid. This M15
 wrapper validates a narrow request, creates a new page through the existing
 native Mermaid import path, and returns sanitized `m15-v1` metadata without XML.
 
@@ -430,4 +430,5 @@ _Parameters_:
 _Returns_: `m15-v1` response with `outcome`, created page metadata on success,
 structured reason codes on rejection/failure, and explicit mutation safety
 counters. The response never includes XML, raw cells, raw graph data, snapshots
-or stack traces.
+or stack traces. Runtime hardening maps ambiguous post-import verification to
+`atomic: "unknown"` and never retries the mutating import.

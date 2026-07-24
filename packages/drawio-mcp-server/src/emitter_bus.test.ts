@@ -90,4 +90,175 @@ describe("create_bus", () => {
 
     expect(mockReply).not.toHaveBeenCalled();
   });
+
+  it("redacts Mermaid source from request logs without changing emitted payload", () => {
+    const entries: unknown[][] = [];
+    const redactingBus = create_bus({
+      debug: (...args: unknown[]) => entries.push(args),
+      log: () => {},
+    })(emitter);
+    const mermaid = "flowchart LR\n  Secret --> Database";
+    const request = {
+      __event: "import-mermaid",
+      mermaid_source: mermaid,
+      mode: "native",
+      insert_mode: "new-page",
+    };
+    const emitSpy = jest.spyOn(emitter, "emit");
+
+    redactingBus.send_to_extension(request);
+
+    expect(emitSpy).toHaveBeenCalledWith(bus_request_stream, request);
+    const serializedLogs = JSON.stringify(entries);
+    expect(serializedLogs).toContain('"mermaid_source":"[REDACTED]"');
+    expect(serializedLogs).toContain(
+      `"mermaid_source_bytes":${Buffer.byteLength(mermaid, "utf8")}`,
+    );
+    expect(serializedLogs).toContain('"mode":"native"');
+    expect(serializedLogs).not.toContain("Secret --> Database");
+  });
+
+  it("redacts nested raw payloads and XML from bus logs", () => {
+    const entries: unknown[][] = [];
+    const redactingBus = create_bus({
+      debug: (...args: unknown[]) => entries.push(args),
+      log: () => {},
+    })(emitter);
+
+    redactingBus.send_to_extension({
+      __event: "test",
+      error: {
+        stack: "Error: failed at /home/user/project/file.ts",
+        xml: "<mxGraphModel><mxCell /></mxGraphModel>",
+        rawResponse: { value: "<mxCell />" },
+      },
+    });
+
+    const serializedLogs = JSON.stringify(entries);
+    expect(serializedLogs).not.toContain("mxGraphModel");
+    expect(serializedLogs).not.toContain("mxCell");
+    expect(serializedLogs).not.toContain("/home/user/project");
+    expect(serializedLogs).not.toContain("rawResponse");
+  });
+
+  it("handles circular objects without blocking dispatch or mutating payload", () => {
+    const entries: unknown[][] = [];
+    const redactingBus = create_bus({
+      debug: (...args: unknown[]) => entries.push(args),
+      log: () => {},
+    })(emitter);
+    const payload: Record<string, unknown> = { __event: "test" };
+    payload.self = payload;
+    const originalKeys = Object.keys(payload);
+    const emitSpy = jest.spyOn(emitter, "emit");
+
+    expect(() => redactingBus.send_to_extension(payload)).not.toThrow();
+
+    expect(emitSpy).toHaveBeenCalledWith(bus_request_stream, payload);
+    expect(payload.self).toBe(payload);
+    expect(Object.keys(payload)).toEqual(originalKeys);
+    expect(JSON.stringify(entries)).toContain('"self":"[CIRCULAR]"');
+  });
+
+  it("handles circular arrays in payloads", () => {
+    const entries: unknown[][] = [];
+    const redactingBus = create_bus({
+      debug: (...args: unknown[]) => entries.push(args),
+      log: () => {},
+    })(emitter);
+    const circularArray: unknown[] = [];
+    circularArray.push(circularArray);
+    const payload = {
+      __event: "test",
+      values: circularArray,
+    };
+    const emitSpy = jest.spyOn(emitter, "emit");
+
+    expect(() => redactingBus.send_to_extension(payload)).not.toThrow();
+
+    expect(emitSpy).toHaveBeenCalledWith(bus_request_stream, payload);
+    expect(circularArray[0]).toBe(circularArray);
+    expect(JSON.stringify(entries)).toContain('"values":["[CIRCULAR]"]');
+  });
+
+  it("handles nested circular payloads while redacting Mermaid source", () => {
+    const entries: unknown[][] = [];
+    const redactingBus = create_bus({
+      debug: (...args: unknown[]) => entries.push(args),
+      log: () => {},
+    })(emitter);
+    const nested: Record<string, unknown> = { name: "nested" };
+    nested.parent = { child: nested };
+    const payload = {
+      __event: "import-mermaid",
+      mermaid_source: "flowchart LR\n  Secret --> Database",
+      nested,
+    };
+    const emitSpy = jest.spyOn(emitter, "emit");
+
+    expect(() => redactingBus.send_to_extension(payload)).not.toThrow();
+
+    expect(emitSpy).toHaveBeenCalledWith(bus_request_stream, payload);
+    const serializedLogs = JSON.stringify(entries);
+    expect(serializedLogs).toContain('"mermaid_source":"[REDACTED]"');
+    expect(serializedLogs).toContain('"child":"[CIRCULAR]"');
+    expect(serializedLogs).not.toContain("Secret --> Database");
+  });
+
+  it("redacts Error objects without leaking stack or sensitive message content", () => {
+    const entries: unknown[][] = [];
+    const redactingBus = create_bus({
+      debug: (...args: unknown[]) => entries.push(args),
+      log: () => {},
+    })(emitter);
+    const payload = {
+      __event: "test",
+      error: new Error(
+        "Error: failed at /home/user/project/file.ts <mxGraphModel />",
+      ),
+    };
+
+    expect(() => redactingBus.send_to_extension(payload)).not.toThrow();
+
+    const serializedLogs = JSON.stringify(entries);
+    expect(serializedLogs).toContain('"name":"Error"');
+    expect(serializedLogs).toContain('"message":"[REDACTED]"');
+    expect(serializedLogs).not.toContain("stack");
+    expect(serializedLogs).not.toContain("/home/user/project");
+    expect(serializedLogs).not.toContain("mxGraphModel");
+  });
+
+  it("continues dispatch if payload redaction throws unexpectedly", () => {
+    const redactingBus = create_bus({
+      debug: () => {},
+      log: () => {},
+    })(emitter);
+    const payload: Record<string, unknown> = { __event: "test" };
+    Object.defineProperty(payload, "explosive", {
+      enumerable: true,
+      get() {
+        throw new Error("redaction failed");
+      },
+    });
+    const emitSpy = jest.spyOn(emitter, "emit");
+
+    expect(() => redactingBus.send_to_extension(payload)).not.toThrow();
+
+    expect(emitSpy).toHaveBeenCalledWith(bus_request_stream, payload);
+  });
+
+  it("continues dispatch if the logger throws", () => {
+    const redactingBus = create_bus({
+      debug: () => {
+        throw new Error("logger failed");
+      },
+      log: () => {},
+    })(emitter);
+    const payload = { __event: "test", message: "safe metadata" };
+    const emitSpy = jest.spyOn(emitter, "emit");
+
+    expect(() => redactingBus.send_to_extension(payload)).not.toThrow();
+
+    expect(emitSpy).toHaveBeenCalledWith(bus_request_stream, payload);
+  });
 });

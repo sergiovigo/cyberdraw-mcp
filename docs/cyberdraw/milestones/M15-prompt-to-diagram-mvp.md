@@ -1,6 +1,6 @@
 # M15 - Prompt-to-Diagram MVP
 
-Status: M15.1 IMPLEMENTED / MVP IN PROGRESS
+Status: M15.2 IMPLEMENTED / MVP IN PROGRESS
 
 M15 defines a small demonstrable path from a user's natural-language diagram
 request to a visible draw.io diagram. It is not a general diagram generation
@@ -407,6 +407,11 @@ Atomicity should be described honestly:
 - if draw.io partially mutates before reporting an error, M15.1 must report
   `outcome: "failed"` or `outcome: "unknown"` with `atomic: "unknown"` unless
   real tests prove stronger behavior.
+- M15.2 keeps this contract and hardens the runtime mapping: failures before
+  the import request is dispatched report `mutationAttempted: false`; failures
+  after the import request is dispatched report `mutationAttempted: true`,
+  `mutationInvocations: 1` and `atomic: "unknown"` when the created page cannot
+  be verified.
 
 ## Error Model
 
@@ -420,6 +425,22 @@ Outcomes:
 Errors must be deterministic and sanitized. They must not include stack traces,
 XML, Mermaid parser internals beyond bounded messages, local paths, hostnames,
 raw browser exceptions or provider information.
+
+M15.2 classifies runtime failures internally without expanding the public reason
+code registry:
+
+- validation and routing failures are rejected before runtime;
+- initial page inventory failures occur before mutation;
+- Mermaid render and plugin import failures occur after one mutating import
+  invocation;
+- post-import page verification failures are ambiguous and do not invent
+  `created` metadata;
+- reply timeouts are mapped to the existing `timeout` reason code;
+- unexpected internal failures are collapsed to sanitized public reason codes.
+
+The wrapper does not retry mutating imports. It uses the existing per-document
+FIFO queue and sends at most one `import-mermaid` mutation request per accepted
+M15 call.
 
 ## Testing Strategy
 
@@ -551,27 +572,33 @@ Dependencies: M15.0.
 
 ### M15.2 - Focused Runtime Hardening
 
-Objective: harden the M15.1 wrapper with focused runtime edge cases only after
-the minimal flow exists.
+Objective: implemented focused hardening for the M15.1 wrapper with runtime edge
+cases only after the minimal flow exists.
 
 Probable files:
 
 - M15 wrapper tool;
-- focused helper for sanitized import errors if needed;
-- small real-environment test additions.
+- focused helpers for sanitized import errors, reply classification and page
+  verification.
 
 Tests:
 
 - draw.io Mermaid render failure mapping;
 - import failure mapping;
-- timeout mapping if exposed by the existing runtime path;
-- no XML, stack trace or raw browser exception leakage.
+- malformed plugin reply mapping;
+- malformed initial and post-import page inventory mapping;
+- timeout mapping and listener cleanup;
+- no retry after mutating import rejection;
+- no XML, stack trace, local path or raw browser exception leakage.
 
 Acceptance:
 
 - no broadening beyond M15.1;
 - no new Mermaid types or insertion modes;
 - failure responses remain sanitized and deterministic;
+- ambiguous post-import results do not invent `created` metadata;
+- mutation reporting distinguishes pre-dispatch failure from post-dispatch
+  ambiguity;
 - HTTP real-environment suite remains green.
 
 Risk: draw.io Mermaid conversion can be version-sensitive.
