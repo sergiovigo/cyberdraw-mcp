@@ -9,7 +9,10 @@ M15. It does not implement runtime behavior, add MCP tools, change public
 contracts or reopen M13, M14 or M15.
 
 M16.1/M16.2 evidence is being recorded in
-[`m16/compatibility-matrix.md`](m16/compatibility-matrix.md). M16 is not closed.
+[`m16/compatibility-matrix.md`](m16/compatibility-matrix.md). M16.3
+real-environment evidence is recorded in
+[`m16/real-environment-evidence.md`](m16/real-environment-evidence.md). M16 is
+not closed.
 
 ## Objective
 
@@ -106,6 +109,9 @@ M16 should close that risk without expanding the product surface.
 The current in-progress matrix is recorded in
 [`m16/compatibility-matrix.md`](m16/compatibility-matrix.md). It maps each case
 to the implementation path and exact automated or real-environment evidence.
+M16.3's real-environment subset is recorded separately in
+[`m16/real-environment-evidence.md`](m16/real-environment-evidence.md) so REAL
+LOCAL HTTP evidence is not mixed with unit/integration evidence.
 
 ## Real-Environment Evidence Required
 
@@ -151,6 +157,9 @@ Current M16 gap handling:
 - Fixed a runtime error sanitization defect where a plugin `success:false`
   message could carry XML, stack or local path detail into Architecture
   Intelligence callers.
+- Recorded M16.3 REAL LOCAL HTTP evidence for visible/background pages, scoped
+  runtime execution, external-reference expansion, public M13/M14 read-only
+  behavior and public negative-path sanitization.
 - Kept public M13/M14/M15 contracts unchanged.
 
 ## Exit Criteria
