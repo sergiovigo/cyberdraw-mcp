@@ -12,6 +12,13 @@ The recommendation in this document was accepted as M16. M16 is closed by
 `docs/cyberdraw/milestones/m16/formal-closure-m16.md` with PASS WITH
 LIMITATIONS.
 
+Post-M16 roadmap note: the next proposed Architecture Intelligence milestone is
+`docs/cyberdraw/milestones/M17-architecture-intelligence-stable-identity-foundation.md`.
+M17 is PROPOSED / NOT STARTED and covers internal snapshot-correlation identity
+foundation work only. Semantic diff, persistence, mutation execution,
+approval, rollback, transactions, public graph identity and incremental analysis
+remain after identity and are not numbered here.
+
 ## Context
 
 M15 was a deliberately narrow product detour: it delivered a demonstrable
@@ -301,3 +308,16 @@ stable identity, persistence, semantic diff, mutation execution, rollback or new
 public APIs. Its main value is to close the documented Architecture Intelligence
 Foundation runtime integration risk with consolidated compatibility evidence and
 minimal defect fixes only when demonstrated.
+
+## Post-M16 Continuation
+
+M16 closed the runtime integration hardening risk. The next roadmap proposal is:
+
+M17 - Architecture Intelligence Stable Identity Foundation
+
+M17 should define and evidence an internal identity policy for correlating graph
+entities between snapshots within explicit limits. It should not implement
+semantic diff, persistence, mutation execution, approval, rollback,
+transactions, public graph identity, public graph schema, public MCP tools or
+incremental analysis. Those domains remain future work after the identity
+foundation is decided.
