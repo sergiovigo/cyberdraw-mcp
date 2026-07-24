@@ -1,6 +1,7 @@
 import { describe, expect, it, jest } from "@jest/globals";
 
 import type { BusListener, Context } from "../types.js";
+import { create_request_queue } from "../request_queue.js";
 import {
   createDiagramPublic,
   M15_MAX_MERMAID_BYTES,
@@ -51,6 +52,7 @@ describe("cyberdraw_create_diagram", () => {
       "title",
     ]);
     expect(schema).not.toHaveProperty("target_page");
+    expect(schema).not.toHaveProperty("filename");
   });
 
   it("accepts a valid request, delegates once to import-mermaid and returns sanitized m15-v1", async () => {
@@ -280,6 +282,83 @@ describe("cyberdraw_create_diagram", () => {
     expect(queue.enqueue).not.toHaveBeenCalled();
   });
 
+  it("maps missing target_document to pre-runtime rejection without mutating", async () => {
+    const { context, sent, queue } = createInteractiveContext({
+      resolveTargetDocument: async () => {
+        throw new Error("Document with ID missing-doc was not found");
+      },
+    });
+
+    await expect(
+      createDiagramPublic(
+        context,
+        validRequest({ target_document: { id: "missing-doc" } }),
+      ),
+    ).resolves.toEqual({
+      version: "m15-v1",
+      outcome: "rejected",
+      reasonCodes: ["import-failed"],
+      safety: {
+        mutatesDiagram: true,
+        mutationAttempted: false,
+        mutationInvocations: 0,
+      },
+    });
+    expect(sent).toHaveLength(0);
+    expect(queue.enqueue).not.toHaveBeenCalled();
+  });
+
+  it("fails before mutation when the initial page snapshot is malformed", async () => {
+    const { context, sent, reply } = createInteractiveContext();
+    const responsePromise = createDiagramPublic(context, validRequest());
+
+    await waitForSent(sent, 1);
+    reply(sent[0], {
+      success: true,
+      result: [{ id: 123, name: "Bad Page", is_current: true }],
+    });
+
+    const response = await responsePromise;
+    expect(response).toEqual({
+      version: "m15-v1",
+      outcome: "failed",
+      reasonCodes: ["import-failed"],
+      safety: {
+        mutatesDiagram: true,
+        mutationAttempted: false,
+        mutationInvocations: 0,
+      },
+    });
+    expect(sent).toHaveLength(1);
+    expect(JSON.stringify(response)).not.toContain("Bad Page");
+  });
+
+  it("fails before mutation when the initial page snapshot fetch fails", async () => {
+    const { context, sent, reply } = createInteractiveContext();
+    const responsePromise = createDiagramPublic(context, validRequest());
+
+    await waitForSent(sent, 1);
+    reply(sent[0], {
+      success: false,
+      message: "list-pages failed with /home/user/secret <mxGraphModel />",
+    });
+
+    const response = await responsePromise;
+    expect(response).toEqual({
+      version: "m15-v1",
+      outcome: "failed",
+      reasonCodes: ["import-failed"],
+      safety: {
+        mutatesDiagram: true,
+        mutationAttempted: false,
+        mutationInvocations: 0,
+      },
+    });
+    expect(sent).toHaveLength(1);
+    expect(JSON.stringify(response)).not.toContain("/home/user/secret");
+    expect(JSON.stringify(response)).not.toContain("mxGraphModel");
+  });
+
   it("maps Mermaid render failures without exposing raw plugin output", async () => {
     const { context, sent, reply } = createInteractiveContext();
     const responsePromise = createDiagramPublic(context, validRequest());
@@ -348,6 +427,70 @@ describe("cyberdraw_create_diagram", () => {
     });
     expect(JSON.stringify(response)).not.toContain("mxGraphModel");
     expect(JSON.stringify(response)).not.toContain("bad page");
+  });
+
+  it("maps malformed plugin success responses as ambiguous failed imports", async () => {
+    const { context, sent, reply } = createInteractiveContext();
+    const responsePromise = createDiagramPublic(context, validRequest());
+
+    await waitForSent(sent, 1);
+    reply(sent[0], { success: true, result: [] });
+    await waitForSent(sent, 2);
+    reply(sent[1], {
+      success: true,
+      result: "not an object <mxGraphModel />",
+    });
+
+    const response = await responsePromise;
+    expect(response).toEqual({
+      version: "m15-v1",
+      outcome: "failed",
+      reasonCodes: ["import-failed"],
+      safety: {
+        mutatesDiagram: true,
+        mutationAttempted: true,
+        mutationInvocations: 1,
+      },
+      atomic: "unknown",
+    });
+    expect(JSON.stringify(response)).not.toContain("mxGraphModel");
+  });
+
+  it("does not leak nested stack, XML or raw plugin payloads from runtime errors", async () => {
+    const { context, sent, reply } = createInteractiveContext();
+    const responsePromise = createDiagramPublic(context, validRequest());
+
+    await waitForSent(sent, 1);
+    reply(sent[0], { success: true, result: [] });
+    await waitForSent(sent, 2);
+    reply(sent[1], {
+      success: false,
+      error: {
+        stack:
+          "Error: failed at /home/user/project/file.ts\n<mxGraphModel><mxCell /></mxGraphModel>",
+        xml: "<mxGraphModel><mxCell /></mxGraphModel>",
+        rawResponse: { secret: "full payload" },
+      },
+    });
+
+    const response = await responsePromise;
+    expect(response).toEqual({
+      version: "m15-v1",
+      outcome: "failed",
+      reasonCodes: ["import-failed"],
+      safety: {
+        mutatesDiagram: true,
+        mutationAttempted: true,
+        mutationInvocations: 1,
+      },
+      atomic: "unknown",
+    });
+    const serialized = JSON.stringify(response);
+    expect(serialized).not.toContain("mxGraphModel");
+    expect(serialized).not.toContain("mxCell");
+    expect(serialized).not.toContain("/home/user/project");
+    expect(serialized).not.toContain("rawResponse");
+    expect(serialized).not.toContain("full payload");
   });
 
   it("fails without created metadata when import succeeds but no new page is visible", async () => {
@@ -435,6 +578,63 @@ describe("cyberdraw_create_diagram", () => {
     expect(JSON.stringify(response)).not.toContain("mxGraphModel");
   });
 
+  it("fails with unknown atomicity when the post-import page snapshot is malformed", async () => {
+    const { context, sent, reply } = createInteractiveContext();
+    const responsePromise = createDiagramPublic(context, validRequest());
+
+    await waitForSent(sent, 1);
+    reply(sent[0], { success: true, result: [] });
+    await waitForSent(sent, 2);
+    reply(sent[1], { success: true, result: { mode: "native" } });
+    await waitForSent(sent, 3);
+    reply(sent[2], {
+      success: true,
+      result: [{ id: "created", name: 123, is_current: true }],
+    });
+
+    await expect(responsePromise).resolves.toEqual({
+      version: "m15-v1",
+      outcome: "failed",
+      reasonCodes: ["import-failed"],
+      safety: {
+        mutatesDiagram: true,
+        mutationAttempted: true,
+        mutationInvocations: 1,
+      },
+      atomic: "unknown",
+    });
+  });
+
+  it("fails with unknown atomicity when post-import page verification fails", async () => {
+    const { context, sent, reply } = createInteractiveContext();
+    const responsePromise = createDiagramPublic(context, validRequest());
+
+    await waitForSent(sent, 1);
+    reply(sent[0], { success: true, result: [] });
+    await waitForSent(sent, 2);
+    reply(sent[1], { success: true, result: { mode: "native" } });
+    await waitForSent(sent, 3);
+    reply(sent[2], {
+      success: false,
+      message: "verification failed: C:\\Users\\secret <mxGraphModel />",
+    });
+
+    const response = await responsePromise;
+    expect(response).toEqual({
+      version: "m15-v1",
+      outcome: "failed",
+      reasonCodes: ["import-failed"],
+      safety: {
+        mutatesDiagram: true,
+        mutationAttempted: true,
+        mutationInvocations: 1,
+      },
+      atomic: "unknown",
+    });
+    expect(JSON.stringify(response)).not.toContain("Users");
+    expect(JSON.stringify(response)).not.toContain("mxGraphModel");
+  });
+
   it("maps runtime timeouts without reporting an import mutation before import", async () => {
     const { context, sent, reply } = createInteractiveContext();
     const responsePromise = createDiagramPublic(context, validRequest());
@@ -448,11 +648,218 @@ describe("cyberdraw_create_diagram", () => {
       safety: { mutationAttempted: false, mutationInvocations: 0 },
     });
   });
+
+  it("maps real reply timeout before mutation and removes the listener", async () => {
+    jest.useFakeTimers();
+    try {
+      const { context, sent, listeners } = createInteractiveContext();
+      const responsePromise = createDiagramPublic(context, validRequest());
+
+      await flushPromises();
+      expect(sent).toHaveLength(1);
+      expect(listeners.size).toBe(1);
+
+      jest.advanceTimersByTime(60_000);
+      await expect(responsePromise).resolves.toEqual({
+        version: "m15-v1",
+        outcome: "failed",
+        reasonCodes: ["timeout"],
+        safety: {
+          mutatesDiagram: true,
+          mutationAttempted: false,
+          mutationInvocations: 0,
+        },
+      });
+      expect(listeners.size).toBe(0);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("maps import timeout after mutation dispatch and releases the FIFO queue", async () => {
+    jest.useFakeTimers();
+    try {
+      const realQueue = create_request_queue({
+        debug: () => {},
+        log: () => {},
+      });
+      const { context, sent, reply, listeners } = createInteractiveContext({
+        requestQueue: realQueue,
+      });
+      const firstResponsePromise = createDiagramPublic(
+        context,
+        validRequest({ title: "First" }),
+      );
+
+      await flushPromises();
+      expect(sent).toHaveLength(1);
+      reply(sent[0], { success: true, result: [] });
+      await flushPromises();
+      expect(sent).toHaveLength(2);
+      expect(sent[1]).toMatchObject({ __event: "import-mermaid" });
+
+      jest.advanceTimersByTime(60_000);
+      await expect(firstResponsePromise).resolves.toEqual({
+        version: "m15-v1",
+        outcome: "failed",
+        reasonCodes: ["timeout"],
+        safety: {
+          mutatesDiagram: true,
+          mutationAttempted: true,
+          mutationInvocations: 1,
+        },
+        atomic: "unknown",
+      });
+      expect(listeners.size).toBe(0);
+
+      const secondResponsePromise = createDiagramPublic(
+        context,
+        validRequest({ title: "Second" }),
+      );
+      await flushPromises();
+      expect(sent).toHaveLength(3);
+      reply(sent[2], { success: true, result: [] });
+      await flushPromises();
+      expect(sent).toHaveLength(4);
+      reply(sent[3], { success: true, result: { mode: "native" } });
+      await flushPromises();
+      expect(sent).toHaveLength(5);
+      reply(sent[4], {
+        success: true,
+        result: [{ id: "created", name: "Second", is_current: true }],
+      });
+
+      await expect(secondResponsePromise).resolves.toMatchObject({
+        outcome: "accepted",
+        safety: { mutationAttempted: true, mutationInvocations: 1 },
+      });
+      expect(
+        sent.filter((message) => message.__event === "import-mermaid"),
+      ).toHaveLength(2);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("reports no mutation when sending the import request fails before dispatch", async () => {
+    const { context, sent, reply } = createInteractiveContext({
+      throwOnEvent: "import-mermaid",
+    });
+    const responsePromise = createDiagramPublic(context, validRequest());
+
+    await waitForSent(sent, 1);
+    reply(sent[0], { success: true, result: [] });
+
+    await expect(responsePromise).resolves.toEqual({
+      version: "m15-v1",
+      outcome: "failed",
+      reasonCodes: ["import-failed"],
+      safety: {
+        mutatesDiagram: true,
+        mutationAttempted: false,
+        mutationInvocations: 0,
+      },
+    });
+    expect(
+      sent.filter((message) => message.__event === "import-mermaid"),
+    ).toHaveLength(0);
+  });
+
+  it("reports unknown atomicity when post-mutation verification dispatch fails", async () => {
+    const { context, sent, reply } = createInteractiveContext({
+      throwOnEvent: "list-pages",
+      throwOnEventCall: 2,
+    });
+    const responsePromise = createDiagramPublic(context, validRequest());
+
+    await waitForSent(sent, 1);
+    reply(sent[0], { success: true, result: [] });
+    await waitForSent(sent, 2);
+    reply(sent[1], { success: true, result: { mode: "native" } });
+
+    await expect(responsePromise).resolves.toEqual({
+      version: "m15-v1",
+      outcome: "failed",
+      reasonCodes: ["import-failed"],
+      safety: {
+        mutatesDiagram: true,
+        mutationAttempted: true,
+        mutationInvocations: 1,
+      },
+      atomic: "unknown",
+    });
+  });
+
+  it("does not retry mutating imports after a plugin rejection", async () => {
+    const { context, sent, reply } = createInteractiveContext();
+    const responsePromise = createDiagramPublic(context, validRequest());
+
+    await waitForSent(sent, 1);
+    reply(sent[0], { success: true, result: [] });
+    await waitForSent(sent, 2);
+    reply(sent[1], {
+      success: false,
+      message: "Insert after Mermaid conversion failed",
+    });
+
+    await expect(responsePromise).resolves.toMatchObject({
+      outcome: "failed",
+      safety: { mutationAttempted: true, mutationInvocations: 1 },
+      atomic: "unknown",
+    });
+    expect(
+      sent.filter((message) => message.__event === "import-mermaid"),
+    ).toHaveLength(1);
+  });
+
+  it("serializes the wrapper through the resolved document FIFO key", async () => {
+    const { context, sent, reply, queue } = createInteractiveContext({
+      resolveTargetDocument: async () => ({
+        connection_id: "conn-target",
+        target_document: { id: "doc-target" },
+        document: documentInfo("doc-target"),
+      }),
+    });
+    const responsePromise = createDiagramPublic(
+      context,
+      validRequest({ target_document: { id: "doc-target" } }),
+    );
+
+    await waitForSent(sent, 1);
+    reply(sent[0], { success: true, result: [] });
+    await waitForSent(sent, 2);
+    reply(sent[1], { success: true, result: { mode: "native" } });
+    await waitForSent(sent, 3);
+    reply(sent[2], {
+      success: true,
+      result: [{ id: "created", name: "Created", is_current: true }],
+    });
+
+    await expect(responsePromise).resolves.toMatchObject({
+      outcome: "accepted",
+    });
+    expect(queue.enqueue).toHaveBeenCalledWith(
+      "conn-target",
+      expect.any(Function),
+    );
+    expect(sent).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          __event: "import-mermaid",
+          target_document: { id: "doc-target" },
+          __target_connection_id: "conn-target",
+        }),
+      ]),
+    );
+  });
 });
 
 function createInteractiveContext(
   options: {
     readonly resolveTargetDocument?: Context["document_routing"]["resolve_target_document"];
+    readonly requestQueue?: Context["request_queue"];
+    readonly throwOnEvent?: string;
+    readonly throwOnEventCall?: number;
   } = {},
 ) {
   const listeners = new Map<string, BusListener<Record<string, unknown>>>();
@@ -461,10 +868,25 @@ function createInteractiveContext(
     enqueue: jest.fn(<T>(_: string, task: () => Promise<T>) => task()),
   };
   let nextId = 1;
+  const eventCounts = new Map<string, number>();
   const context: Context = {
     bus: {
       send_to_extension: (message) => {
-        sent.push(message as Record<string, unknown>);
+        const outgoing = message as Record<string, unknown>;
+        const eventName =
+          typeof outgoing.__event === "string" ? outgoing.__event : "";
+        const nextCount = (eventCounts.get(eventName) ?? 0) + 1;
+        eventCounts.set(eventName, nextCount);
+        if (
+          options.throwOnEvent === eventName &&
+          (options.throwOnEventCall === undefined ||
+            options.throwOnEventCall === nextCount)
+        ) {
+          throw new Error(
+            "Internal dispatch failed at /home/user/project with <mxGraphModel /> stack",
+          );
+        }
+        sent.push(outgoing);
       },
       on_reply_from_extension: (eventName, listener) => {
         listeners.set(
@@ -475,7 +897,8 @@ function createInteractiveContext(
       },
     },
     id_generator: { generate: () => `request-${nextId++}` },
-    request_queue: queue as unknown as Context["request_queue"],
+    request_queue:
+      options.requestQueue ?? (queue as unknown as Context["request_queue"]),
     document_routing: {
       list_documents: async () => [],
       resolve_target_document:
@@ -496,6 +919,7 @@ function createInteractiveContext(
     context,
     sent,
     queue,
+    listeners,
     reply: (
       message: Record<string, unknown>,
       payload: Record<string, unknown>,
@@ -528,4 +952,10 @@ async function waitForSent(
     await new Promise((resolve) => setImmediate(resolve));
   }
   throw new Error(`Expected ${count} sent messages, received ${sent.length}`);
+}
+
+async function flushPromises() {
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
 }

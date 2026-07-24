@@ -105,6 +105,12 @@ type PluginReply = {
   readonly error?: unknown;
 };
 
+type ExtensionToolReply = {
+  readonly sent: boolean;
+  readonly timedOut: boolean;
+  readonly reply: PluginReply;
+};
+
 export const registerCyberdrawCreateDiagramTool: ToolRegistrar = (
   server,
   context,
@@ -130,15 +136,21 @@ export async function createDiagramPublic(
   }
 
   const { request } = validation;
+  let resolved: ResolvedDocumentTarget;
   try {
-    const resolved = await context.document_routing.resolve_target_document(
+    resolved = await context.document_routing.resolve_target_document(
       input as Record<string, unknown>,
     );
+  } catch (error) {
+    return rejected([reasonCodeFromRoutingError(error)]);
+  }
+
+  try {
     return await context.request_queue.enqueue(resolved.connection_id, () =>
       executeCreateDiagram(context, request, resolved),
     );
   } catch (error) {
-    return rejected([reasonCodeFromRoutingError(error)]);
+    return failed([reasonCodeFromUnexpectedError(error)], false, 0);
   }
 }
 
@@ -199,66 +211,126 @@ async function executeCreateDiagram(
     __target_connection_id: resolved.connection_id,
   };
 
-  const beforePagesReply = await invokeExtensionTool(context, "list-pages", {
-    ...basePayload,
-  });
-  const beforePages = extractPages(beforePagesReply);
-  if (!beforePages) {
-    return failed([reasonCodeFromReply(beforePagesReply)], false, 0);
+  let mutationInvoked = false;
+  try {
+    context.log.debug("M15 create diagram runtime started", {
+      mermaidBytes: Buffer.byteLength(request.mermaid, "utf8"),
+      mermaidType: request.mermaidType,
+      hasTargetDocument: Boolean(resolved.target_document),
+      hasTitle: Boolean(request.title),
+    });
+
+    const beforePagesInvocation = await invokeExtensionTool(
+      context,
+      "list-pages",
+      {
+        ...basePayload,
+      },
+    );
+    const beforePages = extractPages(beforePagesInvocation.reply);
+    if (!beforePages) {
+      return failed(
+        [reasonCodeFromInvocation(beforePagesInvocation)],
+        false,
+        0,
+      );
+    }
+
+    const importInvocation = await invokeExtensionTool(
+      context,
+      "import-mermaid",
+      {
+        ...basePayload,
+        mermaid_source: request.mermaid,
+        mode: "native",
+        insert_mode: "new-page",
+        ...(request.title ? { filename: request.title } : {}),
+      },
+    );
+    mutationInvoked = importInvocation.sent;
+
+    if (!importInvocation.sent) {
+      return failed([reasonCodeFromInvocation(importInvocation)], false, 0);
+    }
+
+    if (!isSuccessfulImport(importInvocation.reply)) {
+      return failed(
+        [reasonCodeFromImportInvocation(importInvocation)],
+        true,
+        1,
+        "unknown",
+      );
+    }
+
+    const afterPagesInvocation = await invokeExtensionTool(
+      context,
+      "list-pages",
+      {
+        ...basePayload,
+      },
+    );
+    const afterPages = extractPages(afterPagesInvocation.reply);
+    const createdPage = afterPages
+      ? findCreatedPage(beforePages, afterPages)
+      : undefined;
+    if (!createdPage) {
+      return failed(
+        [reasonCodeFromInvocation(afterPagesInvocation)],
+        true,
+        1,
+        "unknown",
+      );
+    }
+
+    context.log.debug("M15 create diagram runtime completed", {
+      outcome: "accepted",
+    });
+
+    return {
+      version: M15_PUBLIC_RESPONSE_VERSION,
+      outcome: "accepted",
+      created: {
+        pageId: sanitizePublicIdentifier(createdPage.id),
+        pageName: sanitizePublicText(createdPage.name),
+      },
+      safety: safety(true, 1),
+    };
+  } catch (error) {
+    return failed(
+      [reasonCodeFromUnexpectedError(error)],
+      mutationInvoked,
+      mutationInvoked ? 1 : 0,
+      mutationInvoked ? "unknown" : undefined,
+    );
   }
-
-  const importReply = await invokeExtensionTool(context, "import-mermaid", {
-    ...basePayload,
-    mermaid_source: request.mermaid,
-    mode: "native",
-    insert_mode: "new-page",
-    ...(request.title ? { filename: request.title } : {}),
-  });
-
-  if (!isSuccessfulImport(importReply)) {
-    return failed([reasonCodeFromImportReply(importReply)], true, 1, "unknown");
-  }
-
-  const afterPagesReply = await invokeExtensionTool(context, "list-pages", {
-    ...basePayload,
-  });
-  const afterPages = extractPages(afterPagesReply);
-  const createdPage = afterPages
-    ? findCreatedPage(beforePages, afterPages)
-    : undefined;
-  if (!createdPage) {
-    return failed([reasonCodeFromReply(afterPagesReply)], true, 1, "unknown");
-  }
-
-  return {
-    version: M15_PUBLIC_RESPONSE_VERSION,
-    outcome: "accepted",
-    created: {
-      pageId: sanitizePublicIdentifier(createdPage.id),
-      pageName: sanitizePublicText(createdPage.name),
-    },
-    safety: safety(true, 1),
-  };
 }
 
-function invokeExtensionTool(
+async function invokeExtensionTool(
   context: Context,
   eventName: string,
   payload: Record<string, unknown>,
-): Promise<PluginReply> {
+): Promise<ExtensionToolReply> {
   const requestId = context.id_generator.generate();
   const replyName = `${eventName}.${requestId}`;
-  context.bus.send_to_extension({
-    __event: eventName,
-    __request_id: requestId,
-    ...payload,
+  try {
+    context.bus.send_to_extension({
+      __event: eventName,
+      __request_id: requestId,
+      ...payload,
+    });
+  } catch {
+    return {
+      sent: false,
+      timedOut: false,
+      reply: { success: false, message: "send failed" },
+    };
+  }
+
+  context.log.debug("M15 create diagram extension request emitted", {
+    operation: eventName,
   });
 
-  context.log.debug(
-    `[${eventName}] emitted, waiting for sanitized M15 wrapper reply @${replyName}`,
-  );
-
-  return new Promise<PluginReply>((resolve, reject) => {
+  return new Promise<ExtensionToolReply>((resolve) => {
     let settled = false;
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
     let cleanup: (() => void) | undefined;
@@ -276,20 +348,27 @@ function invokeExtensionTool(
     };
 
     timeoutHandle = setTimeout(() => {
-      finish(() => reject(new Error("timeout")));
+      finish(() =>
+        resolve({
+          sent: true,
+          timedOut: true,
+          reply: { success: false, message: "timeout" },
+        }),
+      );
     }, DEFAULT_REPLY_TIMEOUT_MS);
 
     cleanup = context.bus.on_reply_from_extension(
       replyName,
       (reply: Record<string, unknown>) => {
-        finish(() => resolve(reply as PluginReply));
+        finish(() =>
+          resolve({
+            sent: true,
+            timedOut: false,
+            reply: reply as PluginReply,
+          }),
+        );
       },
     );
-  }).catch((error) => {
-    if (isTimeoutError(error)) {
-      return { success: false, message: "timeout" };
-    }
-    return { success: false, message: "import failed" };
   });
 }
 
@@ -323,6 +402,20 @@ function sanitizeTitle(title: string): string | undefined {
 
 function extractPages(reply: PluginReply): readonly PageInfo[] | undefined {
   if (reply.success !== true || !Array.isArray(reply.result)) {
+    return undefined;
+  }
+  if (
+    !reply.result.every(
+      (page) =>
+        page &&
+        typeof page === "object" &&
+        typeof (page as PageInfo).id === "string" &&
+        ((page as PageInfo).name === undefined ||
+          typeof (page as PageInfo).name === "string") &&
+        ((page as PageInfo).is_current === undefined ||
+          typeof (page as PageInfo).is_current === "boolean"),
+    )
+  ) {
     return undefined;
   }
   return reply.result as readonly PageInfo[];
@@ -368,11 +461,14 @@ function reasonCodeFromRoutingError(error: unknown): M15ReasonCode {
   return "import-failed";
 }
 
-function reasonCodeFromImportReply(reply: PluginReply): M15ReasonCode {
-  const genericReason = reasonCodeFromReply(reply);
+function reasonCodeFromImportInvocation(
+  invocation: ExtensionToolReply,
+): M15ReasonCode {
+  const genericReason = reasonCodeFromInvocation(invocation);
   if (genericReason === "timeout") {
     return genericReason;
   }
+  const { reply } = invocation;
   const message =
     typeof reply.message === "string"
       ? reply.message
@@ -395,7 +491,13 @@ function reasonCodeFromImportReply(reply: PluginReply): M15ReasonCode {
   return "import-failed";
 }
 
-function reasonCodeFromReply(reply: PluginReply): M15ReasonCode {
+function reasonCodeFromInvocation(
+  invocation: ExtensionToolReply,
+): M15ReasonCode {
+  if (invocation.timedOut) {
+    return "timeout";
+  }
+  const { reply } = invocation;
   const message =
     typeof reply.message === "string"
       ? reply.message
@@ -403,6 +505,10 @@ function reasonCodeFromReply(reply: PluginReply): M15ReasonCode {
         ? reply.error
         : "";
   return /timeout|timed out/i.test(message) ? "timeout" : "import-failed";
+}
+
+function reasonCodeFromUnexpectedError(error: unknown): M15ReasonCode {
+  return isTimeoutError(error) ? "timeout" : "import-failed";
 }
 
 function sanitizePublicIdentifier(value: unknown): string {

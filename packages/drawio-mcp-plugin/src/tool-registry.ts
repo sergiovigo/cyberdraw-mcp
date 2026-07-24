@@ -365,7 +365,13 @@ const rawToolDefinitions: ToolDefinition[] = [
   }),
   page_tool({
     name: "import-mermaid",
-    params: new Set(["mermaid_source", "mode", "insert_mode", "target_page"]),
+    params: new Set([
+      "mermaid_source",
+      "mode",
+      "insert_mode",
+      "target_page",
+      "filename",
+    ]),
     handler: import_mermaid,
     pageExecution: VISIBLE_PAGE_MUTATION_EXECUTION,
     skip: skip_page_execution_for_new_page_mermaid,

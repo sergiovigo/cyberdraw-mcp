@@ -43,7 +43,23 @@ export const registerImportMermaidTool: ToolRegistrar = (server, context) => {
       const handler = default_tool(TOOL_import_mermaid, context, {
         queue: true,
       });
-      return handler(args, extra);
+      return handler(publicImportMermaidArgs(args), extra);
     },
   );
 };
+
+function publicImportMermaidArgs(args: Record<string, unknown>) {
+  return {
+    ...(args.target_page !== undefined
+      ? { target_page: args.target_page }
+      : {}),
+    ...(args.target_document !== undefined
+      ? { target_document: args.target_document }
+      : {}),
+    mermaid_source: args.mermaid_source,
+    ...(args.mode !== undefined ? { mode: args.mode } : {}),
+    ...(args.insert_mode !== undefined
+      ? { insert_mode: args.insert_mode }
+      : {}),
+  };
+}
