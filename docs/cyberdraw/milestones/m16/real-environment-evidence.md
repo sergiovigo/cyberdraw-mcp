@@ -1,6 +1,6 @@
 # M16.3 Real-Environment Compatibility Evidence
 
-Status: IN PROGRESS evidence record.
+Status: FINAL evidence record for M16.3.
 
 M16.3 records real-environment compatibility evidence for the existing
 Architecture Intelligence runtime path. It does not close M16, add MCP tools,
@@ -25,7 +25,7 @@ The `InMemoryTransport` MCP client is only the local client transport used by th
 test harness. It does not replace draw.io, the browser plugin, runtime snapshot
 extraction or the server runtime path.
 
-This is not HTTPS/Caddy evidence.
+This is NOT HTTPS/Caddy evidence.
 
 ## Existing Real-Environment Tests
 
@@ -164,4 +164,4 @@ Results recorded on branch `test/m16-real-environment-compatibility`:
 - Malformed runtime replies, raw plugin failures and timeout paths remain
   unit/integration evidence only because forcing them in the real plugin would
   require synthetic behavior outside M16.3's evidence scope.
-- M16 remains IN PROGRESS and should be closed only in M16.4.
+- M16 is closed separately by `formal-closure-m16.md`.
