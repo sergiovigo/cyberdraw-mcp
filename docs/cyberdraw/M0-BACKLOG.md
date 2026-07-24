@@ -74,8 +74,8 @@ baseline. It is not an implementation plan for M0 itself.
 
 ### M0-P1-005: Review Architecture Intelligence Foundation RFC
 
-- Type: Architecture location resolved by ADR 0003; runtime integration remains
-  open.
+- Type: Architecture location resolved by ADR 0003; runtime integration
+  hardening closed by M16 with limitations.
 - Description: `docs/cyberdraw/rfc/0001-internal-graph-model.md` proposes an
   internal graph model for semantic diagram queries, validation and analysis.
 - Evidence: RFC 0001, supporting example JSON and Mermaid diagrams.
@@ -159,9 +159,19 @@ baseline. It is not an implementation plan for M0 itself.
   non-executable proposals and validation summaries, while keeping RFC 0001
   Draft and adding no mutation endpoint, persistence, XML editing, graph dump
   or arbitrary policy language.
+- M16 update:
+  `docs/cyberdraw/milestones/M16-architecture-intelligence-runtime-integration-hardening.md`
+  and `docs/cyberdraw/milestones/m16/formal-closure-m16.md` close the suggested
+  "Architecture Intelligence Foundation runtime integration hardening and
+  compatibility evidence" milestone as PASS WITH LIMITATIONS. M16 consolidates
+  runtime compatibility evidence, fixes a runtime error sanitization defect,
+  records REAL LOCAL HTTP evidence and leaves HTTPS/Caddy, broad real
+  multi-version draw.io coverage, old real peers and deliberate malformed or
+  timeout real-plugin fault injection as explicit limitations. It adds no public
+  MCP tool, public contract change, mutation executor, persistence, semantic
+  diff, rollback or stable global identity.
 - Effort: M.
-- Suggested milestone: Architecture Intelligence Foundation runtime integration
-  hardening and compatibility evidence.
+- Suggested milestone: M16 (closed with limitations).
 
 ### M0-P1-001: Complete third-party license inventory
 

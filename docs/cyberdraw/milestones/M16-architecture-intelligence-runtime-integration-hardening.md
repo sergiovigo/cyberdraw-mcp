@@ -2,17 +2,25 @@
 
 ## Status
 
-IN PROGRESS.
+COMPLETE / CLOSED.
+
+Formal verdict: PASS WITH LIMITATIONS.
 
 This is a design document for the recommended next CyberDraw milestone after
 M15. It does not implement runtime behavior, add MCP tools, change public
 contracts or reopen M13, M14 or M15.
 
-M16.1/M16.2 evidence is being recorded in
+M16.1/M16.2 evidence is recorded in
 [`m16/compatibility-matrix.md`](m16/compatibility-matrix.md). M16.3
 real-environment evidence is recorded in
-[`m16/real-environment-evidence.md`](m16/real-environment-evidence.md). M16 is
-not closed.
+[`m16/real-environment-evidence.md`](m16/real-environment-evidence.md). Formal
+closure is recorded in
+[`m16/formal-closure-m16.md`](m16/formal-closure-m16.md).
+
+M16 closed with limitations because the repository proves the current runtime
+path through REAL LOCAL HTTP and unit/integration compatibility tests, but does
+not prove HTTPS/Caddy, a broad real multi-version draw.io matrix, old real
+browser peers or deliberate real-plugin malformed/timeout fault injection.
 
 ## Objective
 
@@ -23,6 +31,23 @@ behavior, scoped runtime evidence and deterministic sanitized error reporting.
 M16 should turn the backlog's suggested milestone, "Architecture Intelligence
 Foundation runtime integration hardening and compatibility evidence", into a
 bounded executable milestone.
+
+## Closure Summary
+
+M16.1 delivered the compatibility/evidence matrix and focused malformed and
+oversized runtime reply regression evidence.
+
+M16.2 fixed the reproducible runtime sanitization defect where a plugin
+`success:false` message containing XML, stack or local path details could reach
+Architecture Intelligence callers. The public M13/M14 fallback path was also
+hardened.
+
+M16.3 recorded REAL LOCAL HTTP evidence for visible/background pages, scoped
+runtime execution, stale inventory behavior, external-reference expansion,
+public M13/M14 read-only behavior and public negative-path sanitization.
+
+M16.4 audited acceptance criteria and closed the milestone as PASS WITH
+LIMITATIONS.
 
 ## Rationale
 
@@ -106,7 +131,7 @@ M16 should close that risk without expanding the product surface.
 | Timeout/error classification | Sanitized deterministic outcome, no hidden retries |
 | Real draw.io browser evidence | HTTP-local proof, with HTTPS/Caddy separated unless actually executed |
 
-The current in-progress matrix is recorded in
+The final matrix is recorded in
 [`m16/compatibility-matrix.md`](m16/compatibility-matrix.md). It maps each case
 to the implementation path and exact automated or real-environment evidence.
 M16.3's real-environment subset is recorded separately in
@@ -150,7 +175,7 @@ claim.
 - Any defect fix is minimal, documented and covered by a regression test.
 - Residual limitations are recorded explicitly.
 
-Current M16 gap handling:
+Final M16 gap handling:
 
 - Added focused server-path regression evidence for malformed and oversize
   runtime snapshot replies.
@@ -165,18 +190,20 @@ Current M16 gap handling:
 ## Exit Criteria
 
 - `docs/cyberdraw/milestones/m16/compatibility-matrix.md` or equivalent evidence
-  record exists.
+  record exists. Completed.
 - M16 milestone document is updated from PROPOSED / NOT STARTED to the actual
-  completion state only after implementation and validation.
+  completion state only after implementation and validation. Completed.
 - Validation commands and exact results are recorded.
+  Completed in `m16/real-environment-evidence.md` and this closure branch's
+  final report.
 - Real-environment evidence is recorded separately from unit/integration tests.
+  Completed in `m16/real-environment-evidence.md`.
 - HTTPS/Caddy and cross-version draw.io limitations are either proven or left as
-  visible limitations.
+  visible limitations. Left as limitations.
 - No deferred capability is implemented accidentally.
+  Confirmed.
 
-M16 is not yet complete. Closure still requires the full validation matrix,
-including package builds, lint, unit suites, real-environment suites, plugin
-tests, extension builds and dependency audit results.
+M16 is complete and closed with PASS WITH LIMITATIONS.
 
 ## Explicit Deferrals
 

@@ -2,11 +2,15 @@
 
 ## Status
 
-PLANNING / PROPOSED.
+SUPERSEDED BY M16 CLOSURE.
 
 This document resumes the CyberDraw Architecture Intelligence roadmap after the
 closed M15 prompt-to-diagram MVP. It does not implement runtime behavior, add MCP
 tools, change public contracts or reopen M13, M14 or M15.
+
+The recommendation in this document was accepted as M16. M16 is closed by
+`docs/cyberdraw/milestones/m16/formal-closure-m16.md` with PASS WITH
+LIMITATIONS.
 
 ## Context
 
