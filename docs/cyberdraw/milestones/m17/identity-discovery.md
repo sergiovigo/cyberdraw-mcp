@@ -2,7 +2,7 @@
 
 ## Status
 
-IN PROGRESS / DISCOVERY EVIDENCE.
+COMPLETE / DISCOVERY EVIDENCE.
 
 This document records M17.0 discovery evidence. It does not implement identity
 code, does not add tests, does not create a public schema and does not accept

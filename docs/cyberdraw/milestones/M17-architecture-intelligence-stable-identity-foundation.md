@@ -2,12 +2,13 @@
 
 ## Status
 
-IN PROGRESS.
+COMPLETE / CLOSED.
+
+Verdict: PASS WITH LIMITATIONS.
 
 M17.0 discovery is complete. Current evidence is recorded in
 `docs/cyberdraw/milestones/m17/identity-discovery.md`. That evidence proposes a
-candidate policy for M17.1, but it does not accept a durable identity policy and
-does not create ADR 0008.
+candidate policy for M17.1.
 
 M17.1 pure model and fixture evidence is complete. Current evidence is recorded
 in `docs/cyberdraw/milestones/m17/pure-identity-model-and-fixtures.md`.
@@ -16,9 +17,13 @@ M17.2 runtime snapshot evidence is complete with limitations. Current evidence
 is recorded in
 `docs/cyberdraw/milestones/m17/runtime-snapshot-identity-evidence.md`.
 
-M17 remains open. It does not add public MCP tools, public schemas,
-persistence, semantic diff, mutation execution, approval, rollback or stable
-global identity.
+M17.3 closes M17 and accepts ADR 0008 as a scoped internal identity policy:
+
+- `docs/cyberdraw/adr/0008-architecture-intelligence-scoped-identity-policy.md`;
+- `docs/cyberdraw/milestones/m17/formal-closure-m17.md`.
+
+M17 did not add public MCP tools, public schemas, persistence, semantic diff,
+mutation execution, approval, rollback or stable global identity.
 
 ## Objective
 
@@ -261,20 +266,23 @@ import/reimport, true page moves or arbitrary clone/copy operations.
 
 ### M17.3 - ADR Decision And Closure
 
+Status: COMPLETE.
+
 Close M17 with a decision:
 
 - accept a durable internal identity policy;
 - reject stabilization and keep identity provisional; or
 - accept a narrower policy with explicit limitations.
 
-If evidence supports a durable decision, create:
+M17.3 accepted:
 
 ```text
-ADR 0008 - Architecture Intelligence Stable Identity Policy
+ADR 0008 - Architecture Intelligence Scoped Identity Policy
 ```
 
-ADR 0008 must not be marked Accepted before M17.1/M17.2 evidence supports the
-policy.
+The accepted ADR is scoped and internal. It does not accept stable global
+identity, public identity, persistence identity, mutation target identity or
+semantic equality.
 
 ## Acceptance Criteria
 

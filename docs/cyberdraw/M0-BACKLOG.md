@@ -172,14 +172,21 @@ baseline. It is not an implementation plan for M0 itself.
   diff, rollback or stable global identity.
 - M17 planning update:
   `docs/cyberdraw/milestones/M17-architecture-intelligence-stable-identity-foundation.md`
-  formalizes the next proposed Architecture Intelligence milestone as stable
-  identity foundation work. M17 is PROPOSED / NOT STARTED and is limited to
-  defining, testing and evidencing an internal snapshot-correlation identity
-  policy. It does not add public graph identity, stable global identity,
-  persistence keys, mutation identifiers, semantic diff contracts, public MCP
-  tools or public schemas.
+  initially formalized the next proposed Architecture Intelligence milestone as
+  stable identity foundation work. The proposed scope was limited to defining,
+  testing and evidencing an internal snapshot-correlation identity policy. It
+  did not add public graph identity, stable global identity, persistence keys,
+  mutation identifiers, semantic diff contracts, public MCP tools or public
+  schemas.
+- M17 closure update:
+  `docs/cyberdraw/milestones/m17/formal-closure-m17.md` closes M17 as PASS WITH
+  LIMITATIONS and `docs/cyberdraw/adr/0008-architecture-intelligence-scoped-identity-policy.md`
+  accepts a scoped internal identity policy. The decision is limited to
+  qualified anchor continuity inside the proven domain. It still does not add
+  public graph identity, stable global identity, persistence keys, mutation
+  identifiers, semantic diff contracts, public MCP tools or public schemas.
 - Effort: M.
-- Suggested milestone: M17 (proposed stable identity foundation).
+- Suggested milestone: M17 (closed scoped identity foundation).
 
 ### M0-P1-001: Complete third-party license inventory
 
