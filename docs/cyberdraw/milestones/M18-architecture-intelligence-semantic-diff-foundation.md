@@ -2,7 +2,7 @@
 
 ## Status
 
-PROPOSED / NOT STARTED.
+OPEN / IN PROGRESS.
 
 M18 is proposed as a discovery-first Architecture Intelligence milestone after
 M17. M17 closed with PASS WITH LIMITATIONS and accepted ADR 0008,
@@ -257,7 +257,7 @@ streaming, chunking or persisted diff history.
 
 ### M18.0 - Semantic Diff Discovery And Contract Design
 
-Status: IN PROGRESS in
+Status: COMPLETE in
 `docs/cyberdraw/milestones/m18/semantic-diff-discovery.md`.
 
 Deliver discovery evidence, a candidate internal contract and M18.1 entry
@@ -265,10 +265,25 @@ criteria. Do not implement the engine.
 
 ### M18.1 - Pure Semantic Diff Model And Fixtures
 
-Status: PROPOSED / NOT STARTED.
+Status: COMPLETE in
+`docs/cyberdraw/milestones/m18/pure-semantic-diff-model-and-fixtures.md`.
 
 Implement a pure internal graph-model semantic diff model and deterministic
 fixtures. No runtime integration and no public MCP surface.
+
+Delivered in M18.1:
+
+- internal `diffSemanticSnapshots()` API in `cyberdraw-graph-model`;
+- comparison outcomes separate from entity classifications;
+- deterministic classification summary sets over an authoritative dimension
+  matrix;
+- ADR 0008 identity integration where `EXACT` continuity is not semantic
+  equality;
+- `PROBABLE` review-required behavior with no authoritative `MOVED`;
+- guarded entity-scoped `ADDED`/`REMOVED` absence rules;
+- entity-level coverage and revision outcome handling;
+- 30 pure fixture cases plus hardened entity-coverage, determinism and privacy
+  checks.
 
 ### M18.2 - Runtime Snapshot Semantic Diff Evidence
 
@@ -310,5 +325,6 @@ Candidate future ADR:
 ADR 0009 - Architecture Intelligence Semantic Diff Policy
 ```
 
-M18.0 does not create or accept ADR 0009. The expected M18.0 readiness is
-`NOT READY`; M18.1 and M18.2 must produce model and runtime evidence first.
+M18.0 does not create or accept ADR 0009. After M18.1, ADR 0009 is READY FOR
+DRAFT only. M18.2 runtime evidence is still required before an acceptance
+candidate.

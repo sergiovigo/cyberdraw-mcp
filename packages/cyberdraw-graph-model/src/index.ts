@@ -56,6 +56,28 @@ export type {
   StableIdentityEntityType,
   StableIdentityEvidence,
 } from "./identity.js";
+export {
+  diffSemanticSnapshots,
+  SEMANTIC_DIFF_VERSION,
+} from "./semantic-diff.js";
+export type {
+  SemanticDiffClassification,
+  SemanticDiffCompleteness,
+  SemanticDiffDimension,
+  SemanticDiffDimensionChanges,
+  SemanticDiffDimensionStatus,
+  SemanticDiffEntityRef,
+  SemanticDiffEntityResult,
+  SemanticDiffEntityType,
+  SemanticDiffExternalReferenceEvidence,
+  SemanticDiffInput,
+  SemanticDiffOutcome,
+  SemanticDiffReasonCode,
+  SemanticDiffResult,
+  SemanticDiffRevisionEvidence,
+  SemanticDiffScopeEvidence,
+  SemanticDiffSnapshotInput,
+} from "./semantic-diff.js";
 export { normalizeDiagram } from "./normalize.js";
 export {
   getElement,
