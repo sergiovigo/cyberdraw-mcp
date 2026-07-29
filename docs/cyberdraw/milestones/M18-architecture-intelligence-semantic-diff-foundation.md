@@ -287,11 +287,29 @@ Delivered in M18.1:
 
 ### M18.2 - Runtime Snapshot Semantic Diff Evidence
 
-Status: PROPOSED / NOT STARTED.
+Status: COMPLETE in
+`docs/cyberdraw/milestones/m18/runtime-snapshot-semantic-diff-evidence.md`.
 
 Validate the pure model against REAL LOCAL HTTP runtime snapshots where the
 harness can prove behavior. Classify unproven clone, import, reload and
 cross-page cases honestly.
+
+Delivered in M18.2:
+
+- REAL LOCAL HTTP evidence feeding runtime snapshots through existing
+  normalization into `diffSemanticSnapshots()`;
+- real geometry, label, style, layer movement, edge endpoint, add, delete and
+  scoped absence evidence;
+- confirmation that `EXACT` runtime identity continuity is not semantic
+  equality, including same edge raw anchor plus changed endpoints deriving
+  `REWIRED`;
+- entity-level coverage evidence blocking authoritative classifications outside
+  comparable observed scope;
+- stale and revision mismatch evidence over real snapshots with synthetic
+  revision flags;
+- explicit PARTIALLY-PROVEN / UNPROVEN limitations for copy-page, true
+  copy/paste, import/reimport, reload/reopen, cross-page movement and artificial
+  snapshot ordering.
 
 ### M18.3 - ADR Decision And Closure
 
@@ -325,6 +343,9 @@ Candidate future ADR:
 ADR 0009 - Architecture Intelligence Semantic Diff Policy
 ```
 
-M18.0 does not create or accept ADR 0009. After M18.1, ADR 0009 is READY FOR
-DRAFT only. M18.2 runtime evidence is still required before an acceptance
-candidate.
+M18.0 does not create or accept ADR 0009. After M18.1, ADR 0009 was READY FOR
+DRAFT only. After M18.2, ADR 0009 is READY FOR ACCEPTANCE CANDIDATE with the
+runtime limitations recorded in
+`docs/cyberdraw/milestones/m18/runtime-snapshot-semantic-diff-evidence.md`.
+M18.3 must decide and document the final ADR state; M18.2 does not create or
+accept the ADR.
