@@ -9,7 +9,7 @@
   },
   "scripts": {
     "vendor:compat": "rimraf src/vendored/compat && mkdir -p src/vendored/compat && cp ../drawio-mcp-compat/src/index.ts src/vendored/compat/index.ts",
-    "build": "pnpm run vendor:compat && rimraf build && tsc && mkdir -p build/plugin && cp node_modules/drawio-mcp-plugin/dist/mcp-plugin.js build/plugin/mcp-plugin.js",
+    "build": "pnpm --filter cyberdraw-runtime-contract run build && pnpm --filter cyberdraw-graph-model run build && pnpm --filter drawio-mcp-plugin run build && pnpm run vendor:compat && rimraf build && tsc && node scripts/bundle-first-party-runtime.mjs && mkdir -p build/plugin && cp node_modules/drawio-mcp-plugin/dist/mcp-plugin.js build/plugin/mcp-plugin.js",
     "ci": "pnpm install --frozen-lockfile",
     "dev": "pnpm run vendor:compat && tsc --watch",
     "dev:server": "pnpm run vendor:compat && concurrently --kill-others-on-fail -n tsc,node -c cyan,green \"tsc --watch --preserveWatchOutput\" \"node --watch --watch-path=build build/index.js\"",
@@ -27,14 +27,19 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --config ../../jest.config.js --coverage",
     "clean": "rimraf build coverage .eslintcache",
-    "download-assets": "curl -sL \"$(curl -sL https://api.github.com/repos/jgraph/drawio/releases/latest | grep -o '\"browser_download_url\": *\"[^\"]*\\.war\"' | head -1 | cut -d'\"' -f4)\" -o draw.war && unzip -q -o draw.war -d assets/drawio/webapp && rm draw.war",
+    "download-assets": "node build/prefetch-assets.js",
+    "pack:artifact": "node scripts/create-distribution-artifact.mjs",
+    "verify:artifact": "node scripts/verify-distribution-artifact.mjs",
     "start": "node build/index.js"
   },
   "engines": {
     "node": ">=22.0.0"
   },
   "files": [
-    "build"
+    "build/**/*.js",
+    "!build/**/*.test.js",
+    "!build/real-environment",
+    "!build/real-environment/**"
   ],
   "keywords": [
     "mcp",

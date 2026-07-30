@@ -57,6 +57,7 @@ before CyberDraw-specific features are introduced.
 | [milestones/M18-architecture-intelligence-semantic-diff-foundation.md](milestones/M18-architecture-intelligence-semantic-diff-foundation.md) | Closed internal semantic diff foundation for scoped normalized snapshots                                          | COMPLETE / CLOSED                        |
 | [milestones/m18/formal-closure-m18.md](milestones/m18/formal-closure-m18.md)                                                 | Formal M18 closure record for the internal semantic diff policy                                                  | PASS WITH LIMITATIONS                    |
 | [milestones/M19-mvp-product-definition-and-release-readiness.md](milestones/M19-mvp-product-definition-and-release-readiness.md) | CyberDraw MVP product definition, readiness matrix and M20/M21 roadmap                                           | READY FOR REVIEW                         |
+| [milestones/M20-packaging-licensing-and-reproducible-installation.md](milestones/M20-packaging-licensing-and-reproducible-installation.md) | Packaging, licensing, asset provenance and reproducible installation evidence                                    | READY FOR FINAL M20 AUDIT                |
 | [benchmarks/](benchmarks/)                                                                                                   | Small aggregate M6 synthetic and M7 real-environment benchmark summaries                                         | Benchmark evidence                       |
 | [diagrams/internal-graph-model.md](diagrams/internal-graph-model.md)                                                         | Mermaid diagrams supporting RFC 0001                                                                             | Draft supporting diagrams                |
 | [adr/0001-fork-strategy.md](adr/0001-fork-strategy.md)                                                                       | Decision to begin as a conservative fork                                                                         | Accepted ADR                             |
@@ -159,7 +160,11 @@ Related root documents:
     `milestones/m19/` for CyberDraw MVP product definition, release-readiness
     assessment and the proposed M20/M21 roadmap. M19 does not close the final
     release and does not implement packaging or acceptance work.
-36. `adr/` when a lasting decision needs historical context.
+36. `milestones/M20-packaging-licensing-and-reproducible-installation.md` and
+    `milestones/m20/` for packaging, licensing, draw.io asset provenance and
+    reproducible installation evidence. M20 does not close final product
+    acceptance.
+37. `adr/` when a lasting decision needs historical context.
 
 ## Question Map
 
@@ -201,6 +206,7 @@ Related root documents:
 | Is M16 Architecture Intelligence runtime integration hardening closed? | `milestones/M16-architecture-intelligence-runtime-integration-hardening.md`, `milestones/m16/formal-closure-m16.md`, `milestones/m16/compatibility-matrix.md`, `milestones/m16/real-environment-evidence.md` |
 | What scoped identity policy did M17 accept?                     | `milestones/M17-architecture-intelligence-stable-identity-foundation.md`, `milestones/m17/formal-closure-m17.md`, `adr/0008-architecture-intelligence-scoped-identity-policy.md` |
 | What is the current MVP product definition and release-readiness state? | `milestones/M19-mvp-product-definition-and-release-readiness.md`, `milestones/m19/product-definition.md`, `milestones/m19/release-readiness-matrix.md` |
+| What packaging and reproducible installation evidence exists for M20? | `milestones/M20-packaging-licensing-and-reproducible-installation.md`, `milestones/m20/artifact-strategy.md`, `milestones/m20/reproducibility-evidence.md` |
 | What internal graph model architecture was accepted?            | `adr/0003-internal-graph-model-architecture.md`                                                                                                           |
 | Where are lasting decisions recorded?                           | `adr/`                                                                                                                                                    |
 | What third-party assets need review?                            | `../../THIRD_PARTY_NOTICES.md`                                                                                                                            |

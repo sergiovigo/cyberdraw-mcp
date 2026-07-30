@@ -201,9 +201,17 @@ baseline. It is not an implementation plan for M0 itself.
   license inventory, draw.io asset provenance and final clean-machine
   acceptance are completed. It proposes M20 for packaging/licensing/reproducible
   installation and M21 for final MVP product acceptance and closure.
+- M20 packaging update:
+  `docs/cyberdraw/milestones/M20-packaging-licensing-and-reproducible-installation.md`
+  starts packaging, licensing and reproducible-installation evidence. M20 pins
+  the built-in editor draw.io WAR to release `v31.1.5` with SHA-256/SHA-512
+  verification, improves package-content hygiene and bundles private
+  first-party runtime implementation details into the server artifact so a clean
+  tarball install and CLI help smoke pass outside the monorepo. M20 does not
+  close M21 product acceptance.
 - Effort: M.
-- Latest milestone: M19 (MVP product definition and release-readiness
-  assessment ready for review).
+- Latest milestone: M20 (packaging/licensing/reproducible installation in
+  progress; ready for final M20 audit).
 
 ### M0-P1-001: Complete third-party license inventory
 
@@ -217,6 +225,10 @@ baseline. It is not an implementation plan for M0 itself.
   `pnpm licenses list --recursive --json` command, Caddy 2.8.4 SHA512
   verification behavior, and draw.io asset download behavior. Full per-dependency
   notice review remains pending.
+- M20 update: `THIRD_PARTY_NOTICES.md` records the pinned draw.io `v31.1.5`
+  WAR URL and SHA-256/SHA-512 verification plus runtime dependency license
+  metadata for the official server artifact. Full draw.io WAR notice review and
+  final first-party bundled implementation notice wording remain open.
 - Effort: M.
 - Suggested milestone: M2.
 

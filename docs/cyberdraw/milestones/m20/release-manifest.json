@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "m20-release-manifest-v1",
+  "productName": "CyberDraw MCP",
+  "sourceCommit": "2048df3cc3e1c6d11a94a627c43e1ace994bfae1",
+  "packageManager": "pnpm@10.8.1",
+  "node": {
+    "minimum": "22.0.0",
+    "validatedCiLanes": ["22", "24"]
+  },
+  "officialArtifact": {
+    "packageName": "drawio-mcp-server",
+    "packageVersion": "2.2.0",
+    "binary": "drawio-mcp-server",
+    "status": "ready-for-final-m20-audit",
+    "firstPartyRuntimePackaging": "bundled-private-implementation",
+    "cleanInstall": "passed",
+    "runtimeSmoke": "drawio-mcp-server --help passed"
+  },
+  "drawioAsset": {
+    "upstreamRepository": "jgraph/drawio",
+    "releaseTag": "v31.1.5",
+    "assetName": "draw.war",
+    "url": "https://github.com/jgraph/drawio/releases/download/v31.1.5/draw.war",
+    "sizeBytes": 52730014,
+    "sha256": "43b0437762cf25375e233726d6539792584c4bd38176e4eceae5ea4359090278",
+    "sha512": "56ea7da0efd96f70aca9d0190a87adc5290660c0941291f704bb94c407f7a07f380251a61dcbed77fff25661cd990668724acd7cd21ed0b1a3c16338e3018b38",
+    "verification": "fail-closed-before-extraction"
+  },
+  "packageContentEvidence": {
+    "entryCountAfterM20Bundle": 73,
+    "compiledTestFilesIncluded": 0,
+    "realEnvironmentFilesIncluded": 0,
+    "bundledPluginIncluded": true,
+    "workspaceRangesIncluded": 0,
+    "privateCyberdrawRuntimeDependenciesDeclared": 0,
+    "regularFileMode": "0644",
+    "cliEntrypointMode": "0755",
+    "temporaryStagingCleanup": "success-and-failure",
+    "sha256": "57ba4e26955206079f44279ca0b552b9a32a76e794eb0dba78a8e00191793013"
+  },
+  "licenseInventory": {
+    "humanReadable": "docs/cyberdraw/milestones/m20/license-inventory.md",
+    "thirdPartyNotices": "THIRD_PARTY_NOTICES.md",
+    "status": "partial"
+  },
+  "audits": {
+    "production": "required-blocking",
+    "development": "diagnostic",
+    "full": "diagnostic"
+  },
+  "m20Readiness": {
+    "packagingReadiness": "ready-for-final-m20-audit",
+    "licensingReadiness": "partial",
+    "provenanceReadiness": "resolved-for-drawio-asset",
+    "installationReadiness": "proven-for-m20",
+    "m21Readiness": "ready-after-final-m20-audit"
+  }
+}
