@@ -209,9 +209,19 @@ baseline. It is not an implementation plan for M0 itself.
   first-party runtime implementation details into the server artifact so a clean
   tarball install and CLI help smoke pass outside the monorepo. M20 does not
   close M21 product acceptance.
+- M21 final MVP acceptance update:
+  `docs/cyberdraw/milestones/M21-final-mvp-product-acceptance-and-closure.md`
+  closes the final MVP product acceptance as PASS WITH LIMITATIONS. M21
+  validates the packaged `drawio-mcp-server-2.2.0.tgz` from a clean temporary
+  install, proves cold-cache and warm-cache built-in editor startup, creates a
+  visible five-node/four-edge draw.io diagram through
+  `cyberdraw_create_diagram`, verifies public read-only analysis and records
+  residual licensing, client-coverage and public-beta limitations. It does not
+  add new MCP tools, public semantic diff, persistence, global identity,
+  mutation execution, rollback, transactions or provider integration.
 - Effort: M.
-- Latest milestone: M20 (packaging/licensing/reproducible installation in
-  progress; ready for final M20 audit).
+- Latest milestone: M21 (final MVP product acceptance closed as PASS WITH
+  LIMITATIONS).
 
 ### M0-P1-001: Complete third-party license inventory
 
