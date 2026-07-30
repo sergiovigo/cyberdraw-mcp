@@ -145,7 +145,13 @@ Related root documents:
     closed internal scoped identity foundation milestone. M17 does not add
     persistence, semantic diff, mutation, public graph identity or public
     schemas.
-34. `adr/` when a lasting decision needs historical context.
+34. `milestones/M18-architecture-intelligence-semantic-diff-foundation.md`,
+    `milestones/m18/formal-closure-m18.md` and
+    `adr/0009-architecture-intelligence-semantic-diff-policy.md` for the
+    closed internal semantic diff foundation milestone. M18 accepts an internal
+    scoped semantic diff policy and keeps public APIs, persistence, mutation,
+    rollback, transactions and incremental analysis out of scope.
+35. `adr/` when a lasting decision needs historical context.
 
 ## Question Map
 

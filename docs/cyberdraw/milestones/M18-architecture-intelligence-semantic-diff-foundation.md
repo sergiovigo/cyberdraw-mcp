@@ -2,13 +2,20 @@
 
 ## Status
 
-OPEN / IN PROGRESS.
+COMPLETE / CLOSED.
 
-M18 is proposed as a discovery-first Architecture Intelligence milestone after
-M17. M17 closed with PASS WITH LIMITATIONS and accepted ADR 0008,
-"Architecture Intelligence Scoped Identity Policy". That ADR unlocks design
-work for semantic diff, but it does not authorize implementation of persistence,
-mutation execution, public graph identity or incremental analysis.
+Verdict: PASS WITH LIMITATIONS.
+
+Closed: 2026-07-30.
+
+ADR 0009, "Architecture Intelligence Semantic Diff Policy", is accepted.
+
+M18 is a discovery-first Architecture Intelligence milestone after M17. M17
+closed with PASS WITH LIMITATIONS and accepted ADR 0008, "Architecture
+Intelligence Scoped Identity Policy". M18 accepts a bounded internal semantic
+diff policy and implementation foundation, but it does not authorize
+implementation of persistence, mutation execution, public graph identity,
+public semantic diff APIs or incremental analysis.
 
 ## Objective
 
@@ -120,16 +127,16 @@ both inputs have complete-document coverage.
 M18.0 recommends modeling changes as dimensions, not as a single exclusive
 label:
 
-| Dimension | Meaning |
-| --- | --- |
-| `identityStatus` | M17 match outcome: `EXACT`, `PROBABLE`, `AMBIGUOUS` or `NO_MATCH`. |
-| `existence` | observed in both, only base, only target or not comparable. |
-| `content` | label/name/custom semantic payload changed, unchanged, unknown or not compared. |
-| `geometry` | position, size or waypoints changed, unchanged, unknown or not applicable. |
-| `container` | page, layer or parent context changed, unchanged, unknown or not applicable. |
-| `connectivity` | edge endpoints or structural references changed, unchanged, unknown or not applicable. |
-| `metadata` | style, tags, custom attributes, visibility/lock state or other metadata changed, unchanged or unknown. |
-| `coverage` | whether the dimension is supported by comparable observed scopes. |
+| Dimension        | Meaning                                                                                                |
+| ---------------- | ------------------------------------------------------------------------------------------------------ |
+| `identityStatus` | M17 match outcome: `EXACT`, `PROBABLE`, `AMBIGUOUS` or `NO_MATCH`.                                     |
+| `existence`      | observed in both, only base, only target or not comparable.                                            |
+| `content`        | label/name/custom semantic payload changed, unchanged, unknown or not compared.                        |
+| `geometry`       | position, size or waypoints changed, unchanged, unknown or not applicable.                             |
+| `container`      | page, layer or parent context changed, unchanged, unknown or not applicable.                           |
+| `connectivity`   | edge endpoints or structural references changed, unchanged, unknown or not applicable.                 |
+| `metadata`       | style, tags, custom attributes, visibility/lock state or other metadata changed, unchanged or unknown. |
+| `coverage`       | whether the dimension is supported by comparable observed scopes.                                      |
 
 This avoids forcing one label when an entity changes in multiple dimensions,
 for example an edge can remain `EXACT` while both `connectivity` and `metadata`
@@ -313,10 +320,25 @@ Delivered in M18.2:
 
 ### M18.3 - ADR Decision And Closure
 
-Status: PROPOSED / NOT STARTED.
+Status: COMPLETE in
+`docs/cyberdraw/milestones/m18/formal-closure-m18.md`.
 
-Decide whether ADR 0009, "Architecture Intelligence Semantic Diff Policy", is
-ready to draft or accept. Close M18 with explicit limitations.
+ADR 0009, "Architecture Intelligence Semantic Diff Policy", is accepted in:
+
+```text
+docs/cyberdraw/adr/0009-architecture-intelligence-semantic-diff-policy.md
+```
+
+M18 is closed as PASS WITH LIMITATIONS.
+
+Delivered in M18.3:
+
+- ADR 0009 accepted;
+- M18 evidence consolidated as REAL-PROVEN, PARTIALLY-PROVEN and UNPROVEN;
+- formal closure recorded;
+- future enabled capabilities documented as future work only;
+- public APIs, persistence, mutation execution, rollback, transactions and
+  incremental analysis kept out of scope.
 
 ## Acceptance Criteria
 
@@ -343,9 +365,45 @@ Candidate future ADR:
 ADR 0009 - Architecture Intelligence Semantic Diff Policy
 ```
 
-M18.0 does not create or accept ADR 0009. After M18.1, ADR 0009 was READY FOR
-DRAFT only. After M18.2, ADR 0009 is READY FOR ACCEPTANCE CANDIDATE with the
+M18.0 did not create or accept ADR 0009. After M18.1, ADR 0009 was READY FOR
+DRAFT only. After M18.2, ADR 0009 was READY FOR ACCEPTANCE CANDIDATE with the
 runtime limitations recorded in
 `docs/cyberdraw/milestones/m18/runtime-snapshot-semantic-diff-evidence.md`.
-M18.3 must decide and document the final ADR state; M18.2 does not create or
-accept the ADR.
+M18.3 accepts ADR 0009 with those limitations.
+
+## Closure Summary
+
+M18 closes as PASS WITH LIMITATIONS.
+
+REAL-PROVEN behavior includes:
+
+- identical real snapshots;
+- geometry, label and style changes;
+- same-page layer movement;
+- edge endpoint rewiring;
+- edge label/style modification isolated from rewiring;
+- controlled add/delete;
+- partial coverage blocking authoritative classification;
+- scoped absence proof.
+
+PARTIALLY-PROVEN behavior includes:
+
+- copy-page evidence;
+- stale and revision mismatch via synthetic revision flags over real snapshots;
+- artificial runtime ordering where semantic classifications remain stable but
+  not all internal snapshot-scoped refs are byte-identical.
+
+UNPROVEN behavior includes:
+
+- cross-page move;
+- import/reimport with rewritten IDs;
+- reload/reopen;
+- true copy/paste;
+- arbitrary clone behavior;
+- semantic equivalence between distinct entities;
+- stable global identity;
+- persistent cross-session or cross-document continuity.
+
+M18 enables future design of incremental analysis, selective recomputation,
+changed-region analysis, scoped cache invalidation and evidence-aware internal
+Architecture Intelligence. It does not implement those capabilities.

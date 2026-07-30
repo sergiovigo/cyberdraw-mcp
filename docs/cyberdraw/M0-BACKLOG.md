@@ -185,8 +185,16 @@ baseline. It is not an implementation plan for M0 itself.
   qualified anchor continuity inside the proven domain. It still does not add
   public graph identity, stable global identity, persistence keys, mutation
   identifiers, semantic diff contracts, public MCP tools or public schemas.
+- M18 closure update:
+  `docs/cyberdraw/milestones/m18/formal-closure-m18.md` closes M18 as PASS WITH
+  LIMITATIONS and
+  `docs/cyberdraw/adr/0009-architecture-intelligence-semantic-diff-policy.md`
+  accepts an internal scoped semantic diff policy. M18 adds the internal pure
+  `diffSemanticSnapshots()` foundation and REAL LOCAL HTTP evidence, but it
+  does not add a public semantic diff tool, public DTO, persistence, mutation
+  execution, rollback, transactions, global identity or incremental analysis.
 - Effort: M.
-- Suggested milestone: M17 (closed scoped identity foundation).
+- Latest milestone: M18 (closed internal semantic diff foundation).
 
 ### M0-P1-001: Complete third-party license inventory
 

@@ -12,7 +12,8 @@ Evidence source:
   `NODE_OPTIONS=--experimental-vm-modules pnpm --filter drawio-mcp-server exec jest build/real-environment/m18-runtime-semantic-diff-evidence.test.js --runInBand`;
 - environment classification: REAL LOCAL HTTP.
 
-M18 remains OPEN. ADR 0009 is not created or accepted by M18.2.
+M18.2 did not close the milestone. ADR 0009 was not created or accepted by
+M18.2; M18.3 records the later ADR decision and milestone closure.
 
 ## Purpose
 
