@@ -294,7 +294,11 @@ describe("real environment/M18 runtime semantic diff evidence", () => {
     expectToolSuccess(copiedPagePayload);
     const copiedPage = unwrapToolPayload<PageInfo>(copiedPagePayload);
     const copiedSnapshot = await snapshot(context);
-    const copiedSource = elementByLabel(copiedSnapshot, copiedPage.id, "m18-source");
+    const copiedSource = elementByLabel(
+      copiedSnapshot,
+      copiedPage.id,
+      "m18-source",
+    );
     const copyDiff = semanticDiff(initial, copiedSnapshot);
     expect(expectEntity(copyDiff, copiedSource.id)).not.toMatchObject({
       identityStatus: "EXACT",
@@ -512,10 +516,13 @@ function layerCoverage(
   const graph = fromRuntimeSnapshot(snapshot);
   const page = graph.pages.find((candidate) => candidate.drawioId === pageId);
   const layer = graph.layers.find(
-    (candidate) => candidate.drawioId === layerId && candidate.pageId === page?.internalId,
+    (candidate) =>
+      candidate.drawioId === layerId && candidate.pageId === page?.internalId,
   );
   if (!page || !layer) {
-    throw new Error(`could not resolve layer coverage for ${pageId}/${layerId}`);
+    throw new Error(
+      `could not resolve layer coverage for ${pageId}/${layerId}`,
+    );
   }
   return {
     document: false,
