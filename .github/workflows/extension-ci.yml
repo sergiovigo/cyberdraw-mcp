@@ -4,12 +4,18 @@ on:
   push:
     branches: [main]
     paths:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
       - 'packages/cyberdraw-runtime-contract/**'
       - 'packages/drawio-mcp-extension/**'
       - 'packages/drawio-mcp-plugin/**'
   pull_request:
     branches: [main]
     paths:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
       - 'packages/cyberdraw-runtime-contract/**'
       - 'packages/drawio-mcp-extension/**'
       - 'packages/drawio-mcp-plugin/**'
@@ -35,8 +41,33 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Audit dependencies
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level=moderate
+
+      - name: Audit development dependencies (diagnostic)
+        if: always()
+        continue-on-error: true
+        run: pnpm audit --dev --audit-level=moderate
+
+      - name: Audit all dependencies (diagnostic)
+        if: always()
+        continue-on-error: true
         run: pnpm run audit:dependencies
+
+      - name: Dependency audit policy summary
+        if: always()
+        run: |
+          {
+            echo "## Dependency audit policy"
+            echo
+            echo "- Production dependency audit is blocking: \`pnpm audit --prod --audit-level=moderate\`."
+            echo "- Development dependency audit is diagnostic and temporarily non-blocking: \`pnpm audit --dev --audit-level=moderate\`."
+            echo "- Full dependency audit remains visible as diagnostic output: \`pnpm run audit:dependencies\`."
+            echo "- Tracked development advisory: GHSA-mh99-v99m-4gvg in \`brace-expansion\`."
+            echo "- The current vulnerable path is dev/test tooling through Jest, Istanbul, glob, minimatch, and rimraf."
+            echo "- No compatible upstream remediation is currently available without forcing incompatible transitive majors."
+            echo "- Revisit this policy when Jest, Istanbul, glob, or minimatch provide a compatible dependency path."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build plugin
         run: pnpm --filter drawio-mcp-plugin... run build
