@@ -193,8 +193,17 @@ baseline. It is not an implementation plan for M0 itself.
   `diffSemanticSnapshots()` foundation and REAL LOCAL HTTP evidence, but it
   does not add a public semantic diff tool, public DTO, persistence, mutation
   execution, rollback, transactions, global identity or incremental analysis.
+- M19 product-readiness update:
+  `docs/cyberdraw/milestones/M19-mvp-product-definition-and-release-readiness.md`
+  records the CyberDraw MVP product definition and release-readiness assessment.
+  M19 classifies the project as demo ready and internal MVP ready with
+  limitations, but external distributable MVP not ready until packaging,
+  license inventory, draw.io asset provenance and final clean-machine
+  acceptance are completed. It proposes M20 for packaging/licensing/reproducible
+  installation and M21 for final MVP product acceptance and closure.
 - Effort: M.
-- Latest milestone: M18 (closed internal semantic diff foundation).
+- Latest milestone: M19 (MVP product definition and release-readiness
+  assessment ready for review).
 
 ### M0-P1-001: Complete third-party license inventory
 
