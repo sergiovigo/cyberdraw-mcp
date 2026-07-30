@@ -5,6 +5,7 @@ import {
   createReadStream,
   rmSync,
 } from "node:fs";
+import { createHash } from "node:crypto";
 import { pipeline } from "node:stream/promises";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,25 +15,20 @@ import type { Logger } from "../types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const DRAWIO_GITHUB_API =
-  "https://api.github.com/repos/jgraph/drawio/releases/latest";
+export const DRAWIO_ASSET_PROVENANCE = {
+  version: "31.1.5",
+  releaseTag: "v31.1.5",
+  releaseUrl: "https://github.com/jgraph/drawio/releases/tag/v31.1.5",
+  warAssetName: "draw.war",
+  warUrl: "https://github.com/jgraph/drawio/releases/download/v31.1.5/draw.war",
+  warSizeBytes: 52730014,
+  warSha256: "43b0437762cf25375e233726d6539792584c4bd38176e4eceae5ea4359090278",
+  warSha512:
+    "56ea7da0efd96f70aca9d0190a87adc5290660c0941291f704bb94c407f7a07f380251a61dcbed77fff25661cd990668724acd7cd21ed0b1a3c16338e3018b38",
+} as const;
 
 export async function getLatestWarUrl(): Promise<string> {
-  const response = await fetch(DRAWIO_GITHUB_API);
-  if (!response.ok) {
-    throw new Error(`Failed to get draw.io release info: ${response.status}`);
-  }
-
-  const data = await response.json();
-  const warAsset = data.assets?.find(
-    (asset: { name: string }) => asset.name === "draw.war",
-  );
-
-  if (!warAsset) {
-    throw new Error("Could not find draw.war in latest release");
-  }
-
-  return warAsset.browser_download_url;
+  return DRAWIO_ASSET_PROVENANCE.warUrl;
 }
 
 export async function downloadFile(
@@ -56,6 +52,32 @@ export async function downloadFile(
   }
 
   await pipeline(response.body, createWriteStream(destPath));
+}
+
+export async function hashFile(
+  path: string,
+  algorithm: "sha256" | "sha512",
+): Promise<string> {
+  const hash = createHash(algorithm);
+  await pipeline(createReadStream(path), hash);
+  return hash.digest("hex");
+}
+
+export async function verifyDrawioWarChecksum(warPath: string): Promise<void> {
+  const [sha256, sha512] = await Promise.all([
+    hashFile(warPath, "sha256"),
+    hashFile(warPath, "sha512"),
+  ]);
+  if (sha256 !== DRAWIO_ASSET_PROVENANCE.warSha256) {
+    throw new Error(
+      `draw.io ${DRAWIO_ASSET_PROVENANCE.releaseTag} draw.war sha256 mismatch: expected ${DRAWIO_ASSET_PROVENANCE.warSha256}, got ${sha256}`,
+    );
+  }
+  if (sha512 !== DRAWIO_ASSET_PROVENANCE.warSha512) {
+    throw new Error(
+      `draw.io ${DRAWIO_ASSET_PROVENANCE.releaseTag} draw.war sha512 mismatch: expected ${DRAWIO_ASSET_PROVENANCE.warSha512}, got ${sha512}`,
+    );
+  }
 }
 
 export async function extractWar(
@@ -100,14 +122,28 @@ export async function downloadAndExtractAssets(
   targetDir: string,
   log: Logger,
 ): Promise<void> {
-  log.log("info", "Fetching draw.io release info...");
-
   const warUrl = await getLatestWarUrl();
   const warPath = join(targetDir, "draw.war");
 
-  log.log("info", `Downloading draw.war from ${warUrl}...`);
-  await downloadFile(warUrl, warPath);
-  log.log("info", "Download complete.");
+  log.log(
+    "info",
+    `Downloading draw.io ${DRAWIO_ASSET_PROVENANCE.releaseTag} draw.war from ${warUrl}...`,
+  );
+  try {
+    await downloadFile(warUrl, warPath);
+    log.log("info", "Download complete.");
+
+    log.log("info", "Verifying draw.io asset checksum...");
+    await verifyDrawioWarChecksum(warPath);
+    log.log("info", "Checksum verified.");
+  } catch (error) {
+    try {
+      rmSync(warPath, { force: true });
+    } catch (cleanupError) {
+      log.log("warning", "Failed to remove invalid WAR file:", cleanupError);
+    }
+    throw error;
+  }
 
   const webappDir = join(targetDir, "webapp");
 

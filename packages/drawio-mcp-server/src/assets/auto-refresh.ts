@@ -30,7 +30,7 @@ export async function ensureSupportedAssets(
 
   log.log(
     "warning",
-    `cached drawio v${cached ?? "?"} is outside supported window (>= v${matrix.supportedFloor}); refetching latest`,
+    `cached drawio v${cached ?? "?"} is outside supported window (>= v${matrix.supportedFloor}); refetching pinned release`,
   );
   rmSync(assetRoot, { recursive: true, force: true });
   await ports.downloadAndExtract(cacheDir, log);
@@ -39,7 +39,7 @@ export async function ensureSupportedAssets(
   if (!after || !versionInWindow(after, matrix)) {
     log.log(
       "error",
-      `drawio latest v${after ?? "?"} is still outside supported window; tools may misbehave`,
+      `drawio pinned release v${after ?? "?"} is still outside supported window; tools may misbehave`,
     );
   }
   return { version: after, refetched: true };

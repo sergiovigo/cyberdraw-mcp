@@ -11,8 +11,11 @@ export {
 export {
   getLatestWarUrl,
   downloadFile,
+  hashFile,
+  verifyDrawioWarChecksum,
   extractWar,
   cleanupExtractedFiles,
   downloadAndExtractAssets,
   ensureAssets,
+  DRAWIO_ASSET_PROVENANCE,
 } from "./downloader.js";
