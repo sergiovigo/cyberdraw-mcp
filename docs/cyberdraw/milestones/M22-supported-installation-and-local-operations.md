@@ -174,10 +174,30 @@ Expected M22 outputs:
 - platform-specific installer scripts or packages;
 - doctor diagnostics;
 - upgrade and uninstall paths;
+- authoritative Markdown user-guide source and reproducible derived manual
+  generation policy;
 - cross-OS support matrix;
 - real manual evidence per operating system;
 - updated troubleshooting;
 - closure verdict for supported local operations.
+
+## Documentation Source Policy
+
+M22 adopts Markdown as the authoritative, versioned source for installation and
+user guidance:
+
+- [`../user-guide/installation-and-user-guide.md`](../user-guide/installation-and-user-guide.md)
+- [`../user-guide/macos.md`](../user-guide/macos.md)
+- [`../user-guide/ubuntu.md`](../user-guide/ubuntu.md)
+- [`../user-guide/windows.md`](../user-guide/windows.md)
+- [`../user-guide/troubleshooting.md`](../user-guide/troubleshooting.md)
+
+DOCX and PDF manuals are derived release or distribution artifacts. They must
+not be used as source documents and should not normally be versioned in Git.
+
+M22 may later add reproducible DOCX/PDF generation from the Markdown source,
+including source commit, command, output path and checksums as release evidence.
+That generation is planned, not implemented by this milestone draft.
 
 M22 should end with one of:
 
