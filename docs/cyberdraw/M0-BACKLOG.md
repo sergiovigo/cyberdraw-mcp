@@ -219,9 +219,21 @@ baseline. It is not an implementation plan for M0 itself.
   residual licensing, client-coverage and public-beta limitations. It does not
   add new MCP tools, public semantic diff, persistence, global identity,
   mutation execution, rollback, transactions or provider integration.
+- M22 planning update:
+  `docs/cyberdraw/milestones/M22-supported-installation-and-local-operations.md`
+  proposes the next post-MVP productization milestone. M22 is scoped to
+  supported local installation and operations: artifact validation, safe
+  localhost default profile, explicit LAN profile, Codex configuration backup,
+  doctor diagnostics, upgrade, uninstall and macOS/Ubuntu/Windows evidence. It
+  does not add diagramming features, public semantic diff, persistence,
+  mutation execution, global identity, remote deployment or public beta.
+- Product direction update:
+  `docs/cyberdraw/product-direction-v1.md` records the post-MVP direction
+  decision input. It recommends closing M22 before choosing an M23 lane such as
+  Public Release Foundations, Architecture Intelligence Planning or a
+  Cybersecurity Diagramming Pack.
 - Effort: M.
-- Latest milestone: M21 (final MVP product acceptance closed as PASS WITH
-  LIMITATIONS).
+- Latest milestone: M22 (proposed supported installation and local operations).
 
 ### M0-P1-001: Complete third-party license inventory
 
