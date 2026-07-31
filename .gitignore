@@ -69,6 +69,10 @@ web_modules/
 # Output of 'npm pack'
 *.tgz
 
+# Generated CyberDraw manuals
+docs/Manual_instalacion_y_guia_uso_CyberDraw_MCP_*.docx
+docs/Manual_instalacion_y_guia_uso_CyberDraw_MCP_*.pdf
+
 # Yarn Integrity file
 .yarn-integrity
 

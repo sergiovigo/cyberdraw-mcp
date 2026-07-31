@@ -164,3 +164,27 @@ M22 should not decide whether CyberDraw becomes a generic diagramming utility,
 a public beta, an Architecture Intelligence platform or a cybersecurity
 diagramming product. It should produce enough operational evidence for that
 decision to be made in `CyberDraw Product Direction v1`.
+
+## User-Guide Artifact Policy
+
+M22 documentation uses Markdown as the authoritative source. The user guide
+lives under `docs/cyberdraw/user-guide/`.
+
+DOCX and PDF manuals are derived artifacts. Existing generated files matching
+`docs/Manual_instalacion_y_guia_uso_CyberDraw_MCP_*.docx` and
+`docs/Manual_instalacion_y_guia_uso_CyberDraw_MCP_*.pdf` are local distribution
+outputs, not source documents.
+
+Future M22 automation may generate those formats reproducibly, but it must
+record:
+
+- Markdown source files;
+- source commit;
+- generator command;
+- generated artifact paths;
+- SHA-256 and SHA-512;
+- version or release candidate identity.
+
+Until that automation exists, do not edit DOCX/PDF outputs as the source of
+truth and do not treat their presence as evidence that M22 installation support
+is complete.
