@@ -227,13 +227,23 @@ baseline. It is not an implementation plan for M0 itself.
   doctor diagnostics, upgrade, uninstall and macOS/Ubuntu/Windows evidence. It
   does not add diagramming features, public semantic diff, persistence,
   mutation execution, global identity, remote deployment or public beta.
+- M22.1/M22.2 implementation update:
+  `docs/cyberdraw/milestones/m22/supported-installation-contract.md` and
+  `docs/cyberdraw/milestones/m22/macos-installer.md` record the first supported
+  installation contract and macOS installer implementation. The installer
+  validates explicit local tarballs, SHA-256/SHA-512, packaged metadata,
+  localhost/LAN profiles, Codex config backup, local manifests, doctor/check,
+  upgrade and uninstall. Ubuntu, Windows, full cross-OS closure, public beta,
+  remote deployment, authentication and new MCP capabilities remain out of
+  scope.
 - Product direction update:
   `docs/cyberdraw/product-direction-v1.md` records the post-MVP direction
   decision input. It recommends closing M22 before choosing an M23 lane such as
   Public Release Foundations, Architecture Intelligence Planning or a
   Cybersecurity Diagramming Pack.
 - Effort: M.
-- Latest milestone: M22 (proposed supported installation and local operations).
+- Latest milestone: M22 (supported installation and local operations in
+  progress; M22.1/M22.2 ready for audit).
 
 ### M0-P1-001: Complete third-party license inventory
 

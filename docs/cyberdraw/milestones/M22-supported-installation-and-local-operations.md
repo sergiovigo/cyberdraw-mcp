@@ -2,7 +2,11 @@
 
 ## Status
 
-PROPOSED / NOT STARTED.
+IN PROGRESS.
+
+M22.1 Supported Installation Contract and M22.2 Supported macOS Installer are
+implemented and ready for audit. Ubuntu, Windows, full cross-OS closure and
+public release hardening remain out of scope for this delivery.
 
 ## Purpose
 
@@ -74,6 +78,11 @@ M22 covers:
 - consolidated troubleshooting guidance;
 - real manual evidence on each supported operating system.
 
+Current implementation evidence:
+
+- [`m22/supported-installation-contract.md`](m22/supported-installation-contract.md)
+- [`m22/macos-installer.md`](m22/macos-installer.md)
+
 ## Non-Goals
 
 M22 does not:
@@ -119,14 +128,13 @@ surfaces are unauthenticated and intended for trusted local networks only.
 
 ## Proposed Sub-Milestones
 
-| Sub-milestone | Name                                    | Scope                                                                                        |
-| ------------- | --------------------------------------- | -------------------------------------------------------------------------------------------- |
-| M22.0         | Installer Contract And Profile Policy   | Freeze artifact validation, host profiles, config backup and supported OS acceptance policy. |
-| M22.1         | macOS Installer Integration             | Versioned macOS install, Codex config, doctor, upgrade and uninstall evidence.               |
-| M22.2         | Ubuntu Installer Integration            | Versioned Ubuntu install, Codex config, doctor, upgrade and uninstall evidence.              |
-| M22.3         | Windows Installer Integration           | Versioned Windows install, Codex config, doctor, upgrade and uninstall evidence.             |
-| M22.4         | Doctor, Upgrade And Uninstall Hardening | Shared diagnostics, port/process checks, cleanup safety and rollback of config edits.        |
-| M22.5         | Cross-OS Local Operations Closure       | Consolidated OS matrix, residual risks, release-readiness decision and closure evidence.     |
+| Sub-milestone | Name                              | Scope                                                                                                    |
+| ------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| M22.1         | Supported Installation Contract   | Implemented. Versioned local install contract, artifact validation, manifest, profiles and status model. |
+| M22.2         | Supported macOS Installer         | Implemented. macOS wrapper plus Node installer core for install/check/doctor/upgrade/uninstall.          |
+| M22.3         | Ubuntu Installer Integration      | Not started. Versioned Ubuntu install, Codex config, doctor, upgrade and uninstall evidence.             |
+| M22.4         | Windows Installer Integration     | Not started. Versioned Windows install, Codex config, doctor, upgrade and uninstall evidence.            |
+| M22.5         | Cross-OS Local Operations Closure | Not started. Consolidated OS matrix, residual risks, release-readiness decision and closure evidence.    |
 
 The exact split can change during M22.0 if implementation evidence shows a
 smaller structure is safer.

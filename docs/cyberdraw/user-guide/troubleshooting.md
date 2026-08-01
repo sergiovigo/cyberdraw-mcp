@@ -2,11 +2,19 @@
 
 ## Status
 
-M22 DRAFT / DOCTOR NOT YET IMPLEMENTED.
+M22 DRAFT / DOCTOR IMPLEMENTED WITH CONTROLLED MCP PROBES.
 
-M22 plans a doctor command or equivalent diagnostic script. Until that exists,
-this document records observed failure modes and the evidence that a future
-doctor should collect.
+M22.2 includes a doctor/check command. It reports structured
+PASS/WARN/FAIL/NOT CHECKED results for install metadata, config, ports,
+residual processes, MCP initialize handshake and `tools/list`. A normal doctor
+run on a valid installation should discover a non-empty tools list and the
+required CyberDraw tools:
+
+- `cyberdraw_create_diagram`;
+- `cyberdraw_analyze_structure`.
+
+`NOT CHECKED` means a concrete precondition was missing, such as absent
+installation metadata or an unavailable binary.
 
 ## Non-Self-Contained Tarball
 
@@ -20,7 +28,7 @@ Cause:
 - the tarball is not the self-contained M20 distribution artifact, or its
   packaged `package.json` still contains private workspace runtime dependencies.
 
-M22 requirement:
+Installer behavior:
 
 - installer validation must reject this before changing client configuration.
 
@@ -34,7 +42,7 @@ Cause:
 
 - an artifact still references pnpm workspace ranges.
 
-M22 requirement:
+Installer behavior:
 
 - packaged metadata must be inspected and any `workspace:*` range must fail
   validation.
@@ -51,7 +59,7 @@ Cause:
 - an artifact, install output path or MCP client command was copied from another
   operating system without resolving it locally.
 
-M22 requirement:
+Installer behavior:
 
 - installers must resolve paths on the target machine and record the selected
   install directory.
@@ -101,7 +109,10 @@ Symptom:
 M22 requirement:
 
 - doctor diagnostics should report selected ports, active CyberDraw processes
-  and cleanup guidance.
+  and cleanup guidance;
+- doctor should not leave managed server processes after MCP probing.
+- uninstall should stop only processes that can be tied to the managed
+  installation directory.
 
 ## Host `0.0.0.0`
 
