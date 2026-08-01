@@ -2,7 +2,10 @@
 
 ## Status
 
-PROPOSED / NOT STARTED.
+IN PROGRESS.
+
+The M22.1 installation contract and M22.2 macOS installer implementation are
+available for audit. Ubuntu, Windows and cross-OS closure remain pending.
 
 ## Inputs
 
@@ -39,6 +42,11 @@ Required checks:
 Failure before configuration should leave no modified MCP client configuration.
 Failure after a configuration backup should leave the backup path visible in the
 error output.
+
+Implemented contract details:
+
+- [`supported-installation-contract.md`](supported-installation-contract.md)
+- [`macos-installer.md`](macos-installer.md)
 
 ## Supported Profiles
 
@@ -89,10 +97,17 @@ The doctor command or script should be read-only by default and report:
 - WebSocket host and port;
 - port availability;
 - active CyberDraw processes;
+- controlled MCP initialize handshake;
+- `tools/list` result;
+- observed tool count;
+- presence of `cyberdraw_create_diagram`;
+- presence of `cyberdraw_analyze_structure`;
 - draw.io asset cache state;
 - known dev/test advisory status if dependency diagnostics are included.
 
-The doctor should not start mutating operations unless explicitly requested.
+The doctor should not start mutating operations unless explicitly requested. If
+it starts the server for MCP probing, it must stop that process and report
+whether any managed process remains.
 
 ## Upgrade Contract
 
@@ -107,7 +122,12 @@ Upgrade does not mean:
 - mutation replay;
 - cache compatibility guarantee beyond documented editor assets.
 
-The upgrade path must preserve a backup of the prior client configuration.
+The upgrade path must preserve a backup of the prior client configuration and
+the prior managed install. The replacement must be validated before touching
+the existing install. If the post-upgrade doctor fails, the supported behavior
+is safe restoration when available, or an explicit FAILED/PARTIAL state with
+the backup location and manual recovery instructions. M22 does not claim full
+rollback of diagrams or product state.
 
 ## Uninstall Contract
 

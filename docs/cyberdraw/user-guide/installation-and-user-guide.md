@@ -50,20 +50,32 @@ Accepted capabilities:
 
 M22 plans to turn installation and local operations into a supported capability.
 
-Planned, not yet complete:
+Implemented in M22.1/M22.2 and ready for audit:
 
-- versioned installers or install scripts for macOS, Ubuntu and Windows;
-- artifact validation before install;
+- versioned installation contract;
+- macOS installer wrapper;
+- local tarball validation;
 - SHA-256 and SHA-512 verification;
 - rejection of non-self-contained tarballs;
-- safe localhost profile by default;
-- explicit LAN profile with risk acknowledgement;
+- rejection of `workspace:*`;
+- rejection of private `cyberdraw-*` runtime dependencies;
+- default localhost profile;
+- explicit LAN profile opt-in;
 - Codex configuration backup and update;
+- manifest generation;
+- doctor/check structured output;
+- controlled MCP handshake probe inside doctor;
+- `tools/list` probe inside doctor;
+- required CyberDraw tool detection;
 - port detection;
-- residual process checks;
-- doctor diagnostics;
-- upgrade workflow;
-- uninstall/cleanup workflow;
+- residual process detection and post-probe cleanup check;
+- upgrade command;
+- uninstall command.
+
+Planned, not yet complete:
+
+- Ubuntu installer;
+- Windows installer;
 - reproducible DOCX/PDF manual generation from Markdown.
 
 Do not treat those planned items as implemented until the relevant M22 evidence
@@ -79,6 +91,7 @@ exists.
 - Full draw.io WAR notice review remains pending for public beta standards.
 - The current Markdown source does not yet have an automated release manual
   generation pipeline.
+- macOS manual product audit for the installer remains pending.
 
 ## Manual Artifact Policy
 

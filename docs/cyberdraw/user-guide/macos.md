@@ -2,11 +2,47 @@
 
 ## Status
 
-M22 DRAFT / INSTALLER VALIDATION PENDING.
+M22 INSTALLER IMPLEMENTED / MANUAL MACOS AUDIT PENDING.
 
 The accepted MVP has been transferred and installed on a MacBook Pro outside
 the original development environment. That real installation is useful evidence,
-but M22 still needs a supported macOS installer flow with repeatable validation.
+but M22 still needs a final manual macOS audit of the supported installer flow.
+
+## Installer Command
+
+From the repository checkout:
+
+```sh
+packages/drawio-mcp-server/installers/macos/cyberdraw-macos-installer.sh install \
+  --tarball /path/to/drawio-mcp-server-2.2.0.tgz \
+  --expected-sha256 <sha256> \
+  --expected-sha512 <sha512>
+```
+
+Additional commands:
+
+```sh
+packages/drawio-mcp-server/installers/macos/cyberdraw-macos-installer.sh doctor
+packages/drawio-mcp-server/installers/macos/cyberdraw-macos-installer.sh check
+
+packages/drawio-mcp-server/installers/macos/cyberdraw-macos-installer.sh upgrade \
+  --tarball /path/to/drawio-mcp-server-2.2.0.tgz \
+  --expected-sha256 <sha256> \
+  --expected-sha512 <sha512>
+
+packages/drawio-mcp-server/installers/macos/cyberdraw-macos-installer.sh uninstall
+```
+
+Useful options:
+
+- `--install-dir <path>`;
+- `--codex-config <path>`;
+- `--profile localhost|lan`;
+- `--host <host>`;
+- `--http-port <number>`;
+- `--websocket-port <number>`;
+- `--lan-confirm`;
+- `--yes`.
 
 ## Current Lessons
 
@@ -46,9 +82,9 @@ authentication in that profile today.
 
 M22 must require explicit user acknowledgement before writing a LAN profile.
 
-## Artifact Validation Requirement
+## Artifact Validation
 
-The macOS installer should validate before configuration changes:
+The macOS installer validates before configuration changes:
 
 - package name and version;
 - SHA-256;
@@ -58,5 +94,19 @@ The macOS installer should validate before configuration changes:
 - presence of `drawio-mcp-server`;
 - presence of `LICENSE.md` and `THIRD_PARTY_NOTICES.md`.
 
-These checks are M22 requirements. This guide does not claim that the macOS
-installer already implements them.
+It rejects tarballs that try to resolve private packages such as
+`cyberdraw-graph-model@0.0.0` from npm.
+
+## Codex Configuration
+
+The installer updates only:
+
+```toml
+[mcp_servers.cyberdraw]
+```
+
+Existing Codex configuration is backed up before modification. Other MCP server
+entries are preserved.
+
+The installer does not modify the user's real Codex config during automated
+tests; tests use temporary config files.
