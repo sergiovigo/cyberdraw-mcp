@@ -401,14 +401,18 @@ export function upsertCodexServerBlock(content, manifest) {
 
   const lines = content.split(/\r?\n/);
   const output = [];
+  const cyberdrawLine = analysis.cyberdrawSections[0].line;
   for (let index = 0; index < lines.length; index += 1) {
-    if (lines[index].trim() !== `[mcp_servers.${DEFAULTS.codexServerName}]`) {
+    if (index + 1 !== cyberdrawLine) {
       output.push(lines[index]);
       continue;
     }
     output.push(...newBlock.split("\n"));
     index += 1;
-    while (index < lines.length && !/^\s*\[[^\]]+\]\s*$/.test(lines[index])) {
+    while (
+      index < lines.length &&
+      !parseTomlTableHeader(stripTomlInlineComment(lines[index]).trim())
+    ) {
       index += 1;
     }
     index -= 1;
@@ -416,31 +420,198 @@ export function upsertCodexServerBlock(content, manifest) {
   return `${output.join("\n").trimEnd()}\n`;
 }
 
+function parseTomlQuotedSegment(input, start, quote) {
+  let value = "";
+  for (let index = start + 1; index < input.length; index += 1) {
+    const char = input[index];
+    if (quote === '"' && char === "\\") {
+      if (index + 1 >= input.length) return undefined;
+      value += input[index + 1];
+      index += 1;
+      continue;
+    }
+    if (char === quote) {
+      return { value, next: index + 1 };
+    }
+    value += char;
+  }
+  return undefined;
+}
+
+function parseTomlDottedKey(input) {
+  const segments = [];
+  let index = 0;
+  while (index < input.length) {
+    while (input[index] === " " || input[index] === "\t") index += 1;
+    if (index >= input.length) return undefined;
+
+    const char = input[index];
+    if (char === '"' || char === "'") {
+      const quoted = parseTomlQuotedSegment(input, index, char);
+      if (!quoted) return undefined;
+      segments.push(quoted.value);
+      index = quoted.next;
+    } else {
+      const match = input.slice(index).match(/^[A-Za-z0-9_-]+/);
+      if (!match) return undefined;
+      segments.push(match[0]);
+      index += match[0].length;
+    }
+
+    while (input[index] === " " || input[index] === "\t") index += 1;
+    if (index >= input.length) break;
+    if (input[index] !== ".") return undefined;
+    index += 1;
+  }
+  return segments.length ? segments : undefined;
+}
+
+function parseTomlTableHeader(line) {
+  let inner;
+  let tableKind;
+  if (line.startsWith("[[") && line.endsWith("]]")) {
+    inner = line.slice(2, -2).trim();
+    tableKind = "array-table";
+  } else if (line.startsWith("[") && line.endsWith("]")) {
+    inner = line.slice(1, -1).trim();
+    tableKind = "table";
+  } else {
+    return undefined;
+  }
+  const segments = parseTomlDottedKey(inner);
+  if (!segments) return undefined;
+  return {
+    tableKind,
+    canonicalKey: tomlCanonicalKey(segments),
+    name: segments.join("."),
+    segments,
+  };
+}
+
+function findTomlKeyEquals(line) {
+  let quote;
+  let escaped = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    if (quote === '"' && char === "\\" && !escaped) {
+      escaped = true;
+      continue;
+    }
+    if ((char === '"' || char === "'") && !escaped) {
+      if (quote === char) {
+        quote = undefined;
+      } else if (!quote) {
+        quote = char;
+      }
+    }
+    if (char === "=" && !quote) {
+      return index;
+    }
+    escaped = false;
+  }
+  return -1;
+}
+
+function parseTomlKeyAssignment(line) {
+  const equalsIndex = findTomlKeyEquals(line);
+  if (equalsIndex <= 0) return undefined;
+  const key = line.slice(0, equalsIndex).trim();
+  const segments = parseTomlDottedKey(key);
+  if (!segments) return undefined;
+  return {
+    canonicalKey: tomlCanonicalKey(segments),
+    name: segments.join("."),
+    segments,
+  };
+}
+
+function stripTomlInlineComment(line) {
+  let quote;
+  let escaped = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    if (quote === '"' && char === "\\" && !escaped) {
+      escaped = true;
+      continue;
+    }
+    if ((char === '"' || char === "'") && !escaped) {
+      if (quote === char) {
+        quote = undefined;
+      } else if (!quote) {
+        quote = char;
+      }
+    }
+    if (char === "#" && !quote) {
+      return line.slice(0, index).trimEnd();
+    }
+    escaped = false;
+  }
+  return line;
+}
+
+function tomlCanonicalKey(segments) {
+  return JSON.stringify(segments);
+}
+
+function isManagedCyberDrawSection(segments) {
+  return (
+    segments.length === 2 &&
+    segments[0] === "mcp_servers" &&
+    segments[1] === DEFAULTS.codexServerName
+  );
+}
+
 export function analyzeCodexConfig(content) {
   const lines = content.split(/\r?\n/);
   const errors = [];
   const sections = [];
   const cyberdrawSections = [];
+  const seenTables = new Map();
   for (let index = 0; index < lines.length; index += 1) {
     const raw = lines[index];
-    const line = raw.trim();
+    const line = stripTomlInlineComment(raw).trim();
     if (!line || line.startsWith("#")) continue;
     if (line.startsWith("[")) {
-      const match = line.match(/^\[([A-Za-z0-9_.-]+)\]$/);
-      if (!match) {
+      const header = parseTomlTableHeader(line);
+      if (!header) {
         errors.push({
           line: index + 1,
           message: "invalid TOML section header",
         });
         continue;
       }
-      sections.push({ line: index + 1, name: match[1] });
-      if (match[1] === `mcp_servers.${DEFAULTS.codexServerName}`) {
-        cyberdrawSections.push({ line: index + 1, name: match[1] });
+      sections.push({
+        line: index + 1,
+        name: header.name,
+        canonicalKey: header.canonicalKey,
+        segments: header.segments,
+        tableKind: header.tableKind,
+      });
+      if (header.tableKind === "table") {
+        const firstSeen = seenTables.get(header.canonicalKey);
+        if (firstSeen) {
+          errors.push({
+            line: index + 1,
+            message: "duplicate TOML section header",
+            firstSeen,
+            name: header.name,
+            canonicalKey: header.canonicalKey,
+          });
+        } else {
+          seenTables.set(header.canonicalKey, index + 1);
+        }
+      }
+      if (isManagedCyberDrawSection(header.segments)) {
+        cyberdrawSections.push({
+          line: index + 1,
+          name: header.name,
+          canonicalKey: header.canonicalKey,
+          segments: header.segments,
+        });
       }
       continue;
     }
-    if (!/^[A-Za-z0-9_.-]+\s*=/.test(line)) {
+    if (!parseTomlKeyAssignment(line)) {
       errors.push({
         line: index + 1,
         message: "unsupported TOML content in installer-managed config",
@@ -1081,15 +1252,38 @@ export async function uninstall(options = {}) {
 }
 
 export function removeCodexServerBlock(content) {
+  const analysis = analyzeCodexConfig(content);
+  if (!analysis.valid) {
+    throw new InstallationError(
+      "Codex config is invalid; manual repair required",
+      {
+        details: { errors: analysis.errors },
+      },
+    );
+  }
+  if (analysis.cyberdrawSections.length > 1) {
+    throw new InstallationError(
+      "Codex config has duplicate CyberDraw entries; manual repair required",
+      {
+        details: { sections: analysis.cyberdrawSections },
+      },
+    );
+  }
+  const cyberdrawLine = analysis.cyberdrawSections[0]?.line;
+  if (!cyberdrawLine) return content;
+
   const lines = content.split(/\r?\n/);
   const output = [];
   for (let index = 0; index < lines.length; index += 1) {
-    if (lines[index].trim() !== `[mcp_servers.${DEFAULTS.codexServerName}]`) {
+    if (index + 1 !== cyberdrawLine) {
       output.push(lines[index]);
       continue;
     }
     index += 1;
-    while (index < lines.length && !/^\s*\[[^\]]+\]\s*$/.test(lines[index])) {
+    while (
+      index < lines.length &&
+      !parseTomlTableHeader(stripTomlInlineComment(lines[index]).trim())
+    ) {
       index += 1;
     }
     index -= 1;

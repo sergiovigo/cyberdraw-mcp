@@ -415,6 +415,65 @@ describe("M22 installation contract", () => {
     assert.match(next, /cyber draw/);
   });
 
+  it("accepts real macOS Codex config shapes with quoted table and key segments", async () =>
+    withTempDir(async (root) => {
+      const config = join(root, "config.toml");
+      const original = [
+        "# Sanitized shape observed on macOS Codex config",
+        'model = "gpt-5-codex"',
+        '"approval-policy" = "never"',
+        "",
+        '[projects."/Users/example/CodingRepos2/cyberdraw-mcp"] # inline comment',
+        'trust_level = "trusted"',
+        '"last-opened" = "2026-08-02T00:00:00Z"',
+        "",
+        "[plugins.'local/cyberdraw helper']",
+        "enabled = true",
+        "'quoted-key' = \"kept\"",
+        "",
+        '[apps."CyberDraw MCP"]',
+        'command = "drawio-mcp-server"',
+        '"display-name" = "CyberDraw MCP"',
+        "",
+        '[mcp_servers."cyberdraw"]',
+        'command = "/old/path/drawio-mcp-server"',
+        'args = ["--editor", "--host", "127.0.0.1"]',
+        "",
+        "[mcp_servers.other]",
+        'command = "other"',
+        "",
+      ].join("\n");
+      await writeFile(config, original);
+      const manifest = createManifest({
+        installDir: join(root, "install"),
+        tarballPath: join(root, "drawio-mcp-server-2.2.0.tgz"),
+        packageJson: validPackageJson(),
+        hashes: { sha256: "a".repeat(64), sha512: "b".repeat(128) },
+        profile: resolveProfile(),
+        createdAt: "2026-07-31T00:00:00.000Z",
+      });
+
+      const analysis = analyzeCodexConfig(original);
+      assert.equal(analysis.valid, true);
+      assert.equal(analysis.cyberdrawSections.length, 1);
+
+      await writeCodexConfig(config, manifest);
+      const content = await readFile(config, "utf8");
+
+      assert.match(
+        content,
+        /\[projects\."\/Users\/example\/CodingRepos2\/cyberdraw-mcp"\]/,
+      );
+      assert.match(content, /\[plugins\.'local\/cyberdraw helper'\]/);
+      assert.match(content, /\[apps\."CyberDraw MCP"\]/);
+      assert.match(content, /"approval-policy" = "never"/);
+      assert.match(content, /'quoted-key' = "kept"/);
+      assert.match(content, /\[mcp_servers\.cyberdraw\]/);
+      assert.doesNotMatch(content, /\[mcp_servers\."cyberdraw"\]/);
+      assert.doesNotMatch(content, /\/old\/path\/drawio-mcp-server/);
+      assert.match(content, /\[mcp_servers\.other\]/);
+    }));
+
   it("rejects invalid or ambiguous Codex config without changing the original", async () =>
     withTempDir(async (root) => {
       assert.equal(analyzeCodexConfig("[broken\n").valid, false);
@@ -433,10 +492,115 @@ describe("M22 installation contract", () => {
 
       await assert.rejects(
         writeCodexConfig(config, manifest),
-        /duplicate CyberDraw/,
+        /invalid|duplicate CyberDraw/,
       );
       assert.equal(await readFile(config, "utf8"), original);
     }));
+
+  it("fails closed for duplicate canonical TOML sections including quoted CyberDraw", async () =>
+    withTempDir(async (root) => {
+      const config = join(root, "config.toml");
+      const original = [
+        '[projects."/tmp/cyberdraw"]',
+        'trust_level = "trusted"',
+        "[projects.'/tmp/cyberdraw']",
+        'trust_level = "trusted"',
+        "",
+        "[mcp_servers.cyberdraw]",
+        'command = "a"',
+        '[mcp_servers."cyberdraw"]',
+        'command = "b"',
+        "",
+      ].join("\n");
+      await writeFile(config, original);
+      const manifest = createManifest({
+        installDir: join(root, "install"),
+        tarballPath: join(root, "drawio-mcp-server-2.2.0.tgz"),
+        packageJson: validPackageJson(),
+        hashes: { sha256: "a".repeat(64), sha512: "b".repeat(128) },
+        profile: resolveProfile(),
+        createdAt: "2026-07-31T00:00:00.000Z",
+      });
+
+      const analysis = analyzeCodexConfig(original);
+      assert.equal(analysis.valid, false);
+      assert.equal(analysis.cyberdrawSections.length, 2);
+      await assert.rejects(
+        writeCodexConfig(config, manifest),
+        /invalid|duplicate/,
+      );
+      assert.equal(await readFile(config, "utf8"), original);
+    }));
+
+  it("fails closed for truly invalid quoted TOML keys", () => {
+    const invalid = [
+      '[projects."/tmp/cyberdraw"]',
+      '"unterminated = "value"',
+      "",
+      "[plugins.'unterminated]",
+      "enabled = true",
+    ].join("\n");
+
+    const analysis = analyzeCodexConfig(invalid);
+    assert.equal(analysis.valid, false);
+    assert.ok(analysis.errors.length >= 2);
+  });
+
+  it("allows dotted and quoted single-segment tables to coexist", () => {
+    const config = [
+      "[a.b]",
+      'value = "dotted"',
+      '["a.b"]',
+      'value = "quoted"',
+    ].join("\n");
+
+    const analysis = analyzeCodexConfig(config);
+
+    assert.equal(analysis.valid, true);
+    assert.deepEqual(
+      analysis.sections.map((section) => section.segments),
+      [["a", "b"], ["a.b"]],
+    );
+  });
+
+  it("does not treat a quoted mcp_servers.cyberdraw segment as the managed server", () => {
+    const config = [
+      '["mcp_servers.cyberdraw"]',
+      'command = "not-managed"',
+    ].join("\n");
+
+    const analysis = analyzeCodexConfig(config);
+
+    assert.equal(analysis.valid, true);
+    assert.equal(analysis.cyberdrawSections.length, 0);
+  });
+
+  it("accepts quoted keys containing equals signs", () => {
+    const config = [
+      "[plugins.example]",
+      '"key=with=equals" = "value"',
+      "'single=quoted=key' = \"value\"",
+    ].join("\n");
+
+    const analysis = analyzeCodexConfig(config);
+
+    assert.equal(analysis.valid, true);
+  });
+
+  it("detects bare and quoted cyberdraw section forms as canonical duplicates", () => {
+    const config = [
+      "[mcp_servers.cyberdraw]",
+      'command = "a"',
+      '[mcp_servers."cyberdraw"]',
+      'command = "b"',
+    ].join("\n");
+
+    const analysis = analyzeCodexConfig(config);
+
+    assert.equal(analysis.valid, false);
+    assert.equal(analysis.cyberdrawSections.length, 2);
+    assert.match(analysis.errors[0].message, /duplicate TOML section/);
+  });
 
   it("updates only the CyberDraw Codex entry", () => {
     const manifest = createManifest({
