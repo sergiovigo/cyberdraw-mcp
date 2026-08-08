@@ -2,7 +2,7 @@
 
 ## Status
 
-IMPLEMENTED FOR M22.1 / READY FOR AUDIT.
+COMPLETE FOR M22.1.
 
 This document records the first supported local installation contract used by
 the macOS installer. It is not an MCP contract and does not add public tools,
@@ -237,4 +237,6 @@ Automated test coverage:
 - post-upgrade doctor failure restoration;
 - unsafe uninstall target and unrecognized managed-content rejection.
 
-Manual macOS evidence remains pending for M22.2 audit.
+Real macOS validation for M22.2 has passed and is recorded in
+[`macos-installer.md`](macos-installer.md). Ubuntu, Windows and cross-OS closure
+remain pending.
