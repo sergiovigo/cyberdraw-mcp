@@ -5,7 +5,8 @@
 IN PROGRESS.
 
 M22.1 Supported Installation Contract and M22.2 macOS Supported Installer are
-complete. Ubuntu, Windows and cross-OS closure remain pending.
+complete. M22.3 Ubuntu Installer Integration is implemented and ready for real
+Ubuntu validation. Windows and cross-OS closure remain pending.
 
 ## Inputs
 
@@ -47,6 +48,7 @@ Implemented contract details:
 
 - [`supported-installation-contract.md`](supported-installation-contract.md)
 - [`macos-installer.md`](macos-installer.md)
+- [`ubuntu-installer.md`](ubuntu-installer.md)
 
 ## Supported Profiles
 
@@ -151,11 +153,11 @@ It must not remove:
 
 ## OS Acceptance Matrix
 
-| OS      | Status                    | Required evidence                                                                       |
-| ------- | ------------------------- | --------------------------------------------------------------------------------------- |
-| macOS   | COMPLETE / REAL-PROVEN    | Managed install/upgrade, Codex config, localhost profile, real doctor and Codex use.    |
-| Ubuntu  | PENDING / NOT IMPLEMENTED | Clean install, Codex config, localhost editor, create/analyze smoke, doctor, uninstall. |
-| Windows | PENDING / NOT IMPLEMENTED | Clean install, Codex config, localhost editor, create/analyze smoke, doctor, uninstall. |
+| OS      | Status                                  | Required evidence                                                                                                                                                  |
+| ------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| macOS   | COMPLETE / REAL-PROVEN                  | Managed install/upgrade, Codex config, localhost profile, real doctor and Codex use.                                                                               |
+| Ubuntu  | IMPLEMENTED / READY FOR REAL VALIDATION | Automated Linux/XDG wrapper, fixture install, Codex config, doctor with MCP initialize and tools/list, upgrade, uninstall. Real Ubuntu host and Codex use pending. |
+| Windows | PENDING / NOT IMPLEMENTED               | Clean install, Codex config, localhost editor, create/analyze smoke, doctor, uninstall.                                                                            |
 
 Each OS row must record:
 
@@ -199,6 +201,21 @@ quoted keys, keys containing `=`, structural dotted-key canonicalization and
 exact managed CyberDraw section detection while retaining fail-closed handling
 for invalid or ambiguous TOML. A complete post-fix clean install run is not
 recorded as REAL-PROVEN.
+
+Ubuntu implementation evidence:
+
+- default install path:
+  `${XDG_DATA_HOME:-$HOME/.local/share}/CyberDraw MCP`;
+- Codex config path: `$HOME/.codex/config.toml`;
+- wrapper:
+  `packages/drawio-mcp-server/installers/ubuntu/cyberdraw-ubuntu-installer.sh`;
+- entrypoint:
+  `packages/drawio-mcp-server/scripts/installation/ubuntu-installer.mjs`;
+- automated validation: PASS for local tarball fixture install, localhost
+  profile, Codex config generation, doctor/check, MCP initialize, `tools/list`,
+  required CyberDraw tools, upgrade, uninstall and process cleanup;
+- real Ubuntu host validation: PENDING;
+- real Ubuntu Codex integration/use: PENDING.
 
 ## M22 Evidence Levels
 

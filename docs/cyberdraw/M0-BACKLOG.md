@@ -247,6 +247,15 @@ baseline. It is not an implementation plan for M0 itself.
   `tools/list`, and real Codex integration/use passed after restart. A full
   post-fix clean install run is not recorded as REAL-PROVEN. Ubuntu, Windows
   and cross-OS closure remain pending; M22 stays open.
+- M22.3 Ubuntu implementation update:
+  M22.3 is IMPLEMENTED / READY FOR REAL UBUNTU VALIDATION. The Ubuntu wrapper
+  and entrypoint reuse the M22 installation core, default to the Linux/XDG
+  path `${XDG_DATA_HOME:-$HOME/.local/share}/CyberDraw MCP`, preserve the
+  `$HOME/.codex/config.toml` contract and pass automated validation for fixture
+  install, doctor/check with MCP initialize and `tools/list`, required
+  CyberDraw tool detection, upgrade, uninstall and process cleanup. Real Ubuntu
+  host validation and real Ubuntu Codex integration/use remain pending. Windows
+  and cross-OS closure remain pending; M22 stays open.
 - Product direction update:
   `docs/cyberdraw/product-direction-v1.md` records the post-MVP direction
   decision input. It recommends closing M22 before choosing an M23 lane such as
@@ -254,7 +263,8 @@ baseline. It is not an implementation plan for M0 itself.
   Cybersecurity Diagramming Pack.
 - Effort: M.
 - Latest milestone: M22 (supported installation and local operations in
-  progress; M22.1 and M22.2 complete, Ubuntu/Windows/cross-OS closure pending).
+  progress; M22.1 and M22.2 complete, M22.3 implemented and ready for real
+  Ubuntu validation, Windows/cross-OS closure pending).
 
 ### M0-P1-001: Complete third-party license inventory
 
