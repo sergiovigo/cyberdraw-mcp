@@ -34,6 +34,7 @@ export const DEFAULTS = Object.freeze({
   websocketPort: 3333,
   codexServerName: "cyberdraw",
 });
+export const SUPPORTED_DOCTOR_PLATFORMS = Object.freeze(["darwin", "linux"]);
 
 export class InstallationError extends Error {
   constructor(message, { code = 1, details } = {}) {
@@ -44,17 +45,28 @@ export class InstallationError extends Error {
   }
 }
 
-export function defaultInstallDir(env = process.env) {
+export function defaultInstallDir(
+  env = process.env,
+  targetPlatform = platform(),
+) {
   if (env.CYBERDRAW_INSTALL_DIR) return resolve(env.CYBERDRAW_INSTALL_DIR);
-  if (platform() === "darwin") {
-    return join(homedir(), "Library", "Application Support", "CyberDraw MCP");
+  const home = env.HOME ?? homedir();
+  if (targetPlatform === "darwin") {
+    return join(home, "Library", "Application Support", "CyberDraw MCP");
   }
-  return join(homedir(), ".local", "share", "cyberdraw-mcp");
+  if (targetPlatform === "linux") {
+    return join(
+      env.XDG_DATA_HOME ?? join(home, ".local", "share"),
+      "CyberDraw MCP",
+    );
+  }
+  return join(home, ".local", "share", "CyberDraw MCP");
 }
 
 export function defaultCodexConfigPath(env = process.env) {
   return resolve(
-    env.CODEX_CONFIG_PATH ?? join(homedir(), ".codex", "config.toml"),
+    env.CODEX_CONFIG_PATH ??
+      join(env.HOME ?? homedir(), ".codex", "config.toml"),
   );
 }
 
@@ -857,17 +869,22 @@ export async function stopManagedProcesses(installDir, runner = run) {
   return stopped;
 }
 
-export async function doctor({ installDir, codexConfigPath } = {}) {
+export async function doctor({
+  installDir,
+  codexConfigPath,
+  targetPlatform = platform(),
+} = {}) {
   const checks = [];
   const add = (name, status, message, details) => {
     checks.push({ name, status, message, ...(details ? { details } : {}) });
   };
 
-  const os = platform();
   add(
     "operating-system",
-    os === "darwin" ? INSTALL_STATUS.PASS : INSTALL_STATUS.WARN,
-    os,
+    SUPPORTED_DOCTOR_PLATFORMS.includes(targetPlatform)
+      ? INSTALL_STATUS.PASS
+      : INSTALL_STATUS.WARN,
+    targetPlatform,
   );
 
   const nodeMajor = Number(process.versions.node.split(".")[0]);
@@ -1312,11 +1329,11 @@ export async function atomicReplaceDir(sourceDir, targetDir) {
 
 export function usage() {
   return `Usage:
-  node scripts/installation/macos-installer.mjs install --tarball <path> [options]
-  node scripts/installation/macos-installer.mjs check [options]
-  node scripts/installation/macos-installer.mjs doctor [options]
-  node scripts/installation/macos-installer.mjs upgrade --tarball <path> [options]
-  node scripts/installation/macos-installer.mjs uninstall [options]
+  node scripts/installation/<platform>-installer.mjs install --tarball <path> [options]
+  node scripts/installation/<platform>-installer.mjs check [options]
+  node scripts/installation/<platform>-installer.mjs doctor [options]
+  node scripts/installation/<platform>-installer.mjs upgrade --tarball <path> [options]
+  node scripts/installation/<platform>-installer.mjs uninstall [options]
 
 Options:
   --install-dir <path>

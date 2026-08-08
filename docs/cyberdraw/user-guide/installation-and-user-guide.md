@@ -74,9 +74,16 @@ Implemented and validated for M22.1/M22.2:
 - real macOS managed install/upgrade validation;
 - real Codex integration/use on macOS after restart.
 
+Implemented for M22.3 and ready for real Ubuntu validation:
+
+- Ubuntu installer wrapper;
+- Linux/XDG install directory;
+- Ubuntu fixture install/check/doctor/upgrade/uninstall validation;
+- controlled MCP handshake and `tools/list` probe through the Ubuntu path;
+- required CyberDraw tool detection through the Ubuntu path.
+
 Planned, not yet complete:
 
-- Ubuntu installer;
 - Windows installer;
 - reproducible DOCX/PDF manual generation from Markdown.
 
@@ -93,7 +100,8 @@ exists.
 - Full draw.io WAR notice review remains pending for public beta standards.
 - The current Markdown source does not yet have an automated release manual
   generation pipeline.
-- Ubuntu and Windows installer validation remain pending.
+- Real Ubuntu host and Codex integration validation remain pending.
+- Windows installer validation remains pending.
 
 ## Manual Artifact Policy
 

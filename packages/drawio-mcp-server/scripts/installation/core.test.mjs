@@ -19,6 +19,8 @@ import {
   INSTALL_STATUS,
   analyzeCodexConfig,
   createManifest,
+  defaultCodexConfigPath,
+  defaultInstallDir,
   doctor,
   findManagedProcesses,
   hashTarball,
@@ -55,6 +57,17 @@ function run(command, args, options = {}) {
     `${command} ${args.join(" ")} failed\n${result.stdout}\n${result.stderr}`,
   );
   return result;
+}
+
+function runJson(command, args, options = {}) {
+  const result = run(command, args, options);
+  try {
+    return JSON.parse(result.stdout);
+  } catch (error) {
+    assert.fail(
+      `expected JSON output from ${command} ${args.join(" ")}\n${result.stdout}\n${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 }
 
 async function makeTarball(root, packageJson, options = {}) {
@@ -131,6 +144,31 @@ function validPackageJson(overrides = {}) {
 }
 
 describe("M22 installation contract", () => {
+  it("resolves Ubuntu/Linux install paths with XDG, HOME spaces, and macOS unchanged", () => {
+    assert.equal(
+      defaultInstallDir({ HOME: "/home/cyber user" }, "linux"),
+      "/home/cyber user/.local/share/CyberDraw MCP",
+    );
+    assert.equal(
+      defaultInstallDir(
+        {
+          HOME: "/home/cyber user",
+          XDG_DATA_HOME: "/tmp/cyber data",
+        },
+        "linux",
+      ),
+      "/tmp/cyber data/CyberDraw MCP",
+    );
+    assert.equal(
+      defaultInstallDir({ HOME: "/Users/example" }, "darwin"),
+      "/Users/example/Library/Application Support/CyberDraw MCP",
+    );
+    assert.equal(
+      defaultCodexConfigPath({ HOME: "/home/cyber user" }),
+      "/home/cyber user/.codex/config.toml",
+    );
+  });
+
   it("validates a correct self-contained tarball", async () =>
     withTempDir(async (root) => {
       const tarball = await makeTarball(root, validPackageJson());
@@ -713,6 +751,28 @@ describe("M22 installation contract", () => {
       assert.equal(toolsList.status, INSTALL_STATUS.NOT_CHECKED);
     }));
 
+  it("reports supported and unsupported doctor operating systems explicitly", async () =>
+    withTempDir(async (root) => {
+      const checkPlatform = async (targetPlatform) => {
+        const result = await doctor({
+          installDir: join(root, `missing-${targetPlatform}`),
+          codexConfigPath: join(root, `missing-${targetPlatform}.toml`),
+          targetPlatform,
+        });
+        return result.checks.find((check) => check.name === "operating-system");
+      };
+
+      assert.equal(
+        (await checkPlatform("darwin")).status,
+        INSTALL_STATUS.PASS,
+      );
+      assert.equal(
+        (await checkPlatform("linux")).status,
+        INSTALL_STATUS.PASS,
+      );
+      assert.equal((await checkPlatform("aix")).status, INSTALL_STATUS.WARN);
+    }));
+
   it("detects only managed residual processes for the install directory", () => {
     const fakeRunner = () => ({
       stdout: [
@@ -772,6 +832,152 @@ describe("M22 installation contract", () => {
       assert.equal(handshake.status, INSTALL_STATUS.PASS);
       assert.equal(toolsList.status, INSTALL_STATUS.PASS);
       assert.match(toolsList.message, /^3 tools discovered$/);
+    }));
+
+  it("runs the Ubuntu wrapper from another working directory", async () =>
+    withTempDir(async (root) => {
+      const wrapper = join(
+        process.cwd(),
+        "installers",
+        "ubuntu",
+        "cyberdraw-ubuntu-installer.sh",
+      );
+      const result = run("bash", [wrapper, "help"], {
+        cwd: root,
+        env: {
+          ...process.env,
+          HOME: join(root, "home with spaces"),
+        },
+      });
+
+      assert.match(result.stdout, /<platform>-installer\.mjs install/);
+    }));
+
+  it("supports the Ubuntu install, check, upgrade and uninstall lifecycle", async () =>
+    withTempDir(async (root) => {
+      const wrapper = join(
+        process.cwd(),
+        "installers",
+        "ubuntu",
+        "cyberdraw-ubuntu-installer.sh",
+      );
+      const home = join(root, "home with spaces");
+      const xdg = join(home, ".local", "share");
+      const installDir = join(xdg, "CyberDraw MCP");
+      const codexConfig = join(home, ".codex", "config.toml");
+      const firstTarball = await makeTarball(
+        root,
+        validPackageJson({
+          dependencies: {},
+          version: "2.2.0",
+        }),
+      );
+      const firstHashes = await hashTarball(firstTarball);
+      await mkdir(join(home, ".codex"), { recursive: true });
+      await writeFile(
+        codexConfig,
+        '[mcp_servers.other]\ncommand = "other"\n\n[projects."/tmp/project"]\ntrust_level = "trusted"\n',
+      );
+      const env = {
+        ...process.env,
+        HOME: home,
+        XDG_DATA_HOME: xdg,
+      };
+
+      const installResult = runJson(
+        "bash",
+        [
+          wrapper,
+          "install",
+          "--tarball",
+          firstTarball,
+          "--expected-sha256",
+          firstHashes.sha256,
+          "--expected-sha512",
+          firstHashes.sha512,
+          "--codex-config",
+          codexConfig,
+          "--yes",
+        ],
+        { cwd: root, env },
+      );
+
+      assert.equal(installResult.action, "install");
+      assert.equal(installResult.manifest.installDir, installDir);
+      assert.equal(installResult.manifest.profile.name, "localhost");
+      assert.equal(installResult.manifest.profile.host, "127.0.0.1");
+      assert.equal(installResult.manifest.profile.lan, false);
+      assert.equal(installResult.doctor.ok, true);
+      assert.match(
+        await readFile(codexConfig, "utf8"),
+        /\[mcp_servers\.other\]/,
+      );
+      assert.match(
+        await readFile(codexConfig, "utf8"),
+        /\[mcp_servers\.cyberdraw\]/,
+      );
+
+      const checkResult = runJson(
+        "bash",
+        [wrapper, "check", "--codex-config", codexConfig],
+        { cwd: root, env },
+      );
+      const operatingSystem = checkResult.checks.find(
+        (check) => check.name === "operating-system",
+      );
+      const toolsList = checkResult.checks.find(
+        (check) => check.name === "tools-list",
+      );
+      assert.equal(checkResult.ok, true);
+      assert.equal(operatingSystem.status, INSTALL_STATUS.PASS);
+      assert.equal(
+        checkResult.checks.find((check) => check.name === "mcp-handshake")
+          .status,
+        INSTALL_STATUS.PASS,
+      );
+      assert.equal(toolsList.status, INSTALL_STATUS.PASS);
+      assert.match(toolsList.message, /^3 tools discovered$/);
+
+      const secondTarball = await makeTarball(
+        root,
+        validPackageJson({
+          dependencies: {},
+          version: "2.2.1",
+        }),
+      );
+      const secondHashes = await hashTarball(secondTarball);
+      const upgradeResult = runJson(
+        "bash",
+        [
+          wrapper,
+          "upgrade",
+          "--tarball",
+          secondTarball,
+          "--expected-sha256",
+          secondHashes.sha256,
+          "--expected-sha512",
+          secondHashes.sha512,
+          "--codex-config",
+          codexConfig,
+        ],
+        { cwd: root, env },
+      );
+      assert.equal(upgradeResult.action, "upgrade");
+      assert.equal(upgradeResult.manifest.packageVersion, "2.2.1");
+      assert.equal(upgradeResult.manifest.profile.name, "localhost");
+      assert.equal(upgradeResult.doctor.ok, true);
+
+      const uninstallResult = runJson(
+        "bash",
+        [wrapper, "uninstall", "--codex-config", codexConfig],
+        { cwd: root, env },
+      );
+      assert.equal(uninstallResult.action, "uninstall");
+      assert.equal(existsSync(installDir), false);
+      const config = await readFile(codexConfig, "utf8");
+      assert.match(config, /\[mcp_servers\.other\]/);
+      assert.doesNotMatch(config, /\[mcp_servers\.cyberdraw\]/);
+      assert.equal(findManagedProcesses(installDir).length, 0);
     }));
 
   it("upgrade preserves profile and writes a manifest backup", async () =>

@@ -31,6 +31,7 @@
     "pack:artifact": "node scripts/create-distribution-artifact.mjs",
     "verify:artifact": "node scripts/verify-distribution-artifact.mjs",
     "m22:install:macos": "node scripts/installation/macos-installer.mjs",
+    "m22:install:ubuntu": "node scripts/installation/ubuntu-installer.mjs",
     "m22:test:installer": "node --test scripts/installation/*.test.mjs",
     "start": "node build/index.js"
   },

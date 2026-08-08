@@ -5,8 +5,9 @@
 IN PROGRESS.
 
 M22.1 Supported Installation Contract and M22.2 Supported macOS Installer are
-complete. Ubuntu, Windows, full cross-OS closure and public release hardening
-remain pending, so M22 stays open.
+complete. M22.3 Ubuntu Installer Integration is implemented and ready for real
+Ubuntu host validation. Windows, full cross-OS closure and public release
+hardening remain pending, so M22 stays open.
 
 ## Purpose
 
@@ -82,6 +83,7 @@ Current implementation evidence:
 
 - [`m22/supported-installation-contract.md`](m22/supported-installation-contract.md)
 - [`m22/macos-installer.md`](m22/macos-installer.md)
+- [`m22/ubuntu-installer.md`](m22/ubuntu-installer.md)
 
 ## Non-Goals
 
@@ -128,13 +130,13 @@ surfaces are unauthenticated and intended for trusted local networks only.
 
 ## Proposed Sub-Milestones
 
-| Sub-milestone | Name                              | Scope                                                                                                       |
-| ------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| M22.1         | Supported Installation Contract   | COMPLETE. Versioned local install contract, artifact validation, manifest, profiles and status model.       |
-| M22.2         | Supported macOS Installer         | COMPLETE. Automated validation, real macOS host validation and real Codex integration/use passed.           |
-| M22.3         | Ubuntu Installer Integration      | PENDING / NOT IMPLEMENTED. Versioned Ubuntu install, Codex config, doctor, upgrade and uninstall evidence.  |
-| M22.4         | Windows Installer Integration     | PENDING / NOT IMPLEMENTED. Versioned Windows install, Codex config, doctor, upgrade and uninstall evidence. |
-| M22.5         | Cross-OS Local Operations Closure | Not started. Consolidated OS matrix, residual risks, release-readiness decision and closure evidence.       |
+| Sub-milestone | Name                              | Scope                                                                                                                                  |
+| ------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| M22.1         | Supported Installation Contract   | COMPLETE. Versioned local install contract, artifact validation, manifest, profiles and status model.                                  |
+| M22.2         | Supported macOS Installer         | COMPLETE. Automated validation, real macOS host validation and real Codex integration/use passed.                                      |
+| M22.3         | Ubuntu Installer Integration      | IMPLEMENTED / READY FOR REAL UBUNTU VALIDATION. Automated Linux/XDG wrapper, install, doctor, upgrade and uninstall validation passed. |
+| M22.4         | Windows Installer Integration     | PENDING / NOT IMPLEMENTED. Versioned Windows install, Codex config, doctor, upgrade and uninstall evidence.                            |
+| M22.5         | Cross-OS Local Operations Closure | Not started. Consolidated OS matrix, residual risks, release-readiness decision and closure evidence.                                  |
 
 The exact split can change during M22.0 if implementation evidence shows a
 smaller structure is safer.
@@ -175,6 +177,31 @@ canonicalization, exact `mcp_servers.cyberdraw` detection and retained
 fail-closed behavior for invalid or ambiguous config. A full post-fix clean
 install run is not recorded as REAL-PROVEN; the real post-fix evidence is the
 successful upgrade, doctor and Codex integration/use.
+
+## Ubuntu Implementation Evidence
+
+M22.3 is implemented and ready for real Ubuntu host validation. Evidence:
+
+- Ubuntu entrypoint:
+  `packages/drawio-mcp-server/scripts/installation/ubuntu-installer.mjs`;
+- Ubuntu wrapper:
+  `packages/drawio-mcp-server/installers/ubuntu/cyberdraw-ubuntu-installer.sh`;
+- default Linux install path:
+  `${XDG_DATA_HOME:-$HOME/.local/share}/CyberDraw MCP`;
+- default Codex config path: `$HOME/.codex/config.toml`;
+- profile: `localhost`, host `127.0.0.1`, HTTP port `3000`, WebSocket
+  extension port `3333`, transport `stdio`, editor enabled, unauthenticated,
+  LAN disabled;
+- automated validation: PASS for Linux/XDG path resolution, wrapper path
+  resolution outside the repository `cwd`, fixture install, doctor/check with
+  MCP initialize and `tools/list`, required CyberDraw tool detection, upgrade,
+  uninstall and process cleanup;
+- real Ubuntu host validation: PENDING;
+- real Ubuntu Codex integration/use: PENDING.
+
+M22.3 must not be marked COMPLETE until a real Ubuntu host validates install or
+upgrade, doctor, Codex config, MCP loading/use and cleanup with the accepted
+artifact.
 
 ## Acceptance Criteria
 

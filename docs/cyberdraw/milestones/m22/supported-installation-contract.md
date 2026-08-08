@@ -4,9 +4,9 @@
 
 COMPLETE FOR M22.1.
 
-This document records the first supported local installation contract used by
-the macOS installer. It is not an MCP contract and does not add public tools,
-schemas, endpoints or runtime protocol behavior.
+This document records the supported local installation contract used by the
+macOS and Ubuntu installers. It is not an MCP contract and does not add public
+tools, schemas, endpoints or runtime protocol behavior.
 
 ## Contract Version
 
@@ -88,6 +88,25 @@ packages/drawio-mcp-server/installers/macos/cyberdraw-macos-installer.sh upgrade
   --expected-sha512 <sha512>
 
 packages/drawio-mcp-server/installers/macos/cyberdraw-macos-installer.sh uninstall
+```
+
+Ubuntu uses the same command surface through:
+
+```sh
+packages/drawio-mcp-server/installers/ubuntu/cyberdraw-ubuntu-installer.sh install \
+  --tarball /path/to/drawio-mcp-server-2.2.0.tgz \
+  --expected-sha256 <sha256> \
+  --expected-sha512 <sha512>
+
+packages/drawio-mcp-server/installers/ubuntu/cyberdraw-ubuntu-installer.sh doctor
+packages/drawio-mcp-server/installers/ubuntu/cyberdraw-ubuntu-installer.sh check
+
+packages/drawio-mcp-server/installers/ubuntu/cyberdraw-ubuntu-installer.sh upgrade \
+  --tarball /path/to/drawio-mcp-server-2.2.0.tgz \
+  --expected-sha256 <sha256> \
+  --expected-sha512 <sha512>
+
+packages/drawio-mcp-server/installers/ubuntu/cyberdraw-ubuntu-installer.sh uninstall
 ```
 
 Supported options:
@@ -236,7 +255,12 @@ Automated test coverage:
 - upgrade validation failure before replacement;
 - post-upgrade doctor failure restoration;
 - unsafe uninstall target and unrecognized managed-content rejection.
+- Linux/XDG default install directory resolution;
+- Ubuntu wrapper resolution outside the repository working directory;
+- Ubuntu lifecycle validation through fixture install, doctor/check MCP probe,
+  upgrade, uninstall and process cleanup.
 
 Real macOS validation for M22.2 has passed and is recorded in
-[`macos-installer.md`](macos-installer.md). Ubuntu, Windows and cross-OS closure
-remain pending.
+[`macos-installer.md`](macos-installer.md). Ubuntu automated validation is
+recorded in [`ubuntu-installer.md`](ubuntu-installer.md), but real Ubuntu host
+validation remains pending. Windows and cross-OS closure remain pending.
