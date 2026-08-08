@@ -5,8 +5,8 @@
 IN PROGRESS.
 
 M22.1 Supported Installation Contract and M22.2 Supported macOS Installer are
-implemented and ready for audit. Ubuntu, Windows, full cross-OS closure and
-public release hardening remain out of scope for this delivery.
+complete. Ubuntu, Windows, full cross-OS closure and public release hardening
+remain pending, so M22 stays open.
 
 ## Purpose
 
@@ -128,16 +128,53 @@ surfaces are unauthenticated and intended for trusted local networks only.
 
 ## Proposed Sub-Milestones
 
-| Sub-milestone | Name                              | Scope                                                                                                    |
-| ------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| M22.1         | Supported Installation Contract   | Implemented. Versioned local install contract, artifact validation, manifest, profiles and status model. |
-| M22.2         | Supported macOS Installer         | Implemented. macOS wrapper plus Node installer core for install/check/doctor/upgrade/uninstall.          |
-| M22.3         | Ubuntu Installer Integration      | Not started. Versioned Ubuntu install, Codex config, doctor, upgrade and uninstall evidence.             |
-| M22.4         | Windows Installer Integration     | Not started. Versioned Windows install, Codex config, doctor, upgrade and uninstall evidence.            |
-| M22.5         | Cross-OS Local Operations Closure | Not started. Consolidated OS matrix, residual risks, release-readiness decision and closure evidence.    |
+| Sub-milestone | Name                              | Scope                                                                                                       |
+| ------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| M22.1         | Supported Installation Contract   | COMPLETE. Versioned local install contract, artifact validation, manifest, profiles and status model.       |
+| M22.2         | Supported macOS Installer         | COMPLETE. Automated validation, real macOS host validation and real Codex integration/use passed.           |
+| M22.3         | Ubuntu Installer Integration      | PENDING / NOT IMPLEMENTED. Versioned Ubuntu install, Codex config, doctor, upgrade and uninstall evidence.  |
+| M22.4         | Windows Installer Integration     | PENDING / NOT IMPLEMENTED. Versioned Windows install, Codex config, doctor, upgrade and uninstall evidence. |
+| M22.5         | Cross-OS Local Operations Closure | Not started. Consolidated OS matrix, residual risks, release-readiness decision and closure evidence.       |
 
 The exact split can change during M22.0 if implementation evidence shows a
 smaller structure is safer.
+
+## macOS Validation Evidence
+
+M22.2 is complete for the supported macOS installer. Evidence:
+
+- automated installer validation: PASS;
+- real macOS host validation: PASS on `darwin` with Node.js `24.2.0`;
+- artifact: `drawio-mcp-server-2.2.0.tgz`;
+- SHA-256:
+  `57ba4e26955206079f44279ca0b552b9a32a76e794eb0dba78a8e00191793013`;
+- SHA-512:
+  `8b2676aa9380d220e202b0ee2e411e0a264481ef45feb03624a2bd3360aa0ffa7a1314edc652b38ac5e01117821cd8f91a5a33dd97c2417557c81d241723fe04`;
+- managed install:
+  `/Users/sergiovigo/Library/Application Support/CyberDraw MCP`;
+- first install attempt: created the managed installation, then failed closed
+  before updating Codex `config.toml` because the conservative TOML parser
+  rejected real Codex quoted table/key shapes;
+- profile: `localhost`, host `127.0.0.1`, HTTP port `3000`, WebSocket
+  extension port `3333`, transport `stdio`, editor enabled, unauthenticated,
+  LAN disabled;
+- real upgrade action: PASS, including valid manifest, `config.toml` backup,
+  previous install backup and `doctor.ok = true`;
+- real doctor: PASS for operating system, Node version, manifest, binary,
+  Codex config, profile, HTTP port, WebSocket port, residual processes, MCP
+  initialize, `tools/list`, required CyberDraw tools and process cleanup;
+- observed tools: `30`, including `cyberdraw_create_diagram` and
+  `cyberdraw_analyze_structure`;
+- real Codex integration/use: PASS after restarting Codex and loading the MCP
+  from a new session.
+
+The TOML compatibility incident found during the first real macOS trial is
+resolved by PR #54 / commit `04185bb`, which added support for quoted TOML
+table segments, quoted keys, keys containing `=`, structural dotted-key
+canonicalization, exact `mcp_servers.cyberdraw` detection and retained
+fail-closed behavior for invalid or ambiguous config. A full post-fix clean
+install run is not recorded as REAL-PROVEN; the real post-fix evidence is the
+successful upgrade, doctor and Codex integration/use.
 
 ## Acceptance Criteria
 

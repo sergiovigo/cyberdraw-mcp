@@ -2,11 +2,13 @@
 
 ## Status
 
-M22 INSTALLER IMPLEMENTED / MANUAL MACOS AUDIT PENDING.
+M22 MACOS INSTALLER VALIDATED.
 
 The accepted MVP has been transferred and installed on a MacBook Pro outside
 the original development environment. That real installation is useful evidence,
-but M22 still needs a final manual macOS audit of the supported installer flow.
+and the supported M22 macOS installer has now passed real localhost validation
+with Codex integration/use. Ubuntu, Windows and cross-OS M22 closure remain
+pending.
 
 ## Installer Command
 
@@ -70,7 +72,7 @@ The safe default profile is:
 - no LAN exposure;
 - no authentication requirement because the service is loopback-only.
 
-M22 should make this profile the default macOS installer behavior.
+The supported M22 macOS installer uses this localhost profile by default.
 
 ## LAN Profile
 

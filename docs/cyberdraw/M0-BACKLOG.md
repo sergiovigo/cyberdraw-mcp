@@ -236,6 +236,17 @@ baseline. It is not an implementation plan for M0 itself.
   upgrade and uninstall. Ubuntu, Windows, full cross-OS closure, public beta,
   remote deployment, authentication and new MCP capabilities remain out of
   scope.
+- M22.2 macOS validation update:
+  M22.2 is COMPLETE. Real macOS validation passed on `darwin` with Node.js
+  `24.2.0` using `drawio-mcp-server-2.2.0.tgz` and the accepted SHA-256/SHA-512
+  checksums. The first install attempt created the managed installation and
+  failed closed before updating Codex `config.toml` because of the TOML
+  compatibility incident. After PR #54 / commit `04185bb`, real upgrade passed
+  with manifest/config/install backups, the supported `localhost` profile wrote
+  `[mcp_servers.cyberdraw]`, doctor passed including MCP initialize and
+  `tools/list`, and real Codex integration/use passed after restart. A full
+  post-fix clean install run is not recorded as REAL-PROVEN. Ubuntu, Windows
+  and cross-OS closure remain pending; M22 stays open.
 - Product direction update:
   `docs/cyberdraw/product-direction-v1.md` records the post-MVP direction
   decision input. It recommends closing M22 before choosing an M23 lane such as
@@ -243,7 +254,7 @@ baseline. It is not an implementation plan for M0 itself.
   Cybersecurity Diagramming Pack.
 - Effort: M.
 - Latest milestone: M22 (supported installation and local operations in
-  progress; M22.1/M22.2 ready for audit).
+  progress; M22.1 and M22.2 complete, Ubuntu/Windows/cross-OS closure pending).
 
 ### M0-P1-001: Complete third-party license inventory
 

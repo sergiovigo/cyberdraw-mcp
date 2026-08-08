@@ -4,8 +4,8 @@
 
 IN PROGRESS.
 
-The M22.1 installation contract and M22.2 macOS installer implementation are
-available for audit. Ubuntu, Windows and cross-OS closure remain pending.
+M22.1 Supported Installation Contract and M22.2 macOS Supported Installer are
+complete. Ubuntu, Windows and cross-OS closure remain pending.
 
 ## Inputs
 
@@ -151,11 +151,11 @@ It must not remove:
 
 ## OS Acceptance Matrix
 
-| OS      | Required evidence                                                                       |
-| ------- | --------------------------------------------------------------------------------------- |
-| macOS   | Clean install, Codex config, localhost editor, create/analyze smoke, doctor, uninstall. |
-| Ubuntu  | Clean install, Codex config, localhost editor, create/analyze smoke, doctor, uninstall. |
-| Windows | Clean install, Codex config, localhost editor, create/analyze smoke, doctor, uninstall. |
+| OS      | Status                    | Required evidence                                                                       |
+| ------- | ------------------------- | --------------------------------------------------------------------------------------- |
+| macOS   | COMPLETE / REAL-PROVEN    | Managed install/upgrade, Codex config, localhost profile, real doctor and Codex use.    |
+| Ubuntu  | PENDING / NOT IMPLEMENTED | Clean install, Codex config, localhost editor, create/analyze smoke, doctor, uninstall. |
+| Windows | PENDING / NOT IMPLEMENTED | Clean install, Codex config, localhost editor, create/analyze smoke, doctor, uninstall. |
 
 Each OS row must record:
 
@@ -168,6 +168,37 @@ Each OS row must record:
 - editor URL;
 - cleanup result;
 - known limitations.
+
+macOS recorded evidence:
+
+- OS: macOS / `darwin`;
+- Node.js: `24.2.0`;
+- artifact: `drawio-mcp-server-2.2.0.tgz`;
+- SHA-256:
+  `57ba4e26955206079f44279ca0b552b9a32a76e794eb0dba78a8e00191793013`;
+- SHA-512:
+  `8b2676aa9380d220e202b0ee2e411e0a264481ef45feb03624a2bd3360aa0ffa7a1314edc652b38ac5e01117821cd8f91a5a33dd97c2417557c81d241723fe04`;
+- managed install:
+  `/Users/sergiovigo/Library/Application Support/CyberDraw MCP`;
+- first install attempt: managed installation created, then fail-closed before
+  Codex `config.toml` update due to the TOML compatibility incident;
+- profile: `localhost`, `127.0.0.1`, HTTP `3000`, WebSocket `3333`,
+  transport `stdio`, editor enabled, unauthenticated, LAN disabled;
+- upgrade: PASS with valid manifest, config backup, previous install backup
+  and `doctor.ok = true`;
+- doctor: PASS for OS, Node, manifest, binary, Codex config, profile, ports,
+  residual processes, MCP initialize, `tools/list`, required CyberDraw tools
+  and process cleanup;
+- observed tools: `30`, including `cyberdraw_create_diagram` and
+  `cyberdraw_analyze_structure`;
+- real Codex integration/use: PASS from a new Codex session after restart.
+
+The real macOS trial exposed a TOML compatibility incident in the conservative
+Codex config parser. PR #54 / commit `04185bb` resolved quoted table segments,
+quoted keys, keys containing `=`, structural dotted-key canonicalization and
+exact managed CyberDraw section detection while retaining fail-closed handling
+for invalid or ambiguous TOML. A complete post-fix clean install run is not
+recorded as REAL-PROVEN.
 
 ## M22 Evidence Levels
 

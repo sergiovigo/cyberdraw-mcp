@@ -50,7 +50,7 @@ Accepted capabilities:
 
 M22 plans to turn installation and local operations into a supported capability.
 
-Implemented in M22.1/M22.2 and ready for audit:
+Implemented and validated for M22.1/M22.2:
 
 - versioned installation contract;
 - macOS installer wrapper;
@@ -70,7 +70,9 @@ Implemented in M22.1/M22.2 and ready for audit:
 - port detection;
 - residual process detection and post-probe cleanup check;
 - upgrade command;
-- uninstall command.
+- uninstall command;
+- real macOS managed install/upgrade validation;
+- real Codex integration/use on macOS after restart.
 
 Planned, not yet complete:
 
@@ -91,7 +93,7 @@ exists.
 - Full draw.io WAR notice review remains pending for public beta standards.
 - The current Markdown source does not yet have an automated release manual
   generation pipeline.
-- macOS manual product audit for the installer remains pending.
+- Ubuntu and Windows installer validation remain pending.
 
 ## Manual Artifact Policy
 
